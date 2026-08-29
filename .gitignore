@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+*.pkl
+*.csv
+*.wav
+stories/
+.DS_Store
