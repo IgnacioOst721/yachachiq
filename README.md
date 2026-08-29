@@ -27,7 +27,7 @@ Three machines talk to each other over a private network:
 |---|---|---|
 | **Raspberry Pi 5** | Conductor: records the story, transcribes it, converts images to G-code, streams to the plotter | [`pi/`](pi/) |
 | **Mac (GPU)** | Image generation server: receives scene text, runs ComfyUI / Stable Diffusion, returns a PNG | [`mac/`](mac/) |
-| **Arduino UNO** | Runs GRBL firmware, drives the NEMA 17 steppers and the pen servo | GRBL (see below) |
+| **Arduino UNO** | Runs GRBL firmware, drives the NEMA 17 steppers and the pen servo | [`arduino/`](arduino/) |
 
 ## Repository contents
 
@@ -51,19 +51,18 @@ Three machines talk to each other over a private network:
 - **`asl_app.py`** — live sign-to-text app: MediaPipe hand landmarks → trained
   classifier → stability filter → text, sent over a socket to the pipeline.
 - **`collect_data.py`** / **`train_model.py`** — record landmark samples per letter
-  and train the model (`model.pkl`, ~96% accuracy — not committed, too large).
+  and train the model.
+- **`model.pkl`** — the trained classifier (~96% accuracy) and
+  **`asl_data.csv`** — the full landmark training dataset.
 - **`landmark_utils.py`** — shared feature extraction (hand shape, fingertip
   positions, motion features for I vs J).
 - **`translate.py`**, **`receiver.py`**, **`hello_hands.py`** — earlier/demo tools.
 
-The training data (CSV) and trained model (`model.pkl`) are not in the repo because
-of their size; run `collect_data.py` + `train_model.py` to rebuild them.
-
-## Firmware
-
-The Arduino UNO runs **GRBL** — we used the standard GRBL upload sketch.
-Earlier prototypes used [GRBL-28byj-48](https://github.com/TGit-Tech/GRBL-28byj-48);
-the final machine uses NEMA 17 steppers on DRV8825 drivers with a CNC shield.
+### `arduino/` — plotter firmware
+- **`grblUpload/grblUpload.ino`** — the standard GRBL upload sketch, plus
+  instructions for flashing GRBL to the UNO. Earlier prototypes used
+  [GRBL-28byj-48](https://github.com/TGit-Tech/GRBL-28byj-48); the final machine
+  uses NEMA 17 steppers on DRV8825 drivers with a CNC shield.
 
 ## Credits
 
