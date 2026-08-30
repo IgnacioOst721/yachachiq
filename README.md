@@ -70,16 +70,15 @@ Every story told to Yachachiq is preserved on a public web gallery served from
 this repo via GitHub Pages ([`docs/`](docs/)):
 
 1. A dedicated camera mounted above the plotter bed photographs the finished
-   drawing **automatically** when the CNC stops
-   ([`pi/capture_drawing.py`](pi/capture_drawing.py) — supports a USB webcam
-   or the Raspberry Pi Camera Module, no human intervention).
+   drawing automatically when the CNC stops.
 2. Everything stays saved locally in the `stories/` folder — the system is
    **store-and-forward**, designed for rural areas with little connectivity.
-3. After each story, the Pi automatically tries to publish
-   ([`pi/sync_stories.py`](pi/sync_stories.py)). With a satellite internet
-   terminal (e.g. Starlink Mini) the upload happens immediately from anywhere,
-   even deep in the jungle; without a connection the story queues locally and
-   uploads on the next opportunity. The gallery updates itself on every push.
+3. When a connection is available the pending stories upload and the gallery
+   updates itself on every push.
+
+The automatic capture and upload scripts (`capture_drawing.py`,
+`sync_stories.py`) live on the [`dev`](../../tree/dev) branch until they are
+tested on the real hardware.
 
 ## Credits
 
