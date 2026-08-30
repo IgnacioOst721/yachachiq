@@ -55,6 +55,28 @@ journalctl -u yachachiq-asl -f      # ver las letras en vivo
 
 Desde aquí la Pi se enchufa y funciona sola: sin monitor, sin teclado, sin laptop.
 
+## Con pantalla o sin pantalla
+
+El programa detecta solo si hay monitor conectado y se adapta. Las dos opciones
+funcionan sin la laptop.
+
+| | Con pantalla | Sin pantalla (aparato) |
+|---|---|---|
+| Ventana de reconocimiento | Sí, igual que en la Mac | No |
+| Se maneja con | Gestos + teclado USB opcional | Solo gestos |
+| Consumo y tamaño | Mayor | Mínimo |
+| Bueno para | Demostrar en la competencia | Instalación en comunidad |
+
+**Pantallas que sirven:** la pantalla táctil oficial de 7" de Raspberry, cualquier
+monitor pequeño HDMI, o hasta un televisor. Ojo: la Pi 4 y 5 usan **micro-HDMI**,
+así que hace falta el cable o adaptador correcto.
+
+Para la WRO conviene la pantalla: el jurado ve en vivo cómo la máquina reconoce
+cada seña, que es la parte más impresionante del sistema.
+
+Para activar cada modo en el arranque automático, ver los comentarios dentro de
+`yachachiq-asl.service`.
+
 ## Modo headless (sin pantalla)
 
 Sin monitor no hay ventana de preview ni atajos de teclado. Todo se maneja con

@@ -7,9 +7,21 @@ Wants=network-online.target
 Type=simple
 User=pi
 WorkingDirectory=/home/pi/yachachiq/asl
+
+# --- MODO SIN PANTALLA (aparato) ---
+# Deja esta línea si la Pi va sin monitor.
 Environment=ASL_HEADLESS=1
-# Uncomment and set if the wrong camera is picked up:
+
+# --- MODO CON PANTALLA ---
+# Si le conectas un monitor y quieres ver la ventana de reconocimiento
+# (letra grande, confianza, barra de progreso), comenta la línea de arriba
+# y descomenta estas dos:
+# Environment=DISPLAY=:0
+# Environment=XAUTHORITY=/home/pi/.Xauthority
+
+# Descomenta si abre la cámara equivocada:
 # Environment=ASL_CAMERA=1
+
 ExecStart=/usr/bin/python3 /home/pi/yachachiq/asl/asl_app.py
 Restart=always
 RestartSec=5
