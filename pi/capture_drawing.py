@@ -1,41 +1,66 @@
-# capture_drawing.py -- takes a photo of the finished physical drawing
-# Uses the same USB camera as the ASL system (or the Pi camera).
-# Called by listen.py after each scene is plotted, or run standalone:
-#   python3 capture_drawing.py stories/2026-08-30_15-00-00/scene_1_photo.png
+# capture_drawing.py -- automatic photo of the finished drawing (runs on the Pi)
+# A dedicated camera is mounted above the plotter bed. When the CNC finishes,
+# listen.py calls capture() and the photo is taken automatically -- no human.
+#
+# Works with either:
+#   - a USB webcam plugged into the Pi (uses OpenCV), or
+#   - the official Raspberry Pi Camera Module (uses rpicam-still/libcamera-still)
+#
+# Standalone test:  python3 capture_drawing.py test.png
 
-import cv2
+import subprocess
 import sys
 import time
 
-CAMERA_INDEX = 0        # 0 = first camera; change if the wrong camera opens
+CAMERA_INDEX = 0        # USB webcam index on the Pi
 WARMUP_FRAMES = 15      # let the camera adjust exposure before shooting
+SETTLE_SECONDS = 2      # wait after the plotter stops (vibration, pen lift)
 
 
-def capture(out_path, camera_index=CAMERA_INDEX):
-    """Take one photo and save it to out_path. Returns True on success."""
-    cam = cv2.VideoCapture(camera_index)
+def _capture_usb(out_path):
+    import cv2
+    cam = cv2.VideoCapture(CAMERA_INDEX)
     if not cam.isOpened():
-        print(f"  ⚠️  No se pudo abrir la cámara {camera_index}")
         return False
     try:
         cam.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
         cam.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
-        # warm up: discard the first frames so exposure settles
         for _ in range(WARMUP_FRAMES):
             cam.read()
             time.sleep(0.05)
         ok, frame = cam.read()
         if not ok:
-            print("  ⚠️  La cámara no devolvió imagen")
             return False
         cv2.imwrite(out_path, frame)
-        print(f"  📷 Foto del dibujo guardada: {out_path}")
         return True
     finally:
         cam.release()
 
 
+def _capture_picam(out_path):
+    for cmd in ("rpicam-still", "libcamera-still"):
+        try:
+            r = subprocess.run([cmd, "-o", out_path, "-t", "1500",
+                                "--width", "1280", "--height", "720", "-n"],
+                               capture_output=True, timeout=20)
+            if r.returncode == 0:
+                return True
+        except FileNotFoundError:
+            continue
+        except Exception:
+            continue
+    return False
+
+
+def capture(out_path):
+    """Automatic capture: settle, then try USB webcam, then Pi camera."""
+    time.sleep(SETTLE_SECONDS)
+    if _capture_usb(out_path) or _capture_picam(out_path):
+        print(f"  📷 Foto del dibujo guardada: {out_path}")
+        return True
+    print("  ⚠️  Ninguna cámara disponible en la Pi (ni USB ni Pi Camera)")
+    return False
+
+
 if __name__ == "__main__":
-    out = sys.argv[1] if len(sys.argv) > 1 else "drawing_photo.png"
-    input("Coloca el dibujo frente a la cámara y presiona ENTER...")
-    capture(out)
+    capture(sys.argv[1] if len(sys.argv) > 1 else "drawing_photo.png")

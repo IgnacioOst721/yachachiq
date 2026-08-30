@@ -69,13 +69,17 @@ Three machines talk to each other over a private network:
 Every story told to Yachachiq is preserved on a public web gallery served from
 this repo via GitHub Pages ([`docs/`](docs/)):
 
-1. After each scene is plotted, [`pi/capture_drawing.py`](pi/capture_drawing.py)
-   photographs the physical drawing with the same camera used for ASL.
+1. A dedicated camera mounted above the plotter bed photographs the finished
+   drawing **automatically** when the CNC stops
+   ([`pi/capture_drawing.py`](pi/capture_drawing.py) — supports a USB webcam
+   or the Raspberry Pi Camera Module, no human intervention).
 2. Everything stays saved locally in the `stories/` folder — the system is
    **store-and-forward**, designed for rural areas with little connectivity.
-3. When any internet connection is available (phone hotspot, town wifi, or a
-   satellite link such as Starlink), [`pi/sync_stories.py`](pi/sync_stories.py)
-   uploads the pending stories and the gallery updates automatically.
+3. After each story, the Pi automatically tries to publish
+   ([`pi/sync_stories.py`](pi/sync_stories.py)). With a satellite internet
+   terminal (e.g. Starlink Mini) the upload happens immediately from anywhere,
+   even deep in the jungle; without a connection the story queues locally and
+   uploads on the next opportunity. The gallery updates itself on every push.
 
 ## Credits
 

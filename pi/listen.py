@@ -144,10 +144,9 @@ def run_story(story_text, story_dir):
                 input(f"\n  Place paper for scene {i+1}, then press ENTER...")
             send_gcode.send(gcode_paths[i], SERIAL_PORT, BAUD)
             print(f"  🖨  Scene {i+1} printed!")
-            # photograph the physical drawing so it can be published online
+            # automatic photo of the finished drawing (camera mounted over the bed)
             try:
                 import capture_drawing
-                input("  Coloca el dibujo frente a la cámara y presiona ENTER...")
                 capture_drawing.capture(os.path.join(story_dir, f"scene_{i+1}_photo.png"))
             except Exception as e:
                 print(f"  (foto del dibujo no tomada: {e})")
@@ -155,6 +154,16 @@ def run_story(story_text, story_dir):
             print(f"  ⚠️  Skipping scene {i+1} (generation failed).")
 
     print(f"\n🎉 Picture book complete! Saved in: {story_dir}")
+
+    # try to publish to the web archive automatically (store-and-forward:
+    # if there is no internet right now, the story stays queued locally and
+    # will be uploaded the next time any connection is available)
+    try:
+        import sync_stories
+        threading.Thread(target=sync_stories.sync, args=(STORIES_DIR,),
+                         daemon=True).start()
+    except Exception as e:
+        print(f"  (publicación web pendiente: {e})")
 
 # ── main loop ─────────────────────────────────────────────────────────
 
