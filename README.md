@@ -64,6 +64,19 @@ Three machines talk to each other over a private network:
   [GRBL-28byj-48](https://github.com/TGit-Tech/GRBL-28byj-48); the final machine
   uses NEMA 17 steppers on DRV8825 drivers with a CNC shield.
 
+## Story archive (web)
+
+Every story told to Yachachiq is preserved on a public web gallery served from
+this repo via GitHub Pages ([`docs/`](docs/)):
+
+1. After each scene is plotted, [`pi/capture_drawing.py`](pi/capture_drawing.py)
+   photographs the physical drawing with the same camera used for ASL.
+2. Everything stays saved locally in the `stories/` folder — the system is
+   **store-and-forward**, designed for rural areas with little connectivity.
+3. When any internet connection is available (phone hotspot, town wifi, or a
+   satellite link such as Starlink), [`pi/sync_stories.py`](pi/sync_stories.py)
+   uploads the pending stories and the gallery updates automatically.
+
 ## Credits
 
 Team Yachachiq — Joaquin Cisneros (team lead), Ignacio Osterling (lead engineer,

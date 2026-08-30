@@ -144,6 +144,13 @@ def run_story(story_text, story_dir):
                 input(f"\n  Place paper for scene {i+1}, then press ENTER...")
             send_gcode.send(gcode_paths[i], SERIAL_PORT, BAUD)
             print(f"  🖨  Scene {i+1} printed!")
+            # photograph the physical drawing so it can be published online
+            try:
+                import capture_drawing
+                input("  Coloca el dibujo frente a la cámara y presiona ENTER...")
+                capture_drawing.capture(os.path.join(story_dir, f"scene_{i+1}_photo.png"))
+            except Exception as e:
+                print(f"  (foto del dibujo no tomada: {e})")
         else:
             print(f"  ⚠️  Skipping scene {i+1} (generation failed).")
 

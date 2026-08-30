@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Yachachiq — Archivo de Historias</title>
+<style>
+  :root {
+    --rojo: #80252E;
+    --amarillo: #F2C438;
+    --celeste: #A8CEDC;
+    --crema: #FFFDF8;
+    --tinta: #2B2B2B;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: Georgia, 'Times New Roman', serif;
+    background: var(--crema);
+    color: var(--tinta);
+  }
+  header {
+    background: var(--rojo);
+    color: white;
+    padding: 3.5rem 1.5rem 3rem;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  header::before, header::after {
+    content: "";
+    position: absolute;
+    width: 340px; height: 120px;
+    border-radius: 60% 40% 55% 45%;
+    opacity: .85;
+    transform: rotate(-8deg);
+  }
+  header::before { background: var(--amarillo); top: -40px; right: -60px; }
+  header::after  { background: var(--celeste); bottom: -50px; left: -70px; rotate: 6deg; }
+  header h1 {
+    font-style: italic;
+    font-size: clamp(2.4rem, 6vw, 4rem);
+    position: relative; z-index: 1;
+    background: white; color: var(--rojo);
+    display: inline-block;
+    padding: .3rem 1.6rem;
+  }
+  header p {
+    position: relative; z-index: 1;
+    margin-top: 1rem;
+    font-size: 1.1rem;
+    max-width: 34rem;
+    margin-left: auto; margin-right: auto;
+  }
+  .stats {
+    text-align: center;
+    padding: 1.2rem;
+    font-size: .95rem;
+    color: #6b5557;
+    border-bottom: 2px solid var(--rojo);
+  }
+  main {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 2rem 1.2rem 4rem;
+    display: grid;
+    gap: 2rem;
+  }
+  .historia {
+    background: white;
+    border: 1px solid #e5dcd2;
+    border-top: 6px solid var(--rojo);
+    box-shadow: 0 3px 14px rgba(60,20,25,.08);
+    padding: 1.6rem;
+  }
+  .historia .fecha {
+    color: var(--rojo);
+    font-weight: bold;
+    letter-spacing: .04em;
+    font-size: .85rem;
+    text-transform: uppercase;
+    margin-bottom: .8rem;
+  }
+  .historia .texto {
+    white-space: pre-wrap;
+    line-height: 1.55;
+    margin-bottom: 1.1rem;
+    font-size: 1.02rem;
+  }
+  .galeria {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .8rem;
+  }
+  .galeria figure {
+    flex: 1 1 220px;
+    max-width: 320px;
+  }
+  .galeria img {
+    width: 100%;
+    display: block;
+    border: 1px solid #ddd2c6;
+    background: #fff;
+  }
+  .galeria figcaption {
+    font-size: .8rem;
+    font-style: italic;
+    color: #7a6a6b;
+    margin-top: .3rem;
+    text-align: center;
+  }
+  .vacio {
+    text-align: center;
+    padding: 4rem 1rem;
+    color: #8a7a7b;
+    font-style: italic;
+  }
+  footer {
+    background: var(--tinta);
+    color: #d9cfc6;
+    text-align: center;
+    padding: 1.6rem 1rem;
+    font-size: .85rem;
+  }
+  footer a { color: var(--amarillo); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Yachachiq</h1>
+  <p>Donde las historias cobran vida. Cada historia contada al robot —por voz o
+  en lengua de señas— queda preservada aquí para siempre, junto con el dibujo
+  que la máquina trazó a mano.</p>
+</header>
+<div class="stats" id="stats">Cargando historias…</div>
+<main id="lista"></main>
+<footer>
+  Archivo del proyecto Yachachiq · World Robot Olympiad 2026 Future Innovators ·
+  <a href="https://github.com/IgnacioOst721/yachachiq">código del proyecto</a>
+</footer>
+<script>
+function fechaBonita(id) {
+  // carpetas tipo 2026-08-30_15-42-10
+  const m = id.match(/^(\d{4})-(\d{2})-(\d{2})_(\d{2})-(\d{2})/);
+  if (!m) return id;
+  const meses = ["enero","febrero","marzo","abril","mayo","junio","julio",
+                 "agosto","septiembre","octubre","noviembre","diciembre"];
+  return `${+m[3]} de ${meses[+m[2]-1]} de ${m[1]} · ${m[4]}:${m[5]}`;
+}
+function soloHistoria(txt) {
+  // el archivo story.txt guarda "STORY ==== texto ... SCENES ===="
+  const i = txt.indexOf("SCENES");
+  let t = i > 0 ? txt.slice(0, i) : txt;
+  return t.replace(/^STORY\s*/, "").replace(/=+/g, "").trim();
+}
+fetch("stories.json")
+  .then(r => r.json())
+  .then(historias => {
+    const lista = document.getElementById("lista");
+    document.getElementById("stats").textContent =
+      historias.length === 1 ? "1 historia preservada"
+                             : historias.length + " historias preservadas";
+    if (!historias.length) {
+      lista.innerHTML = '<div class="vacio">Todavía no hay historias publicadas.<br>La primera llegará pronto.</div>';
+      return;
+    }
+    for (const h of historias) {
+      const art = document.createElement("article");
+      art.className = "historia";
+      let figs = "";
+      for (const img of h.images)
+        figs += `<figure><img src="stories/${h.id}/${img}" loading="lazy" alt="Ilustración generada"><figcaption>Ilustración generada</figcaption></figure>`;
+      for (const ph of h.photos)
+        figs += `<figure><img src="stories/${h.id}/${ph}" loading="lazy" alt="Dibujo del plotter"><figcaption>Dibujo real del plotter</figcaption></figure>`;
+      art.innerHTML = `
+        <div class="fecha">${fechaBonita(h.id)}</div>
+        <div class="texto">${soloHistoria(h.story || "").replace(/</g, "&lt;") || "(sin transcripción)"}</div>
+        <div class="galeria">${figs}</div>`;
+      lista.appendChild(art);
+    }
+  })
+  .catch(() => {
+    document.getElementById("stats").textContent = "No se pudo cargar el archivo de historias.";
+  });
+</script>
+</body>
+</html>
