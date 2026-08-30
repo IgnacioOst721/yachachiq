@@ -15,7 +15,12 @@ def open_camera():
     if sys.platform == "darwin":
         return cv2.VideoCapture(idx, cv2.CAP_AVFOUNDATION)
     if sys.platform.startswith("linux"):
-        return cv2.VideoCapture(idx, cv2.CAP_V4L2)
+        cap = cv2.VideoCapture(idx, cv2.CAP_V4L2)
+        # SPEED (Pi): 640x480 is plenty for hand tracking and much lighter
+        # than the webcam's default 1280x720.
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+        return cap
     return cv2.VideoCapture(idx)
 
 # Shared helpers used by BOTH the collector and the live translator, so they

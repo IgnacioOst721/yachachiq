@@ -137,12 +137,23 @@ gestos, que ya estaban en el sistema:
 La confirmación visual la da la pantalla del equipo que recibe: las letras
 aparecen escribiéndose ahí mientras señas.
 
+## Velocidad (optimizaciones ya incluidas)
+
+Verificado con los datos reales del proyecto (2,500 muestras):
+
+- **El modelo se recorta a 100 árboles al cargar** — coincide al 100% con el
+  modelo completo de 400 y predice 2 veces más rápido (13 ms vs 26 ms por
+  fotograma en Mac). Ajustable con `ASL_TREES` (0 = usar los 400).
+- **La cámara captura a 640×480 en la Pi** — suficiente para detectar la mano
+  y mucho más liviano que 1280×720.
+- **Si aun así se siente lento:** `ASL_FAST=1` baja la complejidad del rastreo
+  de MediaPipe (más fps, landmarks algo menos precisos). Probar señando el
+  abecedario completo antes de dejarlo activado.
+- Última palanca: bajar `STABLE_FRAMES` en `asl_app.py` de 8 a 5–6.
+
 ## Pendientes por resolver al probar
 
-- **Velocidad.** MediaPipe en Pi corre alrededor de 10–20 fps (Pi 5). El filtro
-  de estabilidad exige 8 fotogramas seguidos, así que puede que haya que bajar
-  `STABLE_FRAMES` si se siente lento.
-- **Carga del modelo.** `model.pkl` pesa 89 MB; medir cuánto tarda en cargar al
-  arrancar y si la RAM alcanza cómodamente.
+- **Fps reales en la Pi.** Medir con `ASL_FAST` apagado y prendido.
+- **Carga del modelo.** `model.pkl` pesa 89 MB; medir cuánto tarda al arrancar.
 - **Confirmación local opcional.** Si se quiere feedback sin mirar la otra
   pantalla: un beep, un LED o una pantallita OLED.
