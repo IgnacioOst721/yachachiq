@@ -5,10 +5,18 @@ from collections import deque
 
 def open_camera():
     """Open the webcam. If it grabs your phone instead of the built-in camera,
-    put ASL_CAMERA=1 (or 2) in front of the command to pick a different one."""
+    put ASL_CAMERA=1 (or 2) in front of the command to pick a different one.
+
+    Picks the right backend per platform: AVFoundation on a Mac, V4L2 on a
+    Raspberry Pi / Linux, so the same code runs on both."""
     import cv2
+    import sys
     idx = int(os.environ.get("ASL_CAMERA", "0"))
-    return cv2.VideoCapture(idx, cv2.CAP_AVFOUNDATION)
+    if sys.platform == "darwin":
+        return cv2.VideoCapture(idx, cv2.CAP_AVFOUNDATION)
+    if sys.platform.startswith("linux"):
+        return cv2.VideoCapture(idx, cv2.CAP_V4L2)
+    return cv2.VideoCapture(idx)
 
 # Shared helpers used by BOTH the collector and the live translator, so they
 # always treat the hand identically. You don't need to edit this file.

@@ -2,16 +2,23 @@ import cv2
 import mediapipe as mp
 import joblib
 import numpy as np
+import os
 import sys
 import socket
 import time
 from landmark_utils import (extract_shape, fingertip_xy, motion_features,
                             new_motion_buffer, augment, open_camera)
 
-MODEL_PATH = "model.pkl"
+MODEL_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "model.pkl")
 STABLE_FRAMES = 8      # how many steady frames before a sign "counts" (~0.4s)
 CONF_THRESH = 0.50     # minimum confidence to accept a sign
 SEND_HOLD_SECONDS = 2.0  # hold BOTH open palms this long to auto-send
+
+# On a Raspberry Pi running as an appliance there is no screen and no keyboard,
+# so the preview window is skipped and everything is driven by gestures.
+# Forced with ASL_HEADLESS=1, otherwise auto-detected on Linux with no display.
+HEADLESS = (os.environ.get("ASL_HEADLESS") == "1" or
+            (sys.platform.startswith("linux") and not os.environ.get("DISPLAY")))
 
 
 class Typer:
@@ -197,7 +204,9 @@ def run():
 
     cap = open_camera()
     if not cap.isOpened():
-        print("[ERROR] Camera won't open - Settings > Privacy & Security > Camera fix.")
+        print("[ERROR] Camera won't open.")
+        print("  Mac: System Settings > Privacy & Security > Camera.")
+        print("  Raspberry Pi: check `ls /dev/video*` and try ASL_CAMERA=1.")
         raise SystemExit(1)
     for _ in range(10):
         cap.read()
@@ -205,7 +214,11 @@ def run():
     buf = new_motion_buffer()
     send_start = None      # time (seconds) when both palms first appeared
     sent_latch = False     # prevents re-firing until palms are lowered
-    cv2.namedWindow("ASL app - Q to quit", cv2.WINDOW_NORMAL)
+    if not HEADLESS:
+        cv2.namedWindow("ASL app - Q to quit", cv2.WINDOW_NORMAL)
+    else:
+        print("HEADLESS mode - no preview window. Sign control gestures:")
+        print("  both open palms (hold 2s) = send   |  Ctrl-C to quit")
     print("Sign letters. HOLD each sign steady until the green bar fills, then it types.")
     print("To type the same letter twice, drop your hand and sign it again.")
     print("Keyboard:  SPACE=space  DELETE=backspace  C=clear  Q=quit")
@@ -289,6 +302,10 @@ def run():
         shown = typer.text[-40:]
         cv2.putText(frame, "> " + shown + "_", (10, h - 22),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 255, 255), 2)
+
+        if HEADLESS:
+            # No screen and no keyboard on the Pi: control gestures only.
+            continue
 
         cv2.imshow("ASL app - Q to quit", frame)
         key = cv2.waitKey(1) & 0xFF
