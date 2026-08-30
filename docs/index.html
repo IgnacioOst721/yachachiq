@@ -4,142 +4,363 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Yachachiq — Archivo de Historias</title>
+<meta name="description" content="Cada historia contada al robot Yachachiq queda preservada aquí junto con el dibujo que la máquina trazó a mano.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,700;0,9..144,900;1,9..144,400;1,9..144,900&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap" rel="stylesheet">
 <style>
   :root {
     --rojo: #80252E;
-    --amarillo: #F2C438;
-    --celeste: #A8CEDC;
-    --crema: #FFFDF8;
-    --tinta: #2B2B2B;
+    --rojo-oscuro: #571820;
+    --tinta: #241B1A;
+    --amarillo: #E8B93B;
+    --celeste: #9DC3D4;
+    --papel: #F7F0E3;
+    --papel-claro: #FDFAF3;
+    --hilo: #D8C9AE;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
   body {
-    font-family: Georgia, 'Times New Roman', serif;
-    background: var(--crema);
+    font-family: "Newsreader", Georgia, serif;
+    background: var(--papel);
     color: var(--tinta);
+    font-size: 17px;
+    line-height: 1.6;
   }
+
+  /* ── franja tocapu (motivo textil) ─────────────────────── */
+  .tocapu {
+    height: 26px;
+    background:
+      repeating-conic-gradient(from 45deg, var(--amarillo) 0 25%, var(--rojo) 0 50%)
+      0 0 / 26px 26px;
+  }
+  .tocapu.fina {
+    height: 14px;
+    background:
+      repeating-conic-gradient(from 45deg, var(--celeste) 0 25%, var(--tinta) 0 50%)
+      0 0 / 14px 14px;
+  }
+
+  /* ── hero ──────────────────────────────────────────────── */
   header {
-    background: var(--rojo);
-    color: white;
-    padding: 3.5rem 1.5rem 3rem;
-    text-align: center;
+    background:
+      repeating-linear-gradient(90deg, rgba(255,255,255,.025) 0 2px, transparent 2px 6px),
+      repeating-linear-gradient(0deg, rgba(0,0,0,.05) 0 2px, transparent 2px 7px),
+      linear-gradient(160deg, var(--rojo) 55%, var(--rojo-oscuro));
+    color: var(--papel-claro);
+    padding: clamp(4rem, 10vw, 7.5rem) 1.5rem clamp(3.5rem, 8vw, 6rem);
     position: relative;
     overflow: hidden;
   }
-  header::before, header::after {
+  .brocha {
+    position: absolute;
+    border-radius: 62% 38% 55% 45% / 55% 48% 52% 45%;
+    filter: blur(1px);
+    pointer-events: none;
+  }
+  .brocha.a { width: 46vw; height: 13vw; min-width: 300px; min-height: 90px;
+              background: var(--amarillo); top: -4%; right: -8%; transform: rotate(-9deg); opacity: .9; }
+  .brocha.b { width: 34vw; height: 11vw; min-width: 240px; min-height: 80px;
+              background: var(--celeste); bottom: -6%; left: -6%; transform: rotate(7deg); opacity: .85; }
+  .hero-inner { max-width: 1060px; margin: 0 auto; position: relative; z-index: 2; }
+  .kicker {
+    font-family: "Fraunces", serif;
+    letter-spacing: .32em;
+    text-transform: uppercase;
+    font-size: .72rem;
+    color: var(--amarillo);
+    margin-bottom: 1.4rem;
+    animation: sube .7s .05s cubic-bezier(.2,.7,.2,1) backwards;
+  }
+  h1 {
+    font-family: "Fraunces", serif;
+    font-style: italic;
+    font-weight: 900;
+    font-size: clamp(3.4rem, 11vw, 7.5rem);
+    line-height: .95;
+    letter-spacing: -.02em;
+    animation: sube .7s .15s cubic-bezier(.2,.7,.2,1) backwards;
+  }
+  h1 .subrayado { position: relative; white-space: nowrap; }
+  h1 .subrayado::after {
     content: "";
     position: absolute;
-    width: 340px; height: 120px;
-    border-radius: 60% 40% 55% 45%;
-    opacity: .85;
-    transform: rotate(-8deg);
+    left: -2%; right: -3%; bottom: .04em;
+    height: .18em;
+    background: var(--amarillo);
+    border-radius: 40% 60% 55% 45%;
+    z-index: -1;
+    transform: rotate(-1deg);
   }
-  header::before { background: var(--amarillo); top: -40px; right: -60px; }
-  header::after  { background: var(--celeste); bottom: -50px; left: -70px; rotate: 6deg; }
-  header h1 {
+  .lema {
+    font-family: "Fraunces", serif;
     font-style: italic;
-    font-size: clamp(2.4rem, 6vw, 4rem);
-    position: relative; z-index: 1;
-    background: white; color: var(--rojo);
-    display: inline-block;
-    padding: .3rem 1.6rem;
+    font-size: clamp(1.05rem, 2.4vw, 1.45rem);
+    color: var(--celeste);
+    margin-top: 1.2rem;
+    animation: sube .7s .25s cubic-bezier(.2,.7,.2,1) backwards;
   }
-  header p {
-    position: relative; z-index: 1;
-    margin-top: 1rem;
-    font-size: 1.1rem;
-    max-width: 34rem;
-    margin-left: auto; margin-right: auto;
+  .hero-p {
+    max-width: 33rem;
+    margin-top: 1.5rem;
+    font-size: 1.06rem;
+    color: #F2E4D8;
+    animation: sube .7s .35s cubic-bezier(.2,.7,.2,1) backwards;
   }
-  .stats {
-    text-align: center;
-    padding: 1.2rem;
-    font-size: .95rem;
-    color: #6b5557;
-    border-bottom: 2px solid var(--rojo);
+  .contador {
+    display: inline-flex;
+    align-items: baseline;
+    gap: .55rem;
+    margin-top: 2.2rem;
+    background: var(--papel-claro);
+    color: var(--rojo);
+    padding: .55rem 1.2rem .6rem;
+    border-radius: 2px;
+    box-shadow: .35rem .35rem 0 var(--rojo-oscuro);
+    animation: sube .7s .45s cubic-bezier(.2,.7,.2,1) backwards;
   }
-  main {
-    max-width: 1000px;
+  .contador b {
+    font-family: "Fraunces", serif;
+    font-weight: 900;
+    font-size: 1.7rem;
+    line-height: 1;
+  }
+  .contador span {
+    font-size: .78rem;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+  }
+  @keyframes sube {
+    from { opacity: 0; transform: translateY(22px); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  /* ── cómo funciona ─────────────────────────────────────── */
+  .como {
+    max-width: 1060px;
     margin: 0 auto;
-    padding: 2rem 1.2rem 4rem;
+    padding: 2.6rem 1.5rem .6rem;
     display: grid;
-    gap: 2rem;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+  }
+  .paso {
+    border: 1.5px solid var(--hilo);
+    background: var(--papel-claro);
+    padding: 1.1rem 1.2rem 1.2rem;
+    position: relative;
+  }
+  .paso::before {
+    content: attr(data-n);
+    font-family: "Fraunces", serif;
+    font-weight: 900;
+    font-style: italic;
+    font-size: 2.2rem;
+    color: var(--amarillo);
+    -webkit-text-stroke: 1.2px var(--rojo);
+    line-height: 1;
+    display: block;
+    margin-bottom: .35rem;
+  }
+  .paso p { font-size: .93rem; line-height: 1.45; color: #4c403e; }
+  .paso b { color: var(--rojo); }
+
+  /* ── archivo de historias ──────────────────────────────── */
+  main {
+    max-width: 1060px;
+    margin: 0 auto;
+    padding: 2.2rem 1.5rem 5rem;
+  }
+  .titulo-seccion {
+    display: flex;
+    align-items: center;
+    gap: 1.1rem;
+    margin: 1.4rem 0 2.4rem;
+  }
+  .titulo-seccion h2 {
+    font-family: "Fraunces", serif;
+    font-weight: 900;
+    font-size: clamp(1.7rem, 4vw, 2.5rem);
+    color: var(--rojo);
+    white-space: nowrap;
+  }
+  .titulo-seccion::after {
+    content: "";
+    flex: 1;
+    height: 12px;
+    background:
+      repeating-conic-gradient(from 45deg, var(--hilo) 0 25%, transparent 0 50%)
+      0 0 / 12px 12px;
   }
   .historia {
-    background: white;
-    border: 1px solid #e5dcd2;
-    border-top: 6px solid var(--rojo);
-    box-shadow: 0 3px 14px rgba(60,20,25,.08);
-    padding: 1.6rem;
+    background: var(--papel-claro);
+    border: 1.5px solid var(--hilo);
+    margin-bottom: 2.6rem;
+    position: relative;
+    padding: 2rem clamp(1.2rem, 4vw, 2.6rem) 2.2rem;
+    box-shadow: .5rem .5rem 0 rgba(128,37,46,.1);
+    animation: sube .6s backwards;
   }
-  .historia .fecha {
+  .historia::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; bottom: 0;
+    width: 10px;
+    background:
+      repeating-linear-gradient(0deg, var(--acento, var(--rojo)) 0 14px, var(--tinta) 14px 17px);
+  }
+  .historia:nth-child(3n+1) { --acento: var(--rojo); }
+  .historia:nth-child(3n+2) { --acento: var(--amarillo); }
+  .historia:nth-child(3n)   { --acento: #4E7C8A; }
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: .9rem;
+    margin-bottom: 1.2rem;
+  }
+  .num {
+    font-family: "Fraunces", serif;
+    font-style: italic;
+    font-weight: 900;
+    font-size: 1.5rem;
     color: var(--rojo);
-    font-weight: bold;
-    letter-spacing: .04em;
-    font-size: .85rem;
-    text-transform: uppercase;
-    margin-bottom: .8rem;
   }
-  .historia .texto {
+  .fecha {
+    font-size: .74rem;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    color: #8a7563;
+    border: 1px solid var(--hilo);
+    padding: .25rem .7rem;
+  }
+  .texto {
+    font-size: 1.13rem;
+    line-height: 1.75;
+    max-width: 58ch;
     white-space: pre-wrap;
-    line-height: 1.55;
-    margin-bottom: 1.1rem;
-    font-size: 1.02rem;
+  }
+  .texto::first-letter {
+    font-family: "Fraunces", serif;
+    font-weight: 900;
+    font-size: 3.4em;
+    float: left;
+    line-height: .82;
+    padding: .04em .12em 0 0;
+    color: var(--rojo);
   }
   .galeria {
     display: flex;
     flex-wrap: wrap;
-    gap: .8rem;
+    gap: 1.4rem;
+    margin-top: 1.8rem;
   }
   .galeria figure {
-    flex: 1 1 220px;
-    max-width: 320px;
-  }
-  .galeria img {
-    width: 100%;
-    display: block;
-    border: 1px solid #ddd2c6;
+    flex: 1 1 230px;
+    max-width: 330px;
     background: #fff;
+    border: 1px solid var(--hilo);
+    padding: .6rem .6rem 0;
+    box-shadow: 0 6px 18px rgba(36,27,26,.12);
+    transform: rotate(var(--giro, -1.1deg));
+    transition: transform .35s cubic-bezier(.2,.7,.2,1), box-shadow .35s;
   }
+  .galeria figure:nth-child(2n) { --giro: 1.2deg; }
+  .galeria figure:hover {
+    transform: rotate(0) translateY(-6px) scale(1.02);
+    box-shadow: 0 14px 30px rgba(36,27,26,.2);
+  }
+  .galeria img { width: 100%; display: block; background: #fff; }
   .galeria figcaption {
-    font-size: .8rem;
-    font-style: italic;
-    color: #7a6a6b;
-    margin-top: .3rem;
+    font-size: .74rem;
+    letter-spacing: .14em;
+    text-transform: uppercase;
     text-align: center;
+    color: #8a7563;
+    padding: .55rem 0 .6rem;
   }
   .vacio {
+    border: 2px dashed var(--hilo);
+    background: var(--papel-claro);
     text-align: center;
-    padding: 4rem 1rem;
-    color: #8a7a7b;
-    font-style: italic;
+    padding: 4.5rem 1.5rem;
   }
+  .vacio .glifo {
+    font-family: "Fraunces", serif;
+    font-style: italic;
+    font-weight: 900;
+    font-size: 2.4rem;
+    color: var(--rojo);
+    margin-bottom: .6rem;
+  }
+  .vacio p { color: #7d6a58; font-style: italic; max-width: 30rem; margin: 0 auto; }
+
+  /* ── footer ────────────────────────────────────────────── */
   footer {
     background: var(--tinta);
-    color: #d9cfc6;
+    color: #CBB9A4;
+    padding: 2.4rem 1.5rem 2.6rem;
     text-align: center;
-    padding: 1.6rem 1rem;
-    font-size: .85rem;
+    font-size: .9rem;
   }
-  footer a { color: var(--amarillo); }
+  footer .marca {
+    font-family: "Fraunces", serif;
+    font-style: italic;
+    font-weight: 900;
+    font-size: 1.5rem;
+    color: var(--papel);
+    display: block;
+    margin-bottom: .5rem;
+  }
+  footer a { color: var(--amarillo); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
 </style>
 </head>
 <body>
+
 <header>
-  <h1>Yachachiq</h1>
-  <p>Donde las historias cobran vida. Cada historia contada al robot —por voz o
-  en lengua de señas— queda preservada aquí para siempre, junto con el dibujo
-  que la máquina trazó a mano.</p>
+  <div class="brocha a"></div>
+  <div class="brocha b"></div>
+  <div class="hero-inner">
+    <div class="kicker">Archivo vivo de tradición oral · Perú</div>
+    <h1><span class="subrayado">Yachachiq</span></h1>
+    <div class="lema">“Donde las historias cobran vida”</div>
+    <p class="hero-p">Un robot que escucha — por voz o en lengua de señas —,
+    imagina una ilustración y la dibuja a lápiz sobre papel. Cada historia que
+    recibe queda preservada en este archivo para siempre.</p>
+    <div class="contador"><b id="n-historias">…</b><span id="n-label">historias preservadas</span></div>
+  </div>
 </header>
-<div class="stats" id="stats">Cargando historias…</div>
-<main id="lista"></main>
+
+<div class="tocapu"></div>
+
+<section class="como">
+  <div class="paso" data-n="1"><p><b>Alguien cuenta su historia</b> hablándole al robot, o señándola frente a la cámara si no puede hablar.</p></div>
+  <div class="paso" data-n="2"><p><b>La máquina la ilustra:</b> una IA local imagina la escena y el plotter la dibuja a lápiz, trazo por trazo.</p></div>
+  <div class="paso" data-n="3"><p><b>Una cámara fotografía</b> el dibujo terminado, automáticamente, apenas el CNC se detiene.</p></div>
+  <div class="paso" data-n="4"><p><b>Todo llega aquí</b> apenas hay conexión — diseñado para funcionar desde comunidades sin internet permanente.</p></div>
+</section>
+
+<main>
+  <div class="titulo-seccion"><h2>El archivo</h2></div>
+  <div id="lista"></div>
+</main>
+
+<div class="tocapu fina"></div>
+
 <footer>
-  Archivo del proyecto Yachachiq · World Robot Olympiad 2026 Future Innovators ·
-  <a href="https://github.com/IgnacioOst721/yachachiq">código del proyecto</a>
+  <span class="marca">Yachachiq</span>
+  Proyecto del equipo Yachachiq · World Robot Olympiad 2026 Future Innovators ·
+  Colegio FDR, Lima · <a href="https://github.com/IgnacioOst721/yachachiq">código abierto</a>
 </footer>
+
 <script>
 function fechaBonita(id) {
-  // carpetas tipo 2026-08-30_15-42-10
   const m = id.match(/^(\d{4})-(\d{2})-(\d{2})_(\d{2})-(\d{2})/);
   if (!m) return id;
   const meses = ["enero","febrero","marzo","abril","mayo","junio","julio",
@@ -147,7 +368,6 @@ function fechaBonita(id) {
   return `${+m[3]} de ${meses[+m[2]-1]} de ${m[1]} · ${m[4]}:${m[5]}`;
 }
 function soloHistoria(txt) {
-  // el archivo story.txt guarda "STORY ==== texto ... SCENES ===="
   const i = txt.indexOf("SCENES");
   let t = i > 0 ? txt.slice(0, i) : txt;
   return t.replace(/^STORY\s*/, "").replace(/=+/g, "").trim();
@@ -156,30 +376,41 @@ fetch("stories.json")
   .then(r => r.json())
   .then(historias => {
     const lista = document.getElementById("lista");
-    document.getElementById("stats").textContent =
-      historias.length === 1 ? "1 historia preservada"
-                             : historias.length + " historias preservadas";
+    document.getElementById("n-historias").textContent = historias.length;
+    if (historias.length === 1)
+      document.getElementById("n-label").textContent = "historia preservada";
     if (!historias.length) {
-      lista.innerHTML = '<div class="vacio">Todavía no hay historias publicadas.<br>La primera llegará pronto.</div>';
+      lista.innerHTML = `<div class="vacio">
+        <div class="glifo">Nº 001</div>
+        <p>El archivo espera su primera historia. Muy pronto, en algún lugar,
+        alguien le contará algo a Yachachiq — y aparecerá aquí, dibujado a lápiz.</p>
+      </div>`;
       return;
     }
-    for (const h of historias) {
+    const total = historias.length;
+    historias.forEach((h, idx) => {
       const art = document.createElement("article");
       art.className = "historia";
+      art.style.animationDelay = (Math.min(idx, 6) * 0.08 + 0.1) + "s";
       let figs = "";
       for (const img of h.images)
-        figs += `<figure><img src="stories/${h.id}/${img}" loading="lazy" alt="Ilustración generada"><figcaption>Ilustración generada</figcaption></figure>`;
+        figs += `<figure><img src="stories/${h.id}/${img}" loading="lazy" alt="Ilustración generada por la IA"><figcaption>Ilustración imaginada</figcaption></figure>`;
       for (const ph of h.photos)
-        figs += `<figure><img src="stories/${h.id}/${ph}" loading="lazy" alt="Dibujo del plotter"><figcaption>Dibujo real del plotter</figcaption></figure>`;
+        figs += `<figure><img src="stories/${h.id}/${ph}" loading="lazy" alt="Fotografía del dibujo hecho por el plotter"><figcaption>Dibujado a lápiz por el robot</figcaption></figure>`;
+      const n = String(total - idx).padStart(3, "0");
       art.innerHTML = `
-        <div class="fecha">${fechaBonita(h.id)}</div>
-        <div class="texto">${soloHistoria(h.story || "").replace(/</g, "&lt;") || "(sin transcripción)"}</div>
+        <div class="meta">
+          <span class="num">Historia Nº ${n}</span>
+          <span class="fecha">${fechaBonita(h.id)}</span>
+        </div>
+        <div class="texto">${(soloHistoria(h.story || "") || "(sin transcripción)").replace(/</g, "&lt;")}</div>
         <div class="galeria">${figs}</div>`;
       lista.appendChild(art);
-    }
+    });
   })
   .catch(() => {
-    document.getElementById("stats").textContent = "No se pudo cargar el archivo de historias.";
+    document.getElementById("lista").innerHTML =
+      '<div class="vacio"><p>No se pudo cargar el archivo de historias.</p></div>';
   });
 </script>
 </body>
