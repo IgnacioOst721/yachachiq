@@ -44,6 +44,52 @@ ASL_HEADLESS=1 python3 asl_app.py <IP>   # o apúntale la IP directamente
 Debe imprimir cada letra detectada. Si la cámara no abre, revisa `ls /dev/video*`
 y prueba `ASL_CAMERA=1`.
 
+## Conectar la Pi a una Mac (la de Clara o cualquiera)
+
+La Pi no se "empareja" con nada: las dos máquinas solo tienen que estar en la
+**misma red** (el hotspot del celular, el wifi del colegio, o un cable de red).
+De ahí el descubrimiento es automático.
+
+### En la Mac que va a recibir el texto (una sola vez)
+
+```bash
+pip3 install pyautogui
+```
+
+Luego **dale permiso de Accesibilidad**, o no va a poder escribir:
+Ajustes del Sistema → Privacidad y Seguridad → **Accesibilidad** → activar
+**Terminal**. Sin esto el programa corre pero no aparece ninguna letra, y es
+el error más común.
+
+### Cada vez que se usa
+
+1. **En la Mac:**
+   ```bash
+   python3 receiver.py
+   ```
+   Imprime su IP en pantalla. Déjalo abierto.
+
+2. **En la Pi:** ya arranca solo con systemd. Si lo corres a mano:
+   ```bash
+   python3 asl_app.py            # busca la Mac sola
+   python3 asl_app.py 192.168.1.5   # o dale la IP que imprimió la Mac
+   ```
+
+3. **En la Mac, haz clic donde quieras que escriba** — un documento, el chat,
+   la caja de texto del pipeline. Las letras caen donde esté el cursor.
+
+4. Empieza a señar.
+
+### Si no se encuentran solas
+
+El descubrimiento usa un mensaje UDP de difusión que algunas redes bloquean
+(wifi de colegios sobre todo). Solución: pasarle la IP a mano, como en el
+paso 2. Para dejarla fija en el arranque automático, agrega la IP al final del
+`ExecStart` en `yachachiq-asl.service`.
+
+Otras cosas que revisar: que el firewall de la Mac permita conexiones entrantes,
+y que ambas estén en la misma red (no una en el hotspot y otra en el wifi).
+
 ## Que arranque solo al prender (ya sin laptop)
 
 ```bash
