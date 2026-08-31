@@ -6,7 +6,7 @@ from sklearn.metrics import accuracy_score
 from landmark_utils import augment
 import joblib
 
-CSV_PATH = "asl_data.csv"
+CSV_PATH = "lsp_data.csv"     # Lengua de Señas Peruana
 MODEL_PATH = "model.pkl"
 
 # 1) Load the data you collected

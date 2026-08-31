@@ -5,17 +5,21 @@ import os
 from landmark_utils import (extract_shape, fingertip_xy, motion_features,
                             new_motion_buffer, feature_names, open_camera)
 
-CSV_PATH = "asl_data.csv"
+CSV_PATH = "lsp_data.csv"     # Lengua de Señas Peruana
 SAMPLES_PER_PRESS = 100   # snapshots grabbed each time you press a key
 
 # Which keyboard key records which label.
 #   a-z  -> letters        0-9 -> numbers
+#   ;    -> Ñ  (the ñ key itself does not come through cv2.waitKey reliably,
+#               so we use the key that sits in the same place on a US layout)
 #   spacebar -> SPACE (thumbs-up)   Tab -> MODE (I-love-you)   Delete -> BACK (thumbs-down)
 def key_to_label(key):
     if ord('a') <= key <= ord('z'):
         return chr(key)
     if ord('0') <= key <= ord('9'):
         return chr(key)
+    if key in (ord(';'), 241):   # ';' or the latin-1 code for 'ñ'
+        return "ñ"
     if key == 32:
         return "SPACE"
     if key == 9:
@@ -49,9 +53,9 @@ with open(CSV_PATH) as f:
         if row:
             counts[row[0]] = counts.get(row[0], 0) + 1
 
-cv2.namedWindow("Collect ASL data - ESC to quit", cv2.WINDOW_NORMAL)
-print("KEYS:  a-z = letters   0-9 = numbers")
-print("       SPACEBAR = thumbs-up (space)   TAB = I-love-you (mode switch)   DELETE = thumbs-down (backspace)")
+cv2.namedWindow("Grabar datos LSP - ESC para salir", cv2.WINDOW_NORMAL)
+print("TECLAS:  a-z = letras   0-9 = números   ; = Ñ")
+print("         ESPACIO = pulgar arriba (espacio)   TAB = cambio de modo   SUPR = borrar")
 print("For motion signs (J, Z): press the key, then PERFORM the motion a few times while it records.")
 print("Press ESC when done.")
 
@@ -90,7 +94,7 @@ while True:
         msg = f"RECORDING '{recording_label}'  {SAMPLES_PER_PRESS - remaining}/{SAMPLES_PER_PRESS}"
         color = (0, 0, 255)
     else:
-        msg = "a-z letters | 0-9 numbers | SPACE/TAB/DEL = gestures | ESC = quit"
+        msg = "a-z letras | ; = N-tilde | 0-9 numeros | ESPACIO/TAB/SUPR | ESC = salir"
         color = (0, 200, 0)
     cv2.putText(frame, msg, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
     cv2.putText(frame, f"Collected {len(counts)} labels:", (10, 60),
@@ -98,7 +102,7 @@ while True:
     cv2.putText(frame, " ".join(sorted(counts.keys())), (10, 88),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 0), 1)
 
-    cv2.imshow("Collect ASL data - ESC to quit", frame)
+    cv2.imshow("Grabar datos LSP - ESC para salir", frame)
     key = cv2.waitKey(1) & 0xFF
     if key == 27:
         break

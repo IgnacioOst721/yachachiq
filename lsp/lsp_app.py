@@ -46,6 +46,10 @@ class Typer:
         base = self.letters if self.mode == "letter" else self.numbers
         return base + self.controls
 
+    # OJO (LSP): este desempate viene del alfabeto ASL, donde I y J tienen la
+    # misma forma de mano y solo cambia el movimiento. Al pasar a Lengua de
+    # Señas Peruana hay que verificar con la guía del MINEDU si sigue aplicando,
+    # y si no, cuáles son las letras con movimiento en LSP.
     IJ_MOTION_THRESH = 0.25   # pinky movement above this = J (moving); below = I (still)
 
     def predict(self, feats):

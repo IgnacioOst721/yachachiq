@@ -11,7 +11,7 @@ as our Coding & Robotics final project and WRO 2026 Future Innovators entry.
 ```
  Voice (mic)  ──► whisper.cpp ──┐
                                 ├──► scene extraction ──► ComfyUI (Stable Diffusion)
- ASL (camera) ──► ML model  ────┘            │                    │
+ LSP (cámara) ──► ML model  ────┘            │                    │
                                              ▼                    ▼
                                        story.txt            line-art PNG
                                                                   │
@@ -47,13 +47,16 @@ Three machines talk to each other over a private network:
   point, included for reference because our dossier links to it. ComfyUI is
   open source: https://github.com/comfyanonymous/ComfyUI
 
-### `asl/` — camera-based ASL recognition
-- **`asl_app.py`** — live sign-to-text app: MediaPipe hand landmarks → trained
+### `lsp/` — camera-based Peruvian Sign Language (LSP) recognition
+- **`lsp_app.py`** — live sign-to-text app: MediaPipe hand landmarks → trained
   classifier → stability filter → text, sent over a socket to the pipeline.
 - **`collect_data.py`** / **`train_model.py`** — record landmark samples per letter
   and train the model.
-- **`model.pkl`** — the trained classifier (~96% accuracy) and
-  **`asl_data.csv`** — the full landmark training dataset.
+- **`model.pkl`** + **`lsp_data.csv`** — the trained classifier and its landmark
+  training dataset. See [`lsp/GUIA_LSP.md`](lsp/GUIA_LSP.md): the project is
+  migrating from ASL to **Lengua de Señas Peruana**, officially recognized in
+  Peru by Law 29535. The previous ASL dataset and model are kept as
+  `asl_data_ANTIGUO.csv` / `model_asl_ANTIGUO.pkl` until LSP is recorded.
 - **`landmark_utils.py`** — shared feature extraction (hand shape, fingertip
   positions, motion features for I vs J).
 - **`translate.py`**, **`receiver.py`**, **`hello_hands.py`** — earlier/demo tools.
@@ -84,5 +87,5 @@ this repo via GitHub Pages ([`docs/`](docs/)):
 ## Credits
 
 Team Yachachiq — Joaquin Cisneros (team lead), Ignacio Osterling (lead engineer,
-ASL system), Clara Verderas (lead programmer, pipeline). Thanks to Ms. Castro,
+LSP system), Clara Verderas (lead programmer, pipeline). Thanks to Ms. Castro,
 Mr. Kirsch, and Museo de Arte de Lima.

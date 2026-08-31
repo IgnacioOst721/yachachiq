@@ -1,4 +1,4 @@
-# Teclado ASL en Raspberry Pi
+# Teclado LSP en Raspberry Pi
 
 Cómo mover el reconocimiento de lengua de señas de la laptop a una Raspberry Pi
 con cámara, para que funcione como un aparato independiente.
@@ -36,9 +36,9 @@ pip3 install --break-system-packages mediapipe joblib scikit-learn numpy
 Prueba manual antes de automatizar nada:
 
 ```bash
-cd ~/yachachiq/asl
-ASL_HEADLESS=1 python3 asl_app.py        # busca el receptor solo
-ASL_HEADLESS=1 python3 asl_app.py <IP>   # o apúntale la IP directamente
+cd ~/yachachiq/lsp
+ASL_HEADLESS=1 python3 lsp_app.py        # busca el receptor solo
+ASL_HEADLESS=1 python3 lsp_app.py <IP>   # o apúntale la IP directamente
 ```
 
 Debe imprimir cada letra detectada. Si la cámara no abre, revisa `ls /dev/video*`
@@ -71,8 +71,8 @@ el error más común.
 
 2. **En la Pi:** ya arranca solo con systemd. Si lo corres a mano:
    ```bash
-   python3 asl_app.py            # busca la Mac sola
-   python3 asl_app.py 192.168.1.5   # o dale la IP que imprimió la Mac
+   python3 lsp_app.py            # busca la Mac sola
+   python3 lsp_app.py 192.168.1.5   # o dale la IP que imprimió la Mac
    ```
 
 3. **En la Mac, haz clic donde quieras que escriba** — un documento, el chat,
@@ -85,7 +85,7 @@ el error más común.
 El descubrimiento usa un mensaje UDP de difusión que algunas redes bloquean
 (wifi de colegios sobre todo). Solución: pasarle la IP a mano, como en el
 paso 2. Para dejarla fija en el arranque automático, agrega la IP al final del
-`ExecStart` en `yachachiq-asl.service`.
+`ExecStart` en `yachachiq-lsp.service`.
 
 Otras cosas que revisar: que el firewall de la Mac permita conexiones entrantes,
 y que ambas estén en la misma red (no una en el hotspot y otra en el wifi).
@@ -93,10 +93,10 @@ y que ambas estén en la misma red (no una en el hotspot y otra en el wifi).
 ## Que arranque solo al prender (ya sin laptop)
 
 ```bash
-sudo cp ~/yachachiq/asl/yachachiq-asl.service /etc/systemd/system/
-sudo systemctl enable --now yachachiq-asl
-systemctl status yachachiq-asl      # ver que esté corriendo
-journalctl -u yachachiq-asl -f      # ver las letras en vivo
+sudo cp ~/yachachiq/lsp/yachachiq-lsp.service /etc/systemd/system/
+sudo systemctl enable --now yachachiq-lsp
+systemctl status yachachiq-lsp      # ver que esté corriendo
+journalctl -u yachachiq-lsp -f      # ver las letras en vivo
 ```
 
 Desde aquí la Pi se enchufa y funciona sola: sin monitor, sin teclado, sin laptop.
@@ -121,7 +121,7 @@ Para la WRO conviene la pantalla: el jurado ve en vivo cómo la máquina reconoc
 cada seña, que es la parte más impresionante del sistema.
 
 Para activar cada modo en el arranque automático, ver los comentarios dentro de
-`yachachiq-asl.service`.
+`yachachiq-lsp.service`.
 
 ## Modo headless (sin pantalla)
 
@@ -149,7 +149,7 @@ Verificado con los datos reales del proyecto (2,500 muestras):
 - **Si aun así se siente lento:** `ASL_FAST=1` baja la complejidad del rastreo
   de MediaPipe (más fps, landmarks algo menos precisos). Probar señando el
   abecedario completo antes de dejarlo activado.
-- Última palanca: bajar `STABLE_FRAMES` en `asl_app.py` de 8 a 5–6.
+- Última palanca: bajar `STABLE_FRAMES` en `lsp_app.py` de 8 a 5–6.
 
 ## Pendientes por resolver al probar
 

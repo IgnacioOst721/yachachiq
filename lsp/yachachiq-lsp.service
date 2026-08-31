@@ -1,12 +1,12 @@
 [Unit]
-Description=Yachachiq ASL keyboard (camera sign-to-text)
+Description=Yachachiq LSP keyboard (Lengua de Señas Peruana) (camera sign-to-text)
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=simple
 User=pi
-WorkingDirectory=/home/pi/yachachiq/asl
+WorkingDirectory=/home/pi/yachachiq/lsp
 
 # --- MODO SIN PANTALLA (aparato) ---
 # Deja esta línea si la Pi va sin monitor.
@@ -22,7 +22,7 @@ Environment=ASL_HEADLESS=1
 # Descomenta si abre la cámara equivocada:
 # Environment=ASL_CAMERA=1
 
-ExecStart=/usr/bin/python3 /home/pi/yachachiq/asl/asl_app.py
+ExecStart=/usr/bin/python3 /home/pi/yachachiq/lsp/lsp_app.py
 Restart=always
 RestartSec=5
 

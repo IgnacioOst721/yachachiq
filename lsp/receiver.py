@@ -41,7 +41,13 @@ def type_token(token):
     elif token == "BACK":
         pyautogui.press("backspace")
     elif len(token) == 1:
-        pyautogui.write(token)
+        # OJO: pyautogui.write() puede fallar en silencio con caracteres que no
+        # son ASCII, como la Ñ. Si al probar la Ñ no aparece nada, este aviso
+        # lo delata y hay que usar otra vía (portapapeles) para esa letra.
+        try:
+            pyautogui.write(token)
+        except Exception as e:
+            print(f"  [AVISO] no se pudo escribir {token!r}: {e}")
     # anything else (e.g. MODE) is ignored
 
 
