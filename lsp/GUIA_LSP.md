@@ -39,21 +39,30 @@ reales) y evita entrenar el modelo con señas mal hechas.
 Se descargó la guía del MINEDU y se comparó su alfabeto (páginas 69-70) contra
 las señas que el modelo tenía grabadas en ASL. Resultado:
 
-**El alfabeto manual peruano coincide en lo esencial con el estadounidense.**
-Las 26 letras A-Z usan las mismas configuraciones de mano. La diferencia real es:
+Se revisó **letra por letra**, con las etiquetas visibles en cada dibujo.
+Resultado: **solo 2 señas hay que grabar.**
 
-| | |
+| Letra | Qué pasa |
 |---|---|
-| **Ñ** | Letra nueva. Es la **N con movimiento lateral** (la guía lo marca con una flecha) |
-| Resto | Coinciden con lo que ya estaba grabado |
+| **U** | **DISTINTA.** En LSP es **índice + meñique** extendidos (forma de "cuernos"), con medio y anular doblados. En ASL es índice + medio juntos. Hay que borrar la U vieja y grabarla de nuevo |
+| **Ñ** | **NUEVA.** Es la **N con movimiento lateral** (la guía lo marca con una flecha ↔) |
+| Las otras 25 | **Coinciden** con lo que ya estaba grabado: A B C D E F G H I J K L M N O P Q R S T V W X Y Z |
 
 Esto tiene sentido histórico: el alfabeto unimanual usado hoy por la comunidad
 sorda peruana comparte raíz con el internacional. Existe además un "alfabeto
 antiguo" mixto (de dos manos) que los sordos adultos consideran patrimonio, pero
 no es el que enseña la guía oficial ni el que se usa para deletrear hoy.
 
-**Implicación práctica: no hace falta regrabar las 26 letras.** Basta con
-grabar la Ñ y verificar el resto en vivo.
+**Implicación práctica: no hace falta regrabar las 26 letras.** Son ~15 minutos:
+
+```bash
+python3 borrar_letras.py u     # quita la U vieja (forma de ASL)
+python3 collect_data.py        # graba la U nueva (cuernos) y la Ñ (tecla ";")
+python3 train_model.py
+```
+
+Al grabar la **Ñ**, mover la mano de lado a lado mientras graba: ese movimiento
+es lo que la separa de la N (igual que la J y la Z).
 
 > Aun así, conviene que un intérprete de LSP o alguien de la comunidad sorda
 > revise las señas antes de la competencia. La comparación se hizo sobre los
