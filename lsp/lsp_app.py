@@ -46,21 +46,31 @@ class Typer:
         base = self.letters if self.mode == "letter" else self.numbers
         return base + self.controls
 
-    # OJO (LSP): este desempate viene del alfabeto ASL, donde I y J tienen la
-    # misma forma de mano y solo cambia el movimiento. Al pasar a Lengua de
-    # Señas Peruana hay que verificar con la guía del MINEDU si sigue aplicando,
-    # y si no, cuáles son las letras con movimiento en LSP.
-    IJ_MOTION_THRESH = 0.25   # pinky movement above this = J (moving); below = I (still)
+    # Pares de letras con la MISMA forma de mano, que solo se distinguen por el
+    # movimiento. Verificado contra la guia oficial del MINEDU (paginas 69-70):
+    #   I / J  -> el menique traza la J
+    #   N / N-tilde -> la N se mueve de lado a lado (la flecha en la guia)
+    IJ_MOTION_THRESH = 0.25   # movimiento del menique por encima de esto = J
+    ENIE_MOTION_THRESH = 0.30  # movimiento total de la mano por encima = N-tilde
 
     def predict(self, feats):
         """Best label for the CURRENT mode only (the masking trick),
-        with a motion tie-breaker for I vs J (identical handshape)."""
+        with motion tie-breakers for the pairs that share a handshape."""
         probs = self.clf.predict_proba(feats)[0]
         opts = self._allowed()
         if not opts:
             return "?", 0.0
         best = max(opts, key=lambda c: probs[self.idx[c]])
         conf = float(probs[self.idx[best]])
+        # N vs N-tilde: same fist, but N-tilde moves sideways.
+        if best in ("n", "\u00f1") and feats is not None:
+            vec = np.asarray(feats).ravel()
+            if vec.shape[0] >= 68:
+                total_motion = float(np.sum(np.abs(vec[63:68])))  # los 5 dedos
+                decided = "\u00f1" if total_motion > self.ENIE_MOTION_THRESH else "n"
+                if decided in self.idx and decided in opts:
+                    best = decided
+                    conf = max(conf, float(probs[self.idx[decided]]))
         # I and J look identical when frozen - decide by how much the pinky moves.
         if best in ("i", "j") and feats is not None:
             vec = np.asarray(feats).ravel()

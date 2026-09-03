@@ -34,6 +34,39 @@ o con la comunidad sorda de Lima, pedir que revisen las señas antes de grabar.
 Eso además es material excelente para el informe (validación con usuarios
 reales) y evita entrenar el modelo con señas mal hechas.
 
+## HALLAZGO: comparación contra la guía oficial
+
+Se descargó la guía del MINEDU y se comparó su alfabeto (páginas 69-70) contra
+las señas que el modelo tenía grabadas en ASL. Resultado:
+
+**El alfabeto manual peruano coincide en lo esencial con el estadounidense.**
+Las 26 letras A-Z usan las mismas configuraciones de mano. La diferencia real es:
+
+| | |
+|---|---|
+| **Ñ** | Letra nueva. Es la **N con movimiento lateral** (la guía lo marca con una flecha) |
+| Resto | Coinciden con lo que ya estaba grabado |
+
+Esto tiene sentido histórico: el alfabeto unimanual usado hoy por la comunidad
+sorda peruana comparte raíz con el internacional. Existe además un "alfabeto
+antiguo" mixto (de dos manos) que los sordos adultos consideran patrimonio, pero
+no es el que enseña la guía oficial ni el que se usa para deletrear hoy.
+
+**Implicación práctica: no hace falta regrabar las 26 letras.** Basta con
+grabar la Ñ y verificar el resto en vivo.
+
+> Aun así, conviene que un intérprete de LSP o alguien de la comunidad sorda
+> revise las señas antes de la competencia. La comparación se hizo sobre los
+> dibujos de la guía, y una validación humana es más confiable — además de ser
+> material excelente para el informe.
+
+### Detalle técnico ya resuelto
+
+Como la Ñ es "N + movimiento", tiene el mismo problema que I/J: misma forma de
+mano, distinto movimiento. Ya se agregó a `lsp_app.py` un desempate por
+movimiento total de la mano (`ENIE_MOTION_THRESH`), igual al que existía para
+I/J. Probado: mano quieta devuelve N, mano en movimiento devuelve Ñ.
+
 ## Cómo re-grabar el dataset
 
 1. Imprimir o tener a la mano el alfabeto dactilológico de LSP.
