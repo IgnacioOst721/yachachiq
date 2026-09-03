@@ -41,45 +41,70 @@ class Typer:
         self._prev = None
         self._stable = 0
         self._committed = None     # locked until the sign changes or hand leaves
+        self.last_motion = 0.0     # movimiento de la mano en el ultimo frame
+        # OJO: la N-tilde NO se agrega a self.letters. El modelo no la conoce,
+        # asi que no puede entrar en el argmax; se genera en predict() a partir
+        # de la N cuando hay movimiento.
 
     def _allowed(self):
         base = self.letters if self.mode == "letter" else self.numbers
         return base + self.controls
 
-    # Pares de letras con la MISMA forma de mano, que solo se distinguen por el
-    # movimiento. Verificado contra la guia oficial del MINEDU (paginas 69-70):
-    #   I / J  -> el menique traza la J
-    #   N / N-tilde -> la N se mueve de lado a lado (la flecha en la guia)
-    IJ_MOTION_THRESH = 0.25   # movimiento del menique por encima de esto = J
-    ENIE_MOTION_THRESH = 0.30  # movimiento total de la mano por encima = N-tilde
+    # ── LETRAS CON MOVIMIENTO ────────────────────────────────────────
+    # Algunas letras tienen la MISMA forma de mano que otra y solo se
+    # distinguen porque la mano se mueve (guia oficial del MINEDU, pags 69-70):
+    #   N + movimiento lateral  ->  N-tilde
+    #   I + movimiento del menique -> J
+    #   Z se traza en el aire con el indice
+    #
+    # La N-tilde NO esta entrenada en el modelo: se genera aqui a partir de la N
+    # cuando se detecta movimiento. Umbrales ajustables con variables de entorno.
+    IJ_MOTION_THRESH   = float(os.environ.get("UMBRAL_J",  "0.25"))
+    ENIE_MOTION_THRESH = float(os.environ.get("UMBRAL_ENIE", "0.80"))
+    MIN_MOTION_JZ      = float(os.environ.get("UMBRAL_JZ", "0.50"))
+
+    @staticmethod
+    def _motion(feats):
+        """(movimiento total de la mano, movimiento del menique)."""
+        vec = np.asarray(feats).ravel()
+        if vec.shape[0] < 68:
+            return 0.0, 0.0
+        return float(np.sum(np.abs(vec[63:68]))), float(abs(vec[67]))
 
     def predict(self, feats):
         """Best label for the CURRENT mode only (the masking trick),
-        with motion tie-breakers for the pairs that share a handshape."""
+        plus the motion rules for N-tilde, J and Z."""
         probs = self.clf.predict_proba(feats)[0]
         opts = self._allowed()
         if not opts:
             return "?", 0.0
-        best = max(opts, key=lambda c: probs[self.idx[c]])
+        total, pinky = self._motion(feats) if feats is not None else (0.0, 0.0)
+        self.last_motion = total          # para mostrarlo en pantalla
+
+        ordenadas = sorted(opts, key=lambda c: probs[self.idx[c]], reverse=True)
+        best = ordenadas[0]
         conf = float(probs[self.idx[best]])
-        # N vs N-tilde: same fist, but N-tilde moves sideways.
-        if best in ("n", "\u00f1") and feats is not None:
-            vec = np.asarray(feats).ravel()
-            if vec.shape[0] >= 68:
-                total_motion = float(np.sum(np.abs(vec[63:68])))  # los 5 dedos
-                decided = "\u00f1" if total_motion > self.ENIE_MOTION_THRESH else "n"
-                if decided in self.idx and decided in opts:
-                    best = decided
-                    conf = max(conf, float(probs[self.idx[decided]]))
-        # I and J look identical when frozen - decide by how much the pinky moves.
-        if best in ("i", "j") and feats is not None:
-            vec = np.asarray(feats).ravel()
-            if vec.shape[0] >= 68:
-                pinky_motion = float(vec[67])   # last feature = pinky path length
-                decided = "j" if pinky_motion > self.IJ_MOTION_THRESH else "i"
-                if decided in self.idx and decided in opts:
-                    best = decided
-                    conf = max(conf, float(probs[self.idx[decided]]))
+
+        # J y Z solo valen si la mano se esta moviendo. Con la mano quieta,
+        # pasar a la mejor letra que no sea de movimiento.
+        if best in ("j", "z") and total < self.MIN_MOTION_JZ:
+            for c in ordenadas[1:]:
+                if c not in ("j", "z"):
+                    best, conf = c, float(probs[self.idx[c]])
+                    break
+
+        # I vs J: misma forma, decide el movimiento del menique.
+        if best in ("i", "j"):
+            decidida = "j" if pinky > self.IJ_MOTION_THRESH else "i"
+            if decidida in self.idx and decidida in opts:
+                best = decidida
+                conf = max(conf, float(probs[self.idx[decidida]]))
+
+        # N + movimiento lateral = N-tilde (letra virtual, no entrenada).
+        if best == "n" and total > self.ENIE_MOTION_THRESH:
+            best = "\u00f1"
+            # la confianza se mantiene: la forma es la de la N, que si esta entrenada
+
         return best, conf
 
     def update(self, cur, conf):
@@ -311,6 +336,11 @@ def run():
         netmsg = "-> Mac B" if (sender and sender.ok) else "LOCAL"
         cv2.putText(frame, netmsg, (w - 240, 68),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.6, (200, 200, 200), 2)
+        # medidor de movimiento: sirve para calibrar los umbrales de N-tilde/J/Z
+        mv = getattr(typer, "last_motion", 0.0)
+        mvcol = (0, 200, 255) if mv > typer.ENIE_MOTION_THRESH else (150, 150, 150)
+        cv2.putText(frame, f"movimiento: {mv:4.2f}  (N-tilde > {typer.ENIE_MOTION_THRESH:.2f})",
+                    (20, h - 80), cv2.FONT_HERSHEY_SIMPLEX, 0.6, mvcol, 2)
         cv2.putText(frame, "Both palms = SEND", (w - 240, 92),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 200, 255), 1)
 
