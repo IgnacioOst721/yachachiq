@@ -6,8 +6,16 @@ import os
 import sys
 import socket
 import time
+from collections import deque
 from landmark_utils import (extract_shape, fingertip_xy, motion_features,
                             new_motion_buffer, augment, open_camera)
+
+
+def dibujable(texto):
+    """OpenCV solo dibuja ASCII: la Ñ saldria como '?'.
+    Se muestra como 'N~' en pantalla, pero el texto real guarda la Ñ."""
+    return (texto.replace("\u00d1", "N~").replace("\u00f1", "n~")
+                 .encode("ascii", "replace").decode("ascii"))
 
 MODEL_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "model.pkl")
 STABLE_FRAMES = 8      # how many steady frames before a sign "counts" (~0.4s)
@@ -41,7 +49,8 @@ class Typer:
         self._prev = None
         self._stable = 0
         self._committed = None     # locked until the sign changes or hand leaves
-        self.last_motion = 0.0     # movimiento de la mano en el ultimo frame
+        self.last_motion = 0.0     # movimiento suavizado (lo que se ve en pantalla)
+        self._mov_hist = deque(maxlen=self.VENTANA_MOV)
         # OJO: la N-tilde NO se agrega a self.letters. El modelo no la conoce,
         # asi que no puede entrar en el argmax; se genera en predict() a partir
         # de la N cuando hay movimiento.
@@ -60,8 +69,9 @@ class Typer:
     # La N-tilde NO esta entrenada en el modelo: se genera aqui a partir de la N
     # cuando se detecta movimiento. Umbrales ajustables con variables de entorno.
     IJ_MOTION_THRESH   = float(os.environ.get("UMBRAL_J",  "0.25"))
-    ENIE_MOTION_THRESH = float(os.environ.get("UMBRAL_ENIE", "0.80"))
-    MIN_MOTION_JZ      = float(os.environ.get("UMBRAL_JZ", "0.50"))
+    ENIE_MOTION_THRESH = float(os.environ.get("UMBRAL_ENIE", "2.50"))
+    MIN_MOTION_JZ      = float(os.environ.get("UMBRAL_JZ", "1.50"))
+    VENTANA_MOV        = 10   # frames que se promedian para suavizar
 
     @staticmethod
     def _motion(feats):
@@ -78,7 +88,10 @@ class Typer:
         opts = self._allowed()
         if not opts:
             return "?", 0.0
-        total, pinky = self._motion(feats) if feats is not None else (0.0, 0.0)
+        inst, pinky = self._motion(feats) if feats is not None else (0.0, 0.0)
+        # promediar unos frames: un pico suelto ya no dispara la N-tilde
+        self._mov_hist.append(inst)
+        total = sum(self._mov_hist) / len(self._mov_hist)
         self.last_motion = total          # para mostrarlo en pantalla
 
         ordenadas = sorted(opts, key=lambda c: probs[self.idx[c]], reverse=True)
@@ -126,6 +139,7 @@ class Typer:
         self._prev = None
         self._stable = 0
         self._committed = None
+        self._mov_hist.clear()
 
     def progress(self):
         return min(self._stable / self.stable_frames, 1.0)
@@ -328,7 +342,7 @@ def run():
         else:
             disp = cur.upper()
         bigcol = (0, 200, 255) if both_open else (0, 255, 0)
-        cv2.putText(frame, disp, (20, 70), cv2.FONT_HERSHEY_SIMPLEX, 1.6, bigcol, 4)
+        cv2.putText(frame, dibujable(disp), (20, 70), cv2.FONT_HERSHEY_SIMPLEX, 1.6, bigcol, 4)
         cv2.putText(frame, f"{conf*100:3.0f}%", (20, 105),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
         cv2.putText(frame, f"MODE: {typer.mode.upper()}", (w - 240, 40),
@@ -357,7 +371,7 @@ def run():
         # the sentence so far, along the bottom
         cv2.rectangle(frame, (0, h - 60), (w, h), (0, 0, 0), -1)
         shown = typer.text[-40:]
-        cv2.putText(frame, "> " + shown + "_", (10, h - 22),
+        cv2.putText(frame, "> " + dibujable(shown) + "_", (10, h - 22),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 255, 255), 2)
 
         if HEADLESS:
