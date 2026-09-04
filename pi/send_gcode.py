@@ -96,8 +96,34 @@ def send(gcode_file="output.gcode", port="/dev/ttyACM0", baud=115200):
     time.sleep(PEN_DELAY)
     _send_line(ser, "G0 X0 Y0")
 
+    # IMPORTANTE: GRBL contesta "ok" en cuanto mete el comando en su buffer,
+    # NO cuando termina de moverse. Si la foto se toma aqui sin esperar, sale
+    # con el lapiz todavia dibujando. Hay que preguntarle su estado hasta que
+    # diga "Idle" (quieto).
+    _esperar_a_que_termine(ser)
+
     ser.close()
     print("DONE")
+
+
+def _esperar_a_que_termine(ser, timeout=300):
+    """Pregunta el estado a GRBL con '?' hasta que reporte Idle."""
+    print("Esperando a que el plotter termine de moverse...")
+    ser.reset_input_buffer()
+    inicio = time.time()
+    while time.time() - inicio < timeout:
+        ser.write(b"?")                 # GRBL responde <Idle|...> o <Run|...>
+        time.sleep(0.2)
+        try:
+            datos = ser.read(ser.in_waiting or 1).decode(errors="ignore")
+        except Exception:
+            datos = ""
+        if "<Idle" in datos:
+            print("  Plotter detenido: el dibujo esta terminado.")
+            return True
+        time.sleep(0.3)
+    print("  [AVISO] Se acabo el tiempo de espera; puede seguir moviendose.")
+    return False
 
 if __name__ == "__main__":
     send(sys.argv[1] if len(sys.argv) > 1 else "output.gcode")

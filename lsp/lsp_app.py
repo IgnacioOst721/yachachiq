@@ -11,11 +11,48 @@ from landmark_utils import (extract_shape, fingertip_xy, motion_features,
                             new_motion_buffer, augment, open_camera)
 
 
-def dibujable(texto):
-    """OpenCV solo dibuja ASCII: la Ñ saldria como '?'.
-    Se muestra como 'N~' en pantalla, pero el texto real guarda la Ñ."""
-    return (texto.replace("\u00d1", "N~").replace("\u00f1", "n~")
-                 .encode("ascii", "replace").decode("ascii"))
+# OpenCV solo dibuja ASCII, asi que la Ñ le sale como "?". Para escribirla
+# bien se usa PIL con una fuente real, pero SOLO cuando hace falta: el texto
+# normal se sigue dibujando con cv2, que es mucho mas rapido (importa en la Pi).
+_FUENTES = [
+    "/System/Library/Fonts/Supplemental/Arial Unicode.ttf",   # macOS
+    "/System/Library/Fonts/Supplemental/Arial.ttf",           # macOS
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",   # Raspberry Pi
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+]
+_cache_fuente = {}
+
+
+def _fuente(px):
+    if px not in _cache_fuente:
+        from PIL import ImageFont
+        f = None
+        for ruta in _FUENTES:
+            if os.path.exists(ruta):
+                try:
+                    f = ImageFont.truetype(ruta, px); break
+                except Exception:
+                    pass
+        _cache_fuente[px] = f or ImageFont.load_default()
+    return _cache_fuente[px]
+
+
+def texto(frame, msg, pos, escala, color, grosor):
+    """Dibuja texto. Usa cv2 si es ASCII; PIL si trae Ñ u otro acento."""
+    if msg.isascii():
+        cv2.putText(frame, msg, pos, cv2.FONT_HERSHEY_SIMPLEX, escala, color, grosor)
+        return frame
+    from PIL import Image, ImageDraw
+    px = max(12, int(escala * 30))
+    img = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+    ImageDraw.Draw(img).text((pos[0], pos[1] - px), msg,
+                             font=_fuente(px), fill=(color[2], color[1], color[0]))
+    frame[:] = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
+    return frame
+
+
+def dibujable(t):
+    return t
 
 MODEL_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "model.pkl")
 STABLE_FRAMES = 8      # how many steady frames before a sign "counts" (~0.4s)
@@ -342,7 +379,7 @@ def run():
         else:
             disp = cur.upper()
         bigcol = (0, 200, 255) if both_open else (0, 255, 0)
-        cv2.putText(frame, dibujable(disp), (20, 70), cv2.FONT_HERSHEY_SIMPLEX, 1.6, bigcol, 4)
+        texto(frame, disp, (20, 70), 1.6, bigcol, 4)
         cv2.putText(frame, f"{conf*100:3.0f}%", (20, 105),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
         cv2.putText(frame, f"MODE: {typer.mode.upper()}", (w - 240, 40),
@@ -371,8 +408,7 @@ def run():
         # the sentence so far, along the bottom
         cv2.rectangle(frame, (0, h - 60), (w, h), (0, 0, 0), -1)
         shown = typer.text[-40:]
-        cv2.putText(frame, "> " + dibujable(shown) + "_", (10, h - 22),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 255, 255), 2)
+        texto(frame, "> " + shown + "_", (10, h - 22), 0.9, (255, 255, 255), 2)
 
         if HEADLESS:
             # No screen and no keyboard on the Pi: control gestures only.
