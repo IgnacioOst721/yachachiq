@@ -33,18 +33,21 @@ class Recorder:
         self._timer = None
         self._auto_stop = None
         self.recording = False
+        self._gen = 0                      # session counter: an old mock session must not stop a new one
 
     def start(self, on_level=None, on_auto_stop=None):
         self._frames, self._spoke, self._t_last_speech = [], False, None
         self._auto_stop, self.recording, self._t_start = on_auto_stop, True, time.time()
+        self._gen += 1
+        gen = self._gen
         if self.mode == "mock":
             def fake():
                 t0 = time.time()
-                while self.recording and time.time() - t0 < 6.0:
+                while self.recording and self._gen == gen and time.time() - t0 < 6.0:
                     if on_level:
                         on_level(0.05 + 0.04 * abs(np.sin(time.time() * 6)))
                     time.sleep(0.1)
-                if self.recording and self._auto_stop:
+                if self.recording and self._gen == gen and self._auto_stop:
                     self._auto_stop()
             self._timer = threading.Thread(target=fake, daemon=True)
             self._timer.start()
