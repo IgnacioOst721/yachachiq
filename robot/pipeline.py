@@ -1,0 +1,249 @@
+"""The Yachachiq state machine.
+
+idle -> listening -> transcribing -> thinking -> imagining -> drawing
+     -> photographing -> publishing -> narrating -> done   (or error)
+
+Text can also come in directly (typed, or signed from the LSP camera through
+server.py's TCP port) with submit_text(); it joins at "thinking".
+Every step emits events through on_event(name, data) for the screen.
+"""
+import json
+import logging
+import os
+import shutil
+import threading
+import time
+from datetime import datetime
+
+import config
+import gcode as gcode_mod
+import imagegen
+import photo
+import publish
+import story
+import vectorize
+from audio import Recorder, save_wav
+from language import detect_language
+from plotter import Plotter
+from stt import STT
+from tts import TTS
+
+log = logging.getLogger("pipeline")
+
+
+class Pipeline:
+    def __init__(self, on_event=None):
+        self.on_event = on_event or (lambda e, d: None)
+        self.state = "idle"
+        self.last_error = None
+        self.last_story = None
+        self.last_image = None
+        self.progress = (0, 0)
+        self.level = 0.0
+        self.story_dir = None
+        self.recorder = Recorder()
+        self.stt = STT()
+        self.tts = TTS()
+        self.plotter = Plotter().connect()
+        self._thread = None
+        self._cancel = threading.Event()
+        os.makedirs(str(config.OUTPUT_DIR), exist_ok=True)
+        os.makedirs(str(config.STORIES_DIR), exist_ok=True)
+
+    # --- helpers ---------------------------------------------------------------------------------
+    def emit(self, event, data=None):
+        try:
+            self.on_event(event, data or {})
+        except Exception as e:      # never let the UI kill the robot
+            log.warning("on_event failed: %s", e)
+
+    def _set_state(self, s, **extra):
+        self.state = s
+        self.emit("state", {"state": s, **extra})
+
+    def busy(self):
+        return self.state not in ("idle", "done", "error")
+
+    def modes(self):
+        return {"plotter": self.plotter.mode, "stt": self.stt.mode, "audio": self.recorder.mode,
+                "tts": self.tts.mode, "image": ",".join(config.IMAGE_BACKENDS),
+                "story": ",".join(config.STORY_BACKENDS), "photo": photo.mode(), "publish": publish.mode()}
+
+    def snapshot(self):
+        return {"state": self.state, "modes": self.modes(), "progress": self.progress, "level": self.level,
+                "last_error": self.last_error, "story": self.last_story, "image": self.last_image}
+
+    # --- inputs ------------------------------------------------------------------------------------
+    def start_listening(self):
+        if self.busy():
+            return False
+        self._cancel.clear()
+        self._set_state("listening")
+        def on_level(v):
+            self.level = v
+            self.emit("level", {"level": v})
+        self.recorder.start(on_level=on_level, on_auto_stop=self.stop_listening)
+        return True
+
+    def stop_listening(self):
+        if self.state != "listening":
+            return False
+        audio = self.recorder.stop()
+        self._start(self._run_audio, audio)
+        return True
+
+    def toggle_listening(self):
+        return self.stop_listening() if self.state == "listening" else self.start_listening()
+
+    def submit_text(self, text):
+        text = (text or "").strip()
+        if self.busy() or not text:
+            return False
+        self._cancel.clear()
+        self._start(self._run, text)
+        return True
+
+    def redraw(self):
+        path = os.path.join(str(config.OUTPUT_DIR), "last.gcode")
+        if self.busy() or not os.path.exists(path):
+            return False
+        self._cancel.clear()
+        self._start(self._draw_file, path)
+        return True
+
+    def cancel(self):
+        self._cancel.set()
+        if self.state == "listening":
+            self.recorder.stop()
+        self.plotter.stop()
+        self.tts.stop()
+        self._set_state("idle")
+        return True
+
+    def _start(self, fn, *args):
+        self._thread = threading.Thread(target=fn, args=args, daemon=True)
+        self._thread.start()
+
+    # --- stages -----------------------------------------------------------------------------------
+    def _run_audio(self, audio):
+        try:
+            self._set_state("transcribing")
+            try:
+                save_wav(audio, os.path.join(str(config.OUTPUT_DIR), "last.wav"))
+            except Exception:
+                pass
+            dur = len(audio) / float(config.SAMPLE_RATE)
+            if self.recorder.mode != "mock" and dur < config.MIN_SPEECH_SECONDS:
+                raise RuntimeError("No se escuchó nada. Intenta de nuevo.")
+            text = self.stt.transcribe(audio)
+            if not text.strip():
+                raise RuntimeError("No entendí la historia. Intenta de nuevo, más cerca del micrófono.")
+            self._run(text)
+        except Exception as e:
+            self._fail(e)
+
+    def _run(self, text):
+        try:
+            self.emit("transcript", {"text": text})
+            lang, words = detect_language(text)
+            self.emit("language", {"lang": lang, "words": words})
+
+            self._set_state("thinking")
+            analysis = story.analyze(text, lang, on_status=lambda b: self.emit("backend", {"stage": "story", "backend": b}))
+            self.emit("analysis", analysis)
+            if self._cancel.is_set():
+                return
+
+            self._set_state("imagining")
+            img = imagegen.generate(analysis, on_status=lambda b: self.emit("backend", {"stage": "image", "backend": b}))
+            stats = img["stats"]
+            self.last_image = {"svg": img["svg"], "stats": stats, "source": img["source"], "png_path": img.get("png_path")}
+            self.emit("image", self.last_image)
+            if self._cancel.is_set():
+                return
+
+            lines = gcode_mod.from_polylines(img["polylines_mm"], analysis.get("title", "historia"))
+            gcode_path = os.path.join(str(config.OUTPUT_DIR), "last.gcode")
+            gcode_mod.save(lines, gcode_path)
+            self.story_dir = self._save_story(text, analysis, img, lines)
+            self.last_story = {"title": analysis.get("title"), "text": text, "lang": lang, "elements": analysis.get("elements"),
+                               "narration": analysis.get("narration"), "backend": analysis.get("backend"),
+                               "image_source": img["source"], "stats": stats, "dir": self.story_dir}
+            with open(os.path.join(str(config.OUTPUT_DIR), "last_story.json"), "w", encoding="utf-8") as f:
+                json.dump(self.last_story, f, ensure_ascii=False, indent=1)
+
+            self.emit("narration", {"text": analysis.get("narration", "")})
+            if config.SPEAK_WHILE_DRAWING:
+                self.tts.speak(analysis.get("narration", ""))
+
+            if not self._draw(lines):
+                return
+
+            self._after_drawing(analysis)
+        except Exception as e:
+            self._fail(e)
+
+    def _draw(self, lines):
+        self._set_state("drawing", total=len(lines))
+        self.progress = (0, len(lines))
+        def on_progress(sent, total):
+            self.progress = (sent, total)
+            self.emit("progress", {"sent": sent, "total": total, "pct": int(100 * sent / max(total, 1))})
+        if self.plotter.mode != "mock":
+            self.plotter.unlock()
+        ok = self.plotter.run(lines, on_progress=on_progress)
+        if not ok or self._cancel.is_set():
+            self._set_state("idle")
+            return False
+        return True
+
+    def _draw_file(self, path):
+        try:
+            with open(path) as f:
+                lines = f.readlines()
+            if self._draw(lines):
+                self._set_state("done")
+        except Exception as e:
+            self._fail(e)
+
+    def _after_drawing(self, analysis):
+        if config.PHOTO_ENABLED and self.story_dir:
+            self._set_state("photographing")
+            out = os.path.join(self.story_dir, "scene_1_photo.png")
+            ok = photo.capture(out, fallback_png=os.path.join(self.story_dir, "preview.png"))
+            self.emit("photo", {"ok": ok, "path": out if ok else None})
+        if config.PUBLISH_ENABLED:
+            self._set_state("publishing")
+            res = publish.sync()
+            self.emit("published", res)
+        if not config.SPEAK_WHILE_DRAWING:
+            self._set_state("narrating")
+            self.tts.speak(analysis.get("narration", ""), blocking=True)
+        self._set_state("done")
+
+    def _save_story(self, text, analysis, img, lines):
+        ts = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        d = os.path.join(str(config.STORIES_DIR), ts)
+        os.makedirs(d, exist_ok=True)
+        with open(os.path.join(d, "story.txt"), "w", encoding="utf-8") as f:
+            f.write("STORY\n" + "=" * 40 + "\n" + text + "\n\nSCENES\n" + "=" * 40 + "\n")
+            f.write(f"1. {analysis.get('scene', '')}\n")
+            f.write(f"\nTITLE: {analysis.get('title', '')}\nLANG: {analysis.get('lang', '')}\nIMAGE: {img['source']}\n")
+        try:
+            vectorize.to_png(img["polylines_mm"], os.path.join(d, "preview.png"))
+        except Exception as e:
+            log.warning("preview failed: %s", e)
+        if img.get("png_path") and os.path.exists(img["png_path"]):
+            shutil.copy(img["png_path"], os.path.join(d, "scene_1.png"))
+        else:
+            src = os.path.join(d, "preview.png")
+            if os.path.exists(src):
+                shutil.copy(src, os.path.join(d, "scene_1.png"))
+        gcode_mod.save(lines, os.path.join(d, "scene_1.gcode"))
+        return d
+
+    def _fail(self, e):
+        log.exception("pipeline error")
+        self.last_error = str(e)
+        self._set_state("error", error=str(e))
+        self.emit("error", {"error": str(e)})

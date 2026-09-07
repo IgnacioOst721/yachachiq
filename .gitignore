@@ -5,3 +5,6 @@ __pycache__/
 *.wav
 stories/
 .DS_Store
+robot/output/
+robot/venv/
+robot/laptop/venv/

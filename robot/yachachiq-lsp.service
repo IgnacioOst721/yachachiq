@@ -1,0 +1,19 @@
+[Unit]
+Description=Yachachiq sign language camera (LSP -> robot)
+After=yachachiq.service
+Wants=yachachiq.service
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/yachachiq/lsp
+Environment=ASL_HEADLESS=1
+Environment=LSP_ROBOT=http://127.0.0.1:8877
+# Environment=ASL_CAMERA=/dev/v4l/by-id/usb-XXXX-video-index0
+# Environment=ASL_FAST=1
+ExecStart=/home/pi/yachachiq/robot/venv/bin/python lsp_app.py robot
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

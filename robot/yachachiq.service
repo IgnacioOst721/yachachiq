@@ -1,0 +1,22 @@
+[Unit]
+Description=Yachachiq robot (web kiosk + pipeline)
+After=network-online.target sound.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/yachachiq/robot
+ExecStart=/home/pi/yachachiq/robot/venv/bin/python server.py
+Restart=always
+RestartSec=3
+# --- overrides (uncomment / edit) ---
+# Environment=YACHACHIQ_COMFYUI_URL=http://192.168.7.1:8188
+# Environment=YACHACHIQ_COMFYUI_CHECKPOINT=dreamshaper_8.safetensors
+# Environment=YACHACHIQ_SERIAL_PORT=/dev/ttyACM0
+# Environment=YACHACHIQ_PHOTO_CAMERA=/dev/v4l/by-id/usb-XXXX-video-index0
+# Environment=YACHACHIQ_WHISPER_MODEL=base
+# Environment=YACHACHIQ_SPEAK_WHILE_DRAWING=0
+
+[Install]
+WantedBy=multi-user.target

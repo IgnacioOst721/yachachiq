@@ -5,6 +5,7 @@ import numpy as np
 import os
 import sys
 import socket
+import threading
 import time
 from collections import deque
 from landmark_utils import (extract_shape, fingertip_xy, motion_features,
@@ -58,6 +59,79 @@ MODEL_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "model.pkl
 STABLE_FRAMES = 8      # how many steady frames before a sign "counts" (~0.4s)
 CONF_THRESH = 0.50     # minimum confidence to accept a sign
 SEND_HOLD_SECONDS = 2.0  # hold BOTH open palms this long to auto-send
+
+# ── ROBOT (pipeline de Yachachiq en la misma Pi) ────────────────────────
+# La historia señada se manda al servidor del robot (server.py) que la dibuja,
+# y la camara se transmite a la pantalla del kiosko para que se vean las señas.
+#   LSP_ROBOT=http://127.0.0.1:8877   (""  = desactivado)
+#   LSP_ROBOT_TEXT_PORT=5005          puerto TCP de texto de server.py
+LSP_ROBOT = os.environ.get("LSP_ROBOT", "http://127.0.0.1:8877").rstrip("/")
+LSP_ROBOT_TEXT_PORT = int(os.environ.get("LSP_ROBOT_TEXT_PORT", "5005"))
+
+
+def _robot_host():
+    from urllib.parse import urlparse
+    return urlparse(LSP_ROBOT).hostname or "127.0.0.1"
+
+
+def robot_send_story(text):
+    """Manda la historia completa al robot (una linea por TCP). True si la acepto."""
+    text = " ".join(text.split()).strip()
+    if not LSP_ROBOT or not text:
+        return False
+    try:
+        with socket.create_connection((_robot_host(), LSP_ROBOT_TEXT_PORT), timeout=5) as c:
+            c.sendall((text + "\n").encode("utf-8"))
+            resp = c.recv(64).decode(errors="ignore").strip()
+        ok = resp.startswith("ok")
+        print(("ROBOT: historia enviada -> dibujando" if ok else "ROBOT ocupado, no acepto la historia"), repr(text))
+        return ok
+    except OSError as e:
+        print(f"[ROBOT] no se pudo enviar ({e}); ¿esta corriendo server.py?")
+        return False
+
+
+class RobotPreview:
+    """Envia al kiosko un frame pequeño cada ~0.2 s y el texto actual (hilo aparte)."""
+    def __init__(self):
+        self.frame = None
+        self.text = ("", "", "letter")
+        self._last_text = None
+        self.enabled = bool(LSP_ROBOT)
+        if self.enabled:
+            threading.Thread(target=self._loop, daemon=True).start()
+
+    def update(self, frame, text, letter, mode):
+        self.frame = frame
+        self.text = (text, letter, mode)
+
+    def _post(self, path, data, ctype):
+        import urllib.request
+        req = urllib.request.Request(LSP_ROBOT + path, data=data, headers={"Content-Type": ctype})
+        urllib.request.urlopen(req, timeout=1.5).read()
+
+    def _loop(self):
+        import json
+        fails = 0
+        while True:
+            time.sleep(0.2)
+            try:
+                if self.frame is not None:
+                    small = cv2.resize(self.frame, (480, int(self.frame.shape[0] * 480 / self.frame.shape[1])))
+                    ok, jpg = cv2.imencode(".jpg", small, [cv2.IMWRITE_JPEG_QUALITY, 60])
+                    if ok:
+                        self._post("/api/lsp/frame", jpg.tobytes(), "image/jpeg")
+                if self.text != self._last_text:
+                    t, l, m = self.text
+                    self._post("/api/lsp/text", json.dumps({"text": t, "letter": l, "mode": m}).encode(), "application/json")
+                    self._last_text = self.text
+                fails = 0
+            except Exception:
+                fails += 1
+                if fails in (1, 50):
+                    print("[ROBOT] kiosko no responde en", LSP_ROBOT, "(sigo intentando)")
+                time.sleep(2)
+
 
 # On a Raspberry Pi running as an appliance there is no screen and no keyboard,
 # so the preview window is skipped and everything is driven by gestures.
@@ -278,6 +352,9 @@ def run():
     if arg == "local":
         ip = None
         print("LOCAL test mode - recognition only, no networking.")
+    elif arg == "robot":
+        ip = None
+        print(f"ROBOT mode - las historias van al robot en {LSP_ROBOT} (puerto texto {LSP_ROBOT_TEXT_PORT}).")
     elif arg:
         ip = arg
     else:
@@ -290,7 +367,7 @@ def run():
         except OSError as e:
             print(f"[WARN] Could not reach Mac B at {ip} ({e}). Running LOCAL only.")
             sender = None
-    elif arg != "local":
+    elif arg not in ("local", "robot"):
         print("[INFO] No other Mac found - running LOCAL (recognition only).")
         print("       Start receiver.py on Mac B first, or pass its IP directly:")
         print("       python3 asl_app.py <Mac B IP shown on its screen>")
@@ -314,6 +391,7 @@ def run():
     for _ in range(10):
         cap.read()
 
+    preview = RobotPreview()
     buf = new_motion_buffer()
     send_start = None      # time (seconds) when both palms first appeared
     sent_latch = False     # prevents re-firing until palms are lowered
@@ -351,6 +429,7 @@ def run():
             if (time.time() - send_start) >= SEND_HOLD_SECONDS and not sent_latch:
                 if sender:
                     sender.send("ENTER")
+                robot_send_story(typer.text)
                 print("AUTO-SEND - story sent:", repr(typer.text))
                 typer.key_clear()
                 sent_latch = True
@@ -370,6 +449,8 @@ def run():
             else:
                 buf.clear()
                 typer.reset()
+
+        preview.update(frame, typer.text, ("SEND" if both_open else (cur.upper() if len(cur) == 1 else cur)), typer.mode)
 
         # current prediction (big), confidence, mode
         if both_open:
@@ -431,7 +512,8 @@ def run():
         elif key in (13, 10):   # ENTER: story is done -> fire the plotter pipeline
             if sender:
                 sender.send("ENTER")
-                print("Story sent to the plotter! Text was:", repr(typer.text))
+            robot_send_story(typer.text)
+            print("Story sent to the plotter! Text was:", repr(typer.text))
             typer.key_clear()
 
     cap.release()

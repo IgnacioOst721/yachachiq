@@ -11,7 +11,13 @@ def open_camera():
     Raspberry Pi / Linux, so the same code runs on both."""
     import cv2
     import sys
-    idx = int(os.environ.get("ASL_CAMERA", "0"))
+    cam = os.environ.get("ASL_CAMERA", "0")
+    if cam.startswith("/dev/"):                      # ruta fija (no cambia al reiniciar)
+        cap = cv2.VideoCapture(cam, cv2.CAP_V4L2)
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+        return cap
+    idx = int(cam)
     if sys.platform == "darwin":
         return cv2.VideoCapture(idx, cv2.CAP_AVFOUNDATION)
     if sys.platform.startswith("linux"):

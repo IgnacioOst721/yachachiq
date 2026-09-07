@@ -29,6 +29,14 @@ Three machines talk to each other over a private network:
 | **Mac (GPU)** | Image generation server: receives scene text, runs ComfyUI / Stable Diffusion, returns a PNG | [`mac/`](mac/) |
 | **Arduino UNO** | Runs GRBL firmware, drives the NEMA 17 steppers and the pen servo | [`arduino/`](arduino/) |
 
+## `robot/` — the complete robot (current)
+
+Everything now lives in [`robot/`](robot/): web kiosk, microphone → Whisper, story analysis,
+ComfyUI image generation (with offline fallback), image → strokes → G-code, GRBL plotter driver,
+automatic photo of the drawing, and publishing to the web gallery. `python robot/selftest.py`
+runs the whole pipeline with mocks. See [`robot/README.md`](robot/README.md).
+The folders below are the earlier scripts kept for reference.
+
 ## Repository contents
 
 ### `pi/` — Raspberry Pi pipeline

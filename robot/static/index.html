@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Yachachiq</title>
+<style>
+  :root{--rojo:#80252E;--oscuro:#571820;--amarillo:#E8B93B;--celeste:#9DC3D4;--papel:#F7F0E3;--claro:#FDFAF3;--tinta:#241B1A;--hilo:#D8C9AE}
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;overflow:hidden;background:var(--papel);color:var(--tinta);font-family:Georgia,"Times New Roman",serif;-webkit-user-select:none;user-select:none}
+  body{display:grid;grid-template-rows:auto 1fr auto;height:100vh}
+  header{display:flex;align-items:center;justify-content:space-between;padding:.7rem 1.4rem;background:var(--rojo);color:var(--claro);
+    background-image:repeating-linear-gradient(90deg,rgba(255,255,255,.03) 0 2px,transparent 2px 6px)}
+  header h1{font-style:italic;font-weight:900;font-size:1.9rem;letter-spacing:-.02em}
+  header h1 span{display:inline-block;border-bottom:.22rem solid var(--amarillo)}
+  .chips{display:flex;gap:.4rem;flex-wrap:wrap}
+  .chip{font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;padding:.25rem .55rem;border:1px solid rgba(255,255,255,.35);border-radius:2px;opacity:.9}
+  .chip.real{background:var(--amarillo);color:var(--oscuro);border-color:var(--amarillo);font-weight:700}
+  .chip.mock{background:transparent}
+  main{display:grid;grid-template-columns:minmax(320px,1fr) minmax(360px,1.15fr);gap:1.2rem;padding:1.2rem 1.4rem;min-height:0}
+  @media (max-width:900px){main{grid-template-columns:1fr;overflow:auto}}
+  .stage{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.1rem;min-height:0}
+  .ring{position:relative;width:min(46vh,300px);height:min(46vh,300px);border-radius:50%;display:grid;place-items:center}
+  .ring::before{content:"";position:absolute;inset:-14px;border-radius:50%;border:4px solid var(--celeste);opacity:0;transform:scale(1);transition:opacity .3s;pointer-events:none}
+  #big{position:relative;z-index:1}
+  .ring.listening::before{opacity:1;transform:scale(calc(1 + var(--lvl,0) * .22))}
+  #big{width:100%;height:100%;border-radius:50%;border:none;background:var(--rojo);color:var(--claro);cursor:pointer;
+    box-shadow:0 14px 30px rgba(87,24,32,.35),inset 0 -8px 0 rgba(0,0,0,.18);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.4rem;padding:1.4rem;transition:transform .1s,background .3s}
+  #big:active{transform:scale(.97)}
+  #big.listening{background:#B1362F}
+  #big.busy{background:#6b5a4a;cursor:default}
+  #big.done{background:#2f6f5e}
+  #big.error{background:#8a3a1a}
+  #big .t{font-size:clamp(1.15rem,3.2vw,1.7rem);font-weight:700;line-height:1.15;text-align:center}
+  #big .s{font-size:.9rem;opacity:.85;text-align:center}
+  .bar{width:min(46vh,300px);height:10px;background:var(--hilo);border-radius:5px;overflow:hidden;opacity:0;transition:opacity .3s}
+  .bar.on{opacity:1}
+  .bar i{display:block;height:100%;width:0;background:var(--amarillo);transition:width .3s}
+  .hint{font-style:italic;color:#7d6a58;text-align:center;font-size:.95rem;max-width:34rem}
+  .panel{display:flex;flex-direction:column;gap:.8rem;min-height:0;overflow:auto;padding-right:.2rem}
+  .card{background:var(--claro);border:1.5px solid var(--hilo);padding:.9rem 1rem;box-shadow:.35rem .35rem 0 rgba(128,37,46,.08)}
+  .card h3{font-size:.7rem;letter-spacing:.22em;text-transform:uppercase;color:var(--rojo);margin-bottom:.45rem}
+  .card p{line-height:1.5;font-size:1.02rem;white-space:pre-wrap}
+  .card .muted{color:#8a7563;font-style:italic}
+  #svgbox{background:#fff;border:1px solid var(--hilo);min-height:120px;display:grid;place-items:center}
+  #svgbox svg{width:100%;height:auto;max-height:36vh}
+  .stats{display:flex;gap:1.2rem;font-size:.82rem;color:#6b5a4a;margin-top:.4rem;flex-wrap:wrap}
+  .stats b{color:var(--rojo)}
+  #lsp{display:none}
+  #lsp.on{display:block}
+  .lsprow{display:grid;grid-template-columns:1fr auto;gap:.8rem;align-items:center}
+  #lspimg{width:100%;max-height:26vh;object-fit:contain;background:#111;border:1px solid var(--hilo)}
+  #lspletter{font-size:4rem;font-weight:900;color:var(--rojo);min-width:4.5rem;text-align:center;line-height:1}
+  #lsptext{font-size:1.4rem;letter-spacing:.06em;margin-top:.4rem;min-height:1.8rem}
+  footer{display:flex;justify-content:space-between;align-items:center;padding:.5rem 1.4rem;background:var(--tinta);color:#CBB9A4;font-size:.8rem}
+  footer .tocapu{height:8px;flex:1;margin:0 1rem;background:repeating-conic-gradient(from 45deg,var(--amarillo) 0 25%,transparent 0 50%) 0 0/8px 8px}
+  #gear{position:fixed;right:1rem;bottom:2.6rem;width:46px;height:46px;border-radius:50%;border:none;background:var(--claro);color:var(--rojo);font-size:1.4rem;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.2);z-index:20}
+  #menu{position:fixed;inset:0;background:rgba(36,27,26,.55);display:none;z-index:30;align-items:center;justify-content:center;padding:1rem}
+  #menu.on{display:flex}
+  .sheet{background:var(--claro);width:min(960px,100%);max-height:94vh;overflow:auto;padding:1.2rem 1.4rem;border-top:8px solid var(--rojo);display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+  @media (max-width:760px){.sheet{grid-template-columns:1fr}}
+  .sheet h2{grid-column:1/-1;font-style:italic;color:var(--rojo);display:flex;justify-content:space-between;align-items:center}
+  .sheet h4{font-size:.7rem;letter-spacing:.2em;text-transform:uppercase;color:#8a7563;margin:.6rem 0 .4rem}
+  textarea{width:100%;min-height:110px;font:inherit;font-size:1rem;padding:.6rem;border:1.5px solid var(--hilo);background:#fff;resize:vertical}
+  .btn{font:inherit;font-size:.95rem;padding:.55rem .9rem;border:1.5px solid var(--rojo);background:#fff;color:var(--rojo);cursor:pointer;border-radius:2px}
+  .btn.p{background:var(--rojo);color:#fff}
+  .btn.w{border-color:#8a3a1a;color:#8a3a1a}
+  .btn:active{transform:translateY(1px)}
+  .row{display:flex;gap:.5rem;flex-wrap:wrap;margin:.35rem 0}
+  .jog{display:grid;grid-template-columns:repeat(3,64px);grid-auto-rows:52px;gap:.4rem;justify-content:start}
+  .jog .btn{padding:0;font-size:1.05rem;font-weight:700}
+  .jog .z{grid-column:4}
+  select{font:inherit;padding:.4rem;border:1.5px solid var(--hilo);background:#fff}
+  .small{font-size:.82rem;color:#6b5a4a;line-height:1.4}
+  code{font-family:ui-monospace,Menlo,monospace;font-size:.85em;background:#f1e9da;padding:.05em .3em}
+  #toast{position:fixed;left:50%;bottom:3.2rem;transform:translateX(-50%);background:var(--tinta);color:var(--papel);padding:.5rem 1rem;border-radius:3px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:40;font-size:.9rem}
+  #toast.on{opacity:1}
+</style>
+</head>
+<body>
+<header>
+  <h1><span>Yachachiq</span></h1>
+  <div class="chips" id="chips"></div>
+</header>
+
+<main>
+  <section class="stage">
+    <div class="ring" id="ring">
+      <button id="big"><span class="t" id="bigT">Cuéntame una historia</span><span class="s" id="bigS">toca el botón y habla</span></button>
+    </div>
+    <div class="bar" id="bar"><i id="barI"></i></div>
+    <p class="hint" id="hint">Cuando termines de hablar, el robot imagina un dibujo y lo traza a lápiz sobre el papel.</p>
+  </section>
+
+  <section class="panel">
+    <div class="card" id="lsp">
+      <h3>Lengua de señas</h3>
+      <div class="lsprow"><img id="lspimg" alt="cámara de señas"><div id="lspletter">·</div></div>
+      <div id="lsptext"></div>
+      <p class="muted" style="font-size:.85rem">Dos palmas abiertas por 2 segundos = enviar la historia</p>
+    </div>
+    <div class="card"><h3>Tu historia</h3><p id="transcript" class="muted">Todavía nada. Toca el botón y cuenta algo.</p></div>
+    <div class="card"><h3>El dibujo</h3><div id="svgbox"><span class="muted">aparecerá aquí</span></div><div class="stats" id="stats"></div></div>
+    <div class="card"><h3>Narración</h3><p id="narration" class="muted">—</p></div>
+  </section>
+</main>
+
+<footer><span id="fstate">idle</span><span class="tocapu"></span><span>Yachachiq · WRO 2026 Future Innovators · Colegio FDR, Lima</span></footer>
+<button id="gear" title="ajustes">⚙</button>
+<div id="toast"></div>
+
+<div id="menu">
+  <div class="sheet">
+    <h2>Ajustes <button class="btn" id="closeMenu">cerrar ✕</button></h2>
+    <div>
+      <h4>Escribir una historia</h4>
+      <textarea id="txt" placeholder="Escribe (o pega) la historia aquí…"></textarea>
+      <div class="row"><button class="btn p" id="sendTxt">Dibujar este texto</button><button class="btn" id="redraw">Redibujar el último</button><button class="btn w" id="cancel">Cancelar / parar</button></div>
+      <h4>Cámaras</h4>
+      <div class="small" id="cams">…</div>
+      <div class="row"><button class="btn" id="photoTest">Probar foto del dibujo</button></div>
+      <h4>Estado</h4>
+      <div class="small" id="modesTxt"></div>
+    </div>
+    <div>
+      <h4>Mover el lápiz (antes de dibujar)</h4>
+      <div class="row"><label class="small">paso:&nbsp;<select id="step"><option>1</option><option selected>10</option><option>50</option></select> mm</label></div>
+      <div class="jog">
+        <span></span><button class="btn" data-j="0,1,0">Y+</button><span></span><button class="btn z" data-j="0,0,1">Z+</button>
+        <button class="btn" data-j="-1,0,0">X−</button><span></span><button class="btn" data-j="1,0,0">X+</button><button class="btn z" data-j="0,0,-1">Z−</button>
+        <span></span><button class="btn" data-j="0,-1,0">Y−</button><span></span>
+      </div>
+      <div class="row"><button class="btn" id="penUp">Lápiz arriba</button><button class="btn" id="penDown">Lápiz abajo</button></div>
+      <div class="row"><button class="btn p" id="origin">0 · Fijar origen aquí</button><button class="btn" id="home">Ir al origen</button><button class="btn" id="unlock">Desbloquear ($X)</button></div>
+      <div class="row"><button class="btn" id="settings">Cargar settings GRBL</button><button class="btn" id="testDraw">Dibujo de prueba (casa)</button></div>
+      <p class="small">Pon el papel, lleva el lápiz a la esquina inferior izquierda hasta que toque, y presiona <b>Fijar origen</b>. Ese punto es 0,0.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const LABELS={
+  idle:["Cuéntame una historia","toca el botón y habla"],
+  listening:["Escuchando…","toca para terminar"],
+  transcribing:["Escribiendo lo que dijiste…",""],
+  thinking:["Pensando la escena…",""],
+  imagining:["Imaginando el dibujo…","le pido la imagen a la laptop"],
+  drawing:["Dibujando…","el plotter está trazando"],
+  photographing:["Tomando la foto…","del dibujo terminado"],
+  publishing:["Guardando en el archivo…",""],
+  narrating:["Contando la historia…",""],
+  done:["¡Listo!","toca para contar otra"],
+  error:["Ups, algo falló","toca para intentar de nuevo"],
+};
+let state="idle", ws, lspTimer, lspLast=0;
+function toast(m){$("toast").textContent=m;$("toast").classList.add("on");setTimeout(()=>$("toast").classList.remove("on"),2200)}
+function setState(s,extra){
+  state=s; $("fstate").textContent=s;
+  const [t,sub]=LABELS[s]||[s,""]; $("bigT").textContent=t; $("bigS").textContent=sub;
+  const b=$("big"); b.className=""; if(s==="listening")b.classList.add("listening");
+  else if(s==="done")b.classList.add("done"); else if(s==="error")b.classList.add("error");
+  else if(s!=="idle")b.classList.add("busy");
+  $("ring").classList.toggle("listening",s==="listening");
+  $("bar").classList.toggle("on",s==="drawing");
+  if(s==="drawing"){$("barI").style.width="0%"}
+  if(s==="error"&&extra&&extra.error){$("hint").textContent=extra.error}
+  else if(s==="idle"){$("hint").textContent="Cuando termines de hablar, el robot imagina un dibujo y lo traza a lápiz sobre el papel."}
+  else if(s==="done"){$("hint").textContent="La historia y el dibujo quedaron guardados en el archivo."}
+}
+function chips(m){
+  const box=$("chips"); box.innerHTML="";
+  const names={plotter:"plotter",stt:"voz",audio:"micrófono",photo:"cámara",publish:"web",tts:"voz robot"};
+  for(const k of ["plotter","stt","audio","photo","publish"]){
+    const v=String(m[k]||""); const real=!(v==="mock"||v==="off");
+    const c=document.createElement("span"); c.className="chip "+(real?"real":"mock"); c.textContent=names[k]+": "+(real?"real":v); box.appendChild(c);
+  }
+  $("modesTxt").innerHTML=Object.entries(m).map(([k,v])=>`<b>${k}</b>: ${v}`).join(" · ");
+}
+function handle(ev,d){
+  if(ev==="snapshot"){ setState(d.state,d); chips(d.modes||{}); if(d.story){ $("transcript").textContent=d.story.text; $("transcript").className=""; $("narration").textContent=d.story.narration||"—"; } if(d.image&&d.image.svg){ $("svgbox").innerHTML=d.image.svg; stats(d.image.stats,d.image.source);} return; }
+  if(ev==="state"){ setState(d.state,d); return; }
+  if(ev==="level"){ $("ring").style.setProperty("--lvl",Math.min(1,d.level)); return; }
+  if(ev==="transcript"){ $("transcript").textContent=d.text; $("transcript").className=""; return; }
+  if(ev==="analysis"){ $("hint").textContent=(d.title?`«${d.title}» · `:"")+(d.scene||""); return; }
+  if(ev==="image"){ $("svgbox").innerHTML=d.svg; stats(d.stats,d.source); return; }
+  if(ev==="progress"){ $("barI").style.width=d.pct+"%"; $("bigS").textContent=`${d.pct}% · ${d.sent}/${d.total} líneas`; return; }
+  if(ev==="narration"){ $("narration").textContent=d.text||"—"; $("narration").className=""; return; }
+  if(ev==="backend"){ if(d.stage==="image") $("bigS").textContent="imagen: "+d.backend; return; }
+  if(ev==="photo"){ toast(d.ok?"Foto del dibujo guardada":"No se pudo tomar la foto"); return; }
+  if(ev==="published"){ const s=d.status; toast(s==="published"?`Publicado en la web (${d.new})`:s==="offline"?"Sin internet: guardado, se subirá después":s==="mock"?"Publicación simulada":"Archivo: "+s); return; }
+  if(ev==="lsp"){ lspLast=Date.now(); $("lsp").classList.add("on"); $("lspletter").textContent=d.letter||"·"; $("lsptext").textContent=d.text||""; return; }
+  if(ev==="error"){ toast(d.error); return; }
+}
+function stats(s,src){ if(!s)return; const m=Math.round(s.seconds/60); $("stats").innerHTML=`<span><b>${s.strokes}</b> trazos</span><span><b>${s.points}</b> puntos</span><span>≈ <b>${m}</b> min</span><span>origen: <b>${src||"?"}</b></span>`; }
+function connect(){
+  ws=new WebSocket((location.protocol==="https:"?"wss://":"ws://")+location.host+"/ws");
+  ws.onmessage=e=>{try{const m=JSON.parse(e.data);handle(m.event,m.data)}catch(err){}};
+  ws.onclose=()=>setTimeout(connect,1500);
+}
+function send(cmd,extra){ if(ws&&ws.readyState===1) ws.send(JSON.stringify(Object.assign({cmd},extra||{}))); }
+async function post(url,body){ try{ const r=await fetch(url,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body||{})}); if(r.status===409){toast("Ocupado: espera a que termine");return null;} return await r.json(); }catch(e){toast("sin conexión");return null;} }
+$("big").onclick=()=>{ if(state==="idle"||state==="done"||state==="error") send("start"); else if(state==="listening") send("stop"); };
+document.addEventListener("keydown",e=>{ if(e.code==="Space"&&!$("menu").classList.contains("on")){e.preventDefault();$("big").click();} if(e.key==="Escape"){ send("cancel"); $("menu").classList.remove("on"); } });
+$("gear").onclick=()=>{ $("menu").classList.add("on"); fetch("/api/cameras").then(r=>r.json()).then(c=>{ $("cams").innerHTML=(c.cameras&&c.cameras.length?c.cameras.map(x=>`<code>${x}</code>`).join("<br>"):"(sin cámaras por id; en Mac se usan índices)")+`<br>foto: <code>${c.photo||"primera"}</code> · señas: <code>${c.lsp||"primera"}</code>`; }).catch(()=>{}); };
+$("closeMenu").onclick=()=>$("menu").classList.remove("on");
+$("sendTxt").onclick=()=>{ const t=$("txt").value.trim(); if(!t)return; send("story",{text:t}); $("menu").classList.remove("on"); };
+$("redraw").onclick=()=>{ send("redraw"); $("menu").classList.remove("on"); };
+$("cancel").onclick=()=>{ send("cancel"); toast("Cancelado"); };
+document.querySelectorAll(".jog [data-j]").forEach(b=>b.onclick=()=>{ const [x,y,z]=b.dataset.j.split(",").map(Number); const s=Number($("step").value); post("/api/jog",{dx:x*s,dy:y*s,dz:z*(z?Math.min(s,5):0)}); });
+$("penUp").onclick=()=>post("/api/pen",{up:true}); $("penDown").onclick=()=>post("/api/pen",{up:false});
+$("origin").onclick=()=>post("/api/origin").then(r=>r&&toast("Origen fijado: aquí es 0,0"));
+$("home").onclick=()=>post("/api/home"); $("unlock").onclick=()=>post("/api/unlock");
+$("settings").onclick=()=>post("/api/plotter/settings").then(r=>r&&toast("Settings GRBL cargados"));
+$("testDraw").onclick=()=>post("/api/plotter/test").then(r=>{ if(r){toast("Dibujando la casa de prueba"); $("menu").classList.remove("on");} });
+$("photoTest").onclick=()=>{ window.open("/api/photo/test","_blank"); };
+setInterval(()=>{ const live=Date.now()-lspLast<3000; $("lsp").classList.toggle("on",live); if(live){ $("lspimg").src="/api/lsp/frame.jpg?t="+Date.now(); } },250);
+connect();
+</script>
+</body>
+</html>
