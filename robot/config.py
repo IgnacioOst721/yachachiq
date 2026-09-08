@@ -91,8 +91,10 @@ TRACE_MAX_PX = _env("TRACE_MAX_PX", 600)   # working resolution (longest side)
 CANNY_LOW = _env("CANNY_LOW", 60)
 CANNY_HIGH = _env("CANNY_HIGH", 160)
 SIMPLIFY_EPS_PX = _env("SIMPLIFY_EPS_PX", 1.2)   # Douglas-Peucker tolerance in pixels
-MIN_STROKE_PX = _env("MIN_STROKE_PX", 12.0)      # drop strokes shorter than this (pixels)
-MAX_STROKES = _env("MAX_STROKES", 900)           # keep the longest N strokes so a plot stays under ~10 min
+MIN_STROKE_PX = _env("MIN_STROKE_PX", 20.0)      # drop strokes shorter than this (pixels)
+MAX_STROKES = _env("MAX_STROKES", 350)           # keep the longest N strokes. Measured with DreamShaper
+                                                # line art: 350 ~= 9 min of plotting, 900 ~= 11 min.
+                                                # Lower it (or raise MIN_STROKE_PX) for a faster demo.
 
 # --- Plotter (Arduino UNO + CNC Shield + grbl-servo, over USB) ----------------------
 SERIAL_PORT = _env("SERIAL_PORT", "/dev/ttyACM0")   # Pi: /dev/ttyACM0 or /dev/ttyUSB0; Mac: /dev/cu.usbmodem*

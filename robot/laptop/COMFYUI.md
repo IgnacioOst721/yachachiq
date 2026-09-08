@@ -49,3 +49,32 @@ y lo avisa en la pantalla. La demo nunca se detiene por esto.
 `STYLE_PROMPT` en `config.py` pide dibujo de línea negra, estilo tabla de Sarhua / retablo
 ayacuchano, sin sombras ni color — que es lo que el plotter puede trazar. Si los dibujos salen
 muy cargados de detalle, sube `MIN_STROKE_PX` o baja `MAX_STROKES` en `config.py`.
+
+## Pruebas de prompt hechas (2026-09-07, DreamShaper 8 en la M4)
+
+Se probaron 5 variantes con la misma escena. Resultado: **el `STYLE_PROMPT` que ya estaba
+es el mejor**; los intentos de quitar el relleno negro rompieron otra cosa.
+
+| Variante | Monocromo | Compone la escena | Relleno negro | Veredicto |
+|---|---|---|---|---|
+| **Actual** (Sarhua/retablo) | ✅ | ✅ mejor de todas | 24% | **la que se usa** |
+| "outline only, no filled areas" | ❌ salió a color | ❌ ignoró la escena | 7% | peor |
+| Prompt de Clara (libro para colorear) | ❌ a color | ❌ muy vacío (19 trazos) | 1% | peor |
+| Monocromo forzado + anti-relleno | ✅ | ❌ perdió la escena | 18% | peor |
+| Actual + negativos anti-relleno | ❌ a color | — | 0% | peor |
+
+**Aprendizaje:** los negativos tipo "solid black areas / filled shapes" sí quitan el relleno,
+pero también empujan al modelo fuera del blanco y negro. Las menciones "Sarhua tabla, Ayacucho
+retablo" son las que fuerzan el monocromo, y de paso traen el relleno: van juntas.
+
+El relleno negro no arruina el dibujo — el trazador lo convierte en contornos y el resultado
+es una lámina de líneas correcta. Lo que sí se ajustó fue el **tiempo de dibujo**:
+
+| MIN_STROKE_PX | MAX_STROKES | Trazos | Tiempo del plotter |
+|---|---|---|---|
+| 12 | 900 | 197 | 11.0 min |
+| **20** | **350** | **145** | **8.9 min** ← actual |
+| 26 | 260 | 122 | 8.0 min |
+
+Para una demo con cola de visitantes, subir `MIN_STROKE_PX` a 26-35 baja el tiempo sin
+cambiar el aspecto general.
