@@ -37,6 +37,101 @@ pipe: Pipeline = None
 loop: asyncio.AbstractEventLoop = None
 clients = set()
 lsp = {"frame": b"", "t": 0.0, "text": "", "letter": "", "mode": "letter"}
+consent = {"vote": None}          # set by the two buttons on the consent screen
+
+
+# --- consent with the portrait camera -------------------------------------------------------------------
+_face_cascade = None
+_smile_cascade = None
+
+
+def _cascades():
+    global _face_cascade, _smile_cascade
+    if _face_cascade is None:
+        import cv2
+        _face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
+        _smile_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_smile.xml")
+    return _face_cascade, _smile_cascade
+
+
+def _look_at(jpeg):
+    """jpeg bytes -> dict(bright, covered, face, smile). Cheap enough to run twice a second."""
+    import cv2
+    import numpy as np
+    arr = cv2.imdecode(np.frombuffer(jpeg, np.uint8), cv2.IMREAD_COLOR)
+    if arr is None:
+        return None
+    gray = cv2.cvtColor(arr, cv2.COLOR_BGR2GRAY)
+    bright = float(gray.mean())
+    out = {"bright": bright, "covered": bright < float(config.COVERED_BRIGHTNESS) or float(gray.std()) < 12,
+           "face": False, "smile": False}
+    if not out["covered"]:
+        try:
+            face_c, smile_c = _cascades()
+            faces = face_c.detectMultiScale(gray, 1.2, 5, minSize=(60, 60))
+            if len(faces):
+                out["face"] = True
+                x, y, w, h = max(faces, key=lambda f: f[2] * f[3])
+                roi = gray[y + h // 2:y + h, x:x + w]
+                out["smile"] = len(smile_c.detectMultiScale(roi, 1.7, 22, minSize=(25, 25))) > 0
+        except Exception:
+            pass
+    return out
+
+
+def _grab_portrait_frame():
+    """Latest frame from the sign camera (lsp_app streams it); else open the camera ourselves."""
+    if lsp["frame"] and time.time() - lsp["t"] < 2.5:
+        return lsp["frame"]
+    try:
+        import cv2
+        cam = config.LSP_CAMERA or 0
+        cap = cv2.VideoCapture(cam) if not str(cam).startswith("/dev/") else cv2.VideoCapture(cam, cv2.CAP_V4L2)
+        try:
+            ok, frame = cap.read()
+            if ok:
+                ok, jpg = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
+                return jpg.tobytes() if ok else b""
+        finally:
+            cap.release()
+    except Exception:
+        pass
+    return b""
+
+
+def consent_provider(seconds):
+    """Runs inside the pipeline thread. Shows the consent screen, watches the camera for
+    `seconds`, and decides: covered camera or 'No' button -> private; otherwise -> publish."""
+    consent["vote"] = None
+    broadcast("consent_start", {"seconds": seconds})
+    t0 = time.time()
+    looks, best, best_score = [], b"", -1.0
+    while time.time() - t0 < seconds and not pipe._cancel.is_set():
+        if consent["vote"] is not None:
+            break
+        frame = _grab_portrait_frame()
+        look = _look_at(frame) if frame else None
+        if look:
+            looks.append(look)
+            score = look["bright"] + (200 if look["face"] else 0) + (100 if look["smile"] else 0)
+            if not look["covered"] and score > best_score:
+                best, best_score = frame, score
+        broadcast("consent_tick", {"remaining": max(0, int(seconds - (time.time() - t0))),
+                                   "camera": bool(frame), **(look or {})})
+        time.sleep(0.45)
+    recent = looks[-6:]
+    if consent["vote"] is not None:
+        publish, reason = bool(consent["vote"]), ("botón: sí" if consent["vote"] else "botón: no")
+    elif not looks:
+        publish, reason = False, "sin cámara para preguntar"
+    elif sum(1 for l in recent if l["covered"]) > len(recent) / 2:
+        publish, reason = False, "cámara tapada"
+    else:
+        publish, reason = True, "cámara abierta" + (" · sonrisa" if any(l["smile"] for l in recent) else "")
+    result = {"publish": publish, "reason": reason, "portrait": best if publish else b"",
+              "face": any(l["face"] for l in recent), "smile": any(l["smile"] for l in recent)}
+    broadcast("consent_result", {k: v for k, v in result.items() if k != "portrait"})
+    return result
 
 
 async def _send_all(msg):
@@ -89,6 +184,7 @@ async def _startup():
     global pipe, loop
     loop = asyncio.get_event_loop()
     pipe = Pipeline(on_event=broadcast)
+    pipe.consent_provider = consent_provider
     threading.Thread(target=_tcp_text_server, daemon=True).start()
     log.info("modes: %s", pipe.modes())
 
@@ -244,6 +340,13 @@ async def api_photo_test():
     out = os.path.join(str(config.OUTPUT_DIR), "photo_test.png")
     ok = photo.capture(out)
     return FileResponse(out) if ok else JSONResponse({"ok": False, "error": "sin camara"}, status_code=500)
+
+
+@app.post("/api/consent")
+async def api_consent(req: Request):
+    b = await req.json()
+    consent["vote"] = bool(b.get("publish"))
+    return {"ok": True, "vote": consent["vote"]}
 
 
 # --- sign language preview -------------------------------------------------------------------------------------

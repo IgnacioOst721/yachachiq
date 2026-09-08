@@ -39,11 +39,13 @@ def _index(web_dir):
         d = os.path.join(web_dir, name)
         if not os.path.isdir(d):
             continue
-        e = {"id": name, "images": [], "photos": [], "story": ""}
+        e = {"id": name, "images": [], "photos": [], "portrait": None, "story": ""}
         for f in sorted(os.listdir(d)):
             if f == "story.txt":
                 with open(os.path.join(d, f), encoding="utf-8", errors="ignore") as fh:
                     e["story"] = fh.read()
+            elif f.startswith("storyteller_photo"):
+                e["portrait"] = f
             elif f.lower().endswith((".png", ".jpg", ".jpeg")):
                 (e["photos"] if "photo" in f else e["images"]).append(f)
         out.append(e)
@@ -69,8 +71,10 @@ def sync(stories_dir=None):
         new = 0
         for name in sorted(os.listdir(stories_dir)):
             src, dst = os.path.join(stories_dir, name), os.path.join(web, name)
+            if os.path.exists(os.path.join(src, ".private")):
+                continue                                   # the storyteller said no: stays on the robot
             if os.path.isdir(src) and not os.path.exists(dst) and os.path.exists(os.path.join(src, "story.txt")):
-                shutil.copytree(src, dst, ignore=shutil.ignore_patterns("*.gcode", "*.wav", "*.json"))
+                shutil.copytree(src, dst, ignore=shutil.ignore_patterns("*.gcode", "*.wav", "*.json", ".private"))
                 new += 1
         with open(os.path.join(repo, "docs", "stories.json"), "w", encoding="utf-8") as f:
             json.dump(_index(web), f, ensure_ascii=False, indent=1)

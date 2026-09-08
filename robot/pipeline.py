@@ -41,6 +41,8 @@ class Pipeline:
         self.progress = (0, 0)
         self.level = 0.0
         self.story_dir = None
+        self.consent = None                 # last decision: {"publish", "reason", "portrait"...}
+        self.consent_provider = None        # set by server.py: fn(seconds) -> decision dict
         self.recorder = Recorder()
         self.stt = STT()
         self.tts = TTS()
@@ -67,7 +69,8 @@ class Pipeline:
     def modes(self):
         return {"plotter": self.plotter.mode, "stt": self.stt.mode, "audio": self.recorder.mode,
                 "tts": self.tts.mode, "image": ",".join(config.IMAGE_BACKENDS),
-                "story": ",".join(config.STORY_BACKENDS), "photo": photo.mode(), "publish": publish.mode()}
+                "story": ",".join(config.STORY_BACKENDS), "photo": photo.mode(), "publish": publish.mode(),
+                "consent": ("off" if not config.CONSENT_REQUIRED else ("camera" if self.consent_provider else "none"))}
 
     def snapshot(self):
         return {"state": self.state, "modes": self.modes(), "progress": self.progress, "level": self.level,
@@ -212,14 +215,46 @@ class Pipeline:
             out = os.path.join(self.story_dir, "scene_1_photo.png")
             ok = photo.capture(out, fallback_png=os.path.join(self.story_dir, "preview.png"))
             self.emit("photo", {"ok": ok, "path": out if ok else None})
-        if config.PUBLISH_ENABLED:
+        decision = self._ask_consent()
+        if config.PUBLISH_ENABLED and decision["publish"]:
             self._set_state("publishing")
             res = publish.sync()
             self.emit("published", res)
+        elif config.PUBLISH_ENABLED:
+            self.emit("published", {"status": "private", "new": 0, "reason": decision["reason"]})
         if not config.SPEAK_WHILE_DRAWING:
             self._set_state("narrating")
             self.tts.speak(analysis.get("narration", ""), blocking=True)
         self._set_state("done")
+
+    def _ask_consent(self):
+        """Ask the storyteller (on screen, with the portrait camera) whether the story
+        may go to the public archive. Camera covered = no. Never raises."""
+        if not config.CONSENT_REQUIRED:
+            d = {"publish": True, "reason": "sin consentimiento requerido", "portrait": None}
+        elif self.consent_provider is None:
+            # no screen/camera to ask: private by default (mock says yes so tests flow)
+            d = {"publish": bool(config.MOCK), "reason": "sin pantalla ni cámara para preguntar", "portrait": None}
+        else:
+            self._set_state("consent", seconds=int(config.CONSENT_SECONDS))
+            try:
+                d = self.consent_provider(int(config.CONSENT_SECONDS))
+            except Exception as e:
+                log.warning("consent provider failed: %s", e)
+                d = {"publish": False, "reason": f"error: {e}", "portrait": None}
+        if self._cancel.is_set():
+            d = {"publish": False, "reason": "cancelado", "portrait": None}
+        if self.story_dir:
+            if d.get("portrait") and config.PORTRAIT_ENABLED and d["publish"]:
+                with open(os.path.join(self.story_dir, "storyteller_photo.jpg"), "wb") as f:
+                    f.write(d["portrait"])
+            if not d["publish"]:
+                with open(os.path.join(self.story_dir, ".private"), "w", encoding="utf-8") as f:
+                    f.write(d.get("reason", ""))
+        self.consent = {k: v for k, v in d.items() if k != "portrait"}
+        self.consent["portrait"] = bool(d.get("portrait"))
+        self.emit("consent", self.consent)
+        return d
 
     def _save_story(self, text, analysis, img, lines):
         ts = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")

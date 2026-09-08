@@ -217,9 +217,26 @@
   .meta {
     display: flex;
     flex-wrap: wrap;
-    align-items: baseline;
+    align-items: center;
     gap: .9rem;
     margin-bottom: 1.2rem;
+  }
+  .retrato {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    font-size: .74rem;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: #8a7563;
+  }
+  .retrato img {
+    width: 58px; height: 58px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--amarillo);
+    box-shadow: 0 3px 10px rgba(36,27,26,.18);
   }
   .num {
     font-family: "Fraunces", serif;
@@ -402,6 +419,7 @@ fetch("stories.json")
         <div class="meta">
           <span class="num">Historia Nº ${n}</span>
           <span class="fecha">${fechaBonita(h.id)}</span>
+          ${h.portrait ? `<span class="retrato">Contada por<img src="stories/${h.id}/${h.portrait}" alt="Quien contó la historia"></span>` : ""}
         </div>
         <div class="texto">${(soloHistoria(h.story || "") || "(sin transcripción)").replace(/</g, "&lt;")}</div>
         <div class="galeria">${figs}</div>`;
