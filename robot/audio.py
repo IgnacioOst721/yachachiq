@@ -72,9 +72,18 @@ class Recorder:
         dev = config.AUDIO_DEVICE or None
         if dev is not None and str(dev).isdigit():
             dev = int(dev)
-        self._stream = sd.InputStream(samplerate=config.SAMPLE_RATE, channels=1, dtype="float32",
-                                      device=dev, blocksize=1024, callback=cb)
-        self._stream.start()
+        try:
+            self._stream = sd.InputStream(samplerate=config.SAMPLE_RATE, channels=1, dtype="float32",
+                                          device=dev, blocksize=1024, callback=cb)
+            self._stream.start()
+        except Exception as e:
+            # No microphone plugged in (or busy): keep working instead of crashing.
+            # The UI chip already says "micrófono: mock"; typed text and sign
+            # language still drive the whole pipeline.
+            log.warning("no microphone (%s) -> mock recorder", e)
+            self.mode = "mock"
+            self._stream = None
+            return self.start(on_level=on_level, on_auto_stop=on_auto_stop)
         return True
 
     def stop(self):
