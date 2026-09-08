@@ -141,3 +141,34 @@ I/J. Probado: mano quieta devuelve N, mano en movimiento devuelve Ñ.
   párrafo que suma en impacto social.
 - La **página web** y el README del proyecto.
 - La presentación del equipo.
+
+
+## Precisión: de 94.2% a 97.9% sin regrabar (2026-09-08)
+
+Se probaron 6 clasificadores (ExtraTrees, RandomForest, HistGradientBoosting, SVM, MLP, kNN):
+**ninguno pasaba de 95%**, así que el problema no era el modelo. Analizando tanda por tanda
+(cada tanda = 100 muestras = una pulsación de tecla al grabar):
+
+| Letra | Tandas | Resultado |
+|---|---|---|
+| **M** | t1–t4 perfectas, **t5 = 92% clasificada como N** | La tanda 5 se grabó haciendo la N por error. **Se borró.** |
+| N | todas perfectas | bien |
+| R | t1–t4 perfectas, t5 = 69% | La última tanda tiene otro ángulo; le falta variedad |
+| S | todas ≥95% | bien |
+| I / J | se confunden entre sí | Esperado: misma forma, la app las separa por movimiento |
+
+Con la tanda mala de M fuera: **97.9% honesto, 98.9% efectivo en vivo** (I/J resueltas por movimiento).
+El respaldo del dataset anterior quedó en `lsp_data_RESPALDO_antes_de_quitar_M5.csv`.
+
+### Para pasar de 99%
+
+Lo único que queda es la **R** (se confunde con S y B según el ángulo). Grabar **3 tandas más de R**
+variando el ángulo de la mano y la distancia, y reentrenar:
+
+```bash
+python3 collect_data.py      # tecla r, 3 veces, moviendo un poco el ángulo entre tandas
+python3 train_model.py
+```
+
+Regla aprendida: al grabar, **una tanda equivocada arruina la letra entera**. Si al presionar una
+tecla la mano no estaba bien puesta, esa tanda se puede quitar con `borrar_letras.py` y regrabar.
