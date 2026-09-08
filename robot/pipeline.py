@@ -41,6 +41,7 @@ class Pipeline:
         self.progress = (0, 0)
         self.level = 0.0
         self.story_dir = None
+        self.input_mode = None              # "voz" | "senas" | None (visitor has not chosen)
         self.consent = None                 # last decision: {"publish", "reason", "portrait"...}
         self.consent_provider = None        # set by server.py: fn(seconds) -> decision dict
         self.recorder = Recorder()
@@ -66,10 +67,13 @@ class Pipeline:
         self.state = s
         self.emit("state", {"state": s, **extra})
         if s in ("idle", "done", "error"):
+            self.input_mode = None
             threading.Timer(float(config.AUTO_LISTEN_COOLDOWN), self._arm_trigger).start()
 
     def _arm_trigger(self):
-        """Listen for a voice again once the robot is free."""
+        """Listen for a voice again once the robot is free (never while signing)."""
+        if self.state == "waiting_signs":
+            return
         if not self.busy() and config.AUTO_LISTEN:
             if self.trigger.start():
                 self.emit("auto_listen", {"armed": True})
@@ -82,18 +86,33 @@ class Pipeline:
         self.emit("auto_listen", {"armed": False, "woke": True})
         self.start_listening()
 
+    def choose_mode(self, mode):
+        """The visitor picks how to tell the story on the welcome screen."""
+        if self.busy():
+            return False
+        self.input_mode = mode if mode in ("voz", "senas") else None
+        self.emit("mode", {"mode": self.input_mode})
+        if self.input_mode == "voz":
+            return self.start_listening()
+        # sign language: the mic must not butt in while somebody is signing
+        self.trigger.stop()
+        self._set_state("waiting_signs")
+        return True
+
     def busy(self):
-        return self.state not in ("idle", "done", "error")
+        return self.state not in ("idle", "done", "error", "waiting_signs")
 
     def modes(self):
         return {"plotter": self.plotter.mode, "stt": self.stt.mode, "audio": self.recorder.mode,
                 "tts": self.tts.mode, "image": ",".join(config.IMAGE_BACKENDS),
                 "story": ",".join(config.STORY_BACKENDS), "photo": photo.mode(), "publish": publish.mode(),
+                "input_mode": self.input_mode or "-",
                 "auto_listen": ("on" if self.trigger.running else ("off" if not config.AUTO_LISTEN else self.trigger.mode)),
                 "consent": ("off" if not config.CONSENT_REQUIRED else ("camera" if self.consent_provider else "none"))}
 
     def snapshot(self):
-        return {"state": self.state, "modes": self.modes(), "progress": self.progress, "level": self.level,
+        return {"state": self.state, "modes": self.modes(), "input_mode": self.input_mode,
+                "progress": self.progress, "level": self.level,
                 "last_error": self.last_error, "story": self.last_story, "image": self.last_image}
 
     # --- inputs ------------------------------------------------------------------------------------

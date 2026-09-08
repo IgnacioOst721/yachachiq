@@ -200,7 +200,9 @@ async def _startup():
 # --- pages ---------------------------------------------------------------------------------------------
 @app.get("/", response_class=HTMLResponse)
 async def index():
-    return FileResponse(os.path.join(STATIC, "index.html"))
+    # kiosk: never cache the page, so a restarted robot always shows the current UI
+    return FileResponse(os.path.join(STATIC, "index.html"),
+                        headers={"Cache-Control": "no-store, max-age=0"})
 
 
 @app.websocket("/ws")
@@ -231,6 +233,8 @@ def _command(cmd, args):
         return pipe.stop_listening()
     if cmd == "cancel":
         return pipe.cancel()
+    if cmd == "mode":
+        return pipe.choose_mode(args.get("mode"))
     if cmd == "story":
         return pipe.submit_text(args.get("text", ""))
     if cmd == "redraw":
@@ -264,6 +268,12 @@ async def api_listen_stop():
 @app.post("/api/listen/toggle")
 async def api_listen_toggle():
     return {"ok": pipe.toggle_listening(), "state": pipe.state}
+
+
+@app.post("/api/mode")
+async def api_mode(req: Request):
+    b = await req.json()
+    return {"ok": pipe.choose_mode(b.get("mode")), "state": pipe.state, "mode": pipe.input_mode}
 
 
 @app.post("/api/cancel")

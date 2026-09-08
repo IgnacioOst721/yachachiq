@@ -35,6 +35,52 @@
   #big.error{background:#8a3a1a}
   #big .t{font-size:clamp(1.15rem,3.2vw,1.7rem);font-weight:700;line-height:1.15;text-align:center}
   #big .s{font-size:.9rem;opacity:.85;text-align:center}
+  /* --- selector de modo --- */
+  #chooser{display:none;flex-direction:column;align-items:center;gap:1.6rem;width:100%;max-width:760px}
+  #chooser.on{display:flex;animation:entra .5s cubic-bezier(.2,.7,.2,1)}
+  #chooser h2{font-family:Georgia,serif;font-style:italic;font-weight:900;color:var(--rojo);
+    font-size:clamp(1.7rem,4.2vw,2.6rem);text-align:center;line-height:1.15}
+  #chooser h2 small{display:block;font-style:normal;font-weight:400;font-size:.44em;color:#7d6a58;
+    letter-spacing:.16em;text-transform:uppercase;margin-top:.5rem}
+  .cards{display:grid;grid-template-columns:1fr 1fr;gap:1.4rem;width:100%}
+  @media (max-width:640px){.cards{grid-template-columns:1fr}}
+  .card-opt{position:relative;background:var(--claro);border:2px solid var(--hilo);padding:2rem 1.4rem 1.6rem;
+    cursor:pointer;text-align:center;overflow:hidden;transition:transform .28s cubic-bezier(.2,.7,.2,1),
+    box-shadow .28s,border-color .28s;box-shadow:.4rem .4rem 0 rgba(128,37,46,.10);
+    animation:sube .55s cubic-bezier(.2,.7,.2,1) backwards}
+  .card-opt:nth-child(1){animation-delay:.10s} .card-opt:nth-child(2){animation-delay:.22s}
+  .card-opt::before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 50% 0%,rgba(232,185,59,.22),transparent 65%);
+    opacity:0;transition:opacity .3s}
+  .card-opt:hover,.card-opt:focus-visible{transform:translateY(-8px) scale(1.03);border-color:var(--rojo);
+    box-shadow:.7rem .7rem 0 rgba(128,37,46,.18);outline:none}
+  .card-opt:hover::before{opacity:1}
+  .card-opt .ico{font-size:3.6rem;line-height:1;display:block;margin-bottom:.7rem;
+    transition:transform .35s cubic-bezier(.2,.7,.2,1)}
+  .card-opt:hover .ico{transform:scale(1.14) rotate(-4deg)}
+  .card-opt .tit{font-family:Georgia,serif;font-weight:900;font-size:1.5rem;color:var(--rojo);margin-bottom:.35rem}
+  .card-opt .des{font-size:.95rem;color:#6b5a4a;line-height:1.45}
+  .card-opt.elegida{animation:elegir .55s cubic-bezier(.2,.7,.2,1) forwards}
+  .card-opt.descartada{animation:descartar .45s ease forwards}
+  @keyframes elegir{0%{transform:scale(1)}45%{transform:scale(1.07);box-shadow:0 0 0 8px rgba(232,185,59,.35)}
+    100%{transform:scale(1.02);border-color:var(--rojo);box-shadow:0 0 0 3px var(--amarillo)}}
+  @keyframes descartar{to{opacity:.15;transform:scale(.94) translateY(6px);filter:grayscale(1)}}
+  @keyframes entra{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+  /* --- modo señas: la camara al centro --- */
+  #signStage{display:none;flex-direction:column;align-items:center;gap:1rem;width:100%;max-width:620px}
+  #signStage.on{display:flex;animation:entra .5s cubic-bezier(.2,.7,.2,1)}
+  #signStage .marco{position:relative;width:100%;background:#111;border:2px solid var(--rojo);aspect-ratio:4/3;overflow:hidden}
+  #signStage img{width:100%;height:100%;object-fit:cover;display:block}
+  #signStage .letra{position:absolute;right:.9rem;top:.7rem;font-family:Georgia,serif;font-weight:900;
+    font-size:4.4rem;color:var(--amarillo);text-shadow:0 3px 12px rgba(0,0,0,.7);line-height:1;
+    transition:transform .18s cubic-bezier(.2,.7,.2,1)}
+  #signStage .letra.pop{transform:scale(1.28)}
+  #signStage .frase{position:absolute;left:0;right:0;bottom:0;padding:.6rem .9rem;background:rgba(36,27,26,.82);
+    color:var(--papel);font-size:1.35rem;letter-spacing:.08em;min-height:2.6rem;text-align:left}
+  #signStage .frase i{opacity:.55;font-style:normal;animation:parpadea 1s steps(2) infinite}
+  @keyframes parpadea{50%{opacity:0}}
+  #signStage .aviso{display:flex;gap:.7rem;align-items:center;justify-content:center;flex-wrap:wrap;
+    font-size:.95rem;color:#6b5a4a;text-align:center}
+  #signStage .aviso b{color:var(--rojo)}
   .bar{width:min(46vh,300px);height:10px;background:var(--hilo);border-radius:5px;overflow:hidden;opacity:0;transition:opacity .3s}
   .bar.on{opacity:1}
   .bar i{display:block;height:100%;width:0;background:var(--amarillo);transition:width .3s}
@@ -108,6 +154,28 @@
 
 <main>
   <section class="stage">
+    <div id="chooser">
+      <h2>¿Cómo quieres contar tu historia?<small>elige una y empieza</small></h2>
+      <div class="cards">
+        <div class="card-opt" id="optVoz" tabindex="0" role="button">
+          <span class="ico">🎙️</span>
+          <div class="tit">Con mi voz</div>
+          <div class="des">Habla y el robot te escucha. Se detiene solo cuando terminas.</div>
+        </div>
+        <div class="card-opt" id="optSenas" tabindex="0" role="button">
+          <span class="ico">🤟</span>
+          <div class="tit">En lengua de señas</div>
+          <div class="des">Seña las letras frente a la cámara. Dos palmas abiertas para enviar.</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="signStage">
+      <div class="marco"><img id="sImg" alt="cámara de señas"><div class="letra" id="sLetra">·</div><div class="frase" id="sFrase"><i>▌</i></div></div>
+      <div class="aviso"><span>Seña letra por letra</span>·<span>baja la mano para separar palabras</span>·<span><b>dos palmas abiertas 2 s = enviar</b></span></div>
+      <button class="btn" id="sVolver">← elegir otra forma</button>
+    </div>
+
     <div class="ring" id="ring">
       <button id="big"><span class="t" id="bigT">Cuéntame una historia</span><span class="s" id="bigS">toca el botón y habla</span></button>
     </div>
@@ -188,6 +256,7 @@
 const $=id=>document.getElementById(id);
 const LABELS={
   idle:["Cuéntame tu historia","solo empieza a hablar"],
+  waiting_signs:["Te miro…","seña tu historia"],
   listening:["Te escucho…","habla tranquilo · se detiene solo"],
   transcribing:["Escribiendo lo que dijiste…","un momento"],
   thinking:["Pensando la escena…",""],
@@ -202,6 +271,15 @@ const LABELS={
 };
 let state="idle", ws, lspTimer, lspLast=0, listenT0=null;
 function toast(m){$("toast").textContent=m;$("toast").classList.add("on");setTimeout(()=>$("toast").classList.remove("on"),2200)}
+function showStage(){
+  const idle = (state==="idle"||state==="done"||state==="error");
+  const signs = (state==="waiting_signs");
+  $("chooser").classList.toggle("on", idle && !signs);
+  $("signStage").classList.toggle("on", signs);
+  $("ring").style.display = (idle||signs) ? "none" : "grid";
+  $("bar").style.display  = (idle||signs) ? "none" : "block";
+  if(idle){ document.querySelectorAll(".card-opt").forEach(c=>c.classList.remove("elegida","descartada")); }
+}
 function setState(s,extra){
   state=s; $("fstate").textContent=s;
   const [t,sub]=LABELS[s]||[s,""]; $("bigT").textContent=t; $("bigS").textContent=sub;
@@ -210,10 +288,12 @@ function setState(s,extra){
   else if(s!=="idle")b.classList.add("busy");
   $("ring").classList.toggle("listening",s==="listening");
   if(s!=="listening") listenT0=null;
+  showStage();
   $("bar").classList.toggle("on",s==="drawing");
   if(s==="drawing"){$("barI").style.width="0%"}
   const HINTS={
-    idle:"Habla y el robot empieza a escuchar solo. También puedes contar tu historia en lengua de señas frente a la cámara. (Si prefieres, toca el círculo para empezar.)",
+    waiting_signs:"Seña tu historia frente a la cámara. Cuando termines, muestra las dos palmas abiertas dos segundos para enviarla.",
+    idle:"Elige cómo contar tu historia. Si prefieres, solo empieza a hablar y el robot te escucha. También puedes contar tu historia en lengua de señas frente a la cámara. (Si prefieres, toca el círculo para empezar.)",
     listening:"Habla con calma. Cuando te quedes en silencio unos segundos, el robot deja de escuchar solo — o toca el círculo para terminar ahora.",
     transcribing:"Convirtiendo tu voz en texto…",
     thinking:"Buscando qué dibujar de tu historia…",
@@ -261,7 +341,12 @@ function handle(ev,d){
       if(d.armed){ b.classList.add("armado"); $("bigS").textContent="solo empieza a hablar"; }
       else b.classList.remove("armado");
       return; }
-  if(ev==="lsp"){ lspLast=Date.now(); $("lsp").classList.add("on"); $("lspletter").textContent=d.letter||"·"; $("lsptext").textContent=d.text||""; return; }
+  if(ev==="mode"){ return; }
+  if(ev==="lsp"){ lspLast=Date.now();
+    if(state==="waiting_signs"){
+      const L=$("sLetra"); if(L.textContent!==(d.letter||"·")){ L.textContent=d.letter||"·"; L.classList.add("pop"); setTimeout(()=>L.classList.remove("pop"),190); }
+      $("sFrase").innerHTML = (d.text? d.text.replace(/</g,"&lt;") : "") + "<i>▌</i>";
+    } $("lsp").classList.add("on"); $("lspletter").textContent=d.letter||"·"; $("lsptext").textContent=d.text||""; return; }
   if(ev==="error"){ toast(d.error); return; }
 }
 function stats(s,src){ if(!s)return; const m=Math.round(s.seconds/60); $("stats").innerHTML=`<span><b>${s.strokes}</b> trazos</span><span><b>${s.points}</b> puntos</span><span>≈ <b>${m}</b> min</span><span>origen: <b>${src||"?"}</b></span>`; }
@@ -272,6 +357,14 @@ function connect(){
 }
 function send(cmd,extra){ if(ws&&ws.readyState===1) ws.send(JSON.stringify(Object.assign({cmd},extra||{}))); }
 async function post(url,body){ try{ const r=await fetch(url,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body||{})}); if(r.status===409){toast("Ocupado: espera a que termine");return null;} return await r.json(); }catch(e){toast("sin conexión");return null;} }
+function elegir(cual, quien, otro){
+  quien.classList.add("elegida"); otro.classList.add("descartada");
+  setTimeout(()=>post("/api/mode",{mode:cual}), 520);
+}
+$("optVoz").onclick=()=>elegir("voz",$("optVoz"),$("optSenas"));
+$("optSenas").onclick=()=>elegir("senas",$("optSenas"),$("optVoz"));
+document.querySelectorAll(".card-opt").forEach(c=>c.onkeydown=e=>{ if(e.key==="Enter"||e.key===" "){e.preventDefault();c.click();} });
+$("sVolver").onclick=()=>post("/api/mode",{mode:null});
 $("big").onclick=()=>{ if(state==="idle"||state==="done"||state==="error") send("start"); else if(state==="listening") send("stop"); };
 document.addEventListener("keydown",e=>{ if(e.code==="Space"&&!$("menu").classList.contains("on")){e.preventDefault();$("big").click();} if(e.key==="Escape"){ send("cancel"); $("menu").classList.remove("on"); } });
 $("gear").onclick=()=>{ $("menu").classList.add("on"); fetch("/api/cameras").then(r=>r.json()).then(c=>{ $("cams").innerHTML=(c.cameras&&c.cameras.length?c.cameras.map(x=>`<code>${x}</code>`).join("<br>"):"(sin cámaras por id; en Mac se usan índices)")+`<br>foto: <code>${c.photo||"primera"}</code> · señas: <code>${c.lsp||"primera"}</code>`; }).catch(()=>{}); };
@@ -302,7 +395,8 @@ function cResult(d){ clearInterval(cTimer); $("ccount").textContent="";
   $("cst").className="st "+(d.publish?"ok":"no"); $("cst").textContent=d.publish?"Publicando…":"No se publica.";
   setTimeout(()=>$("consent").classList.remove("on"),3800); }
 $("cYes").onclick=()=>post("/api/consent",{publish:true}); $("cNo").onclick=()=>post("/api/consent",{publish:false});
-setInterval(()=>{ const live=Date.now()-lspLast<3000; $("lsp").classList.toggle("on",live); if(live){ $("lspimg").src="/api/lsp/frame.jpg?t="+Date.now(); } },250);
+setInterval(()=>{ if(state==="waiting_signs") $("sImg").src="/api/lsp/frame.jpg?t="+Date.now();
+  const live=Date.now()-lspLast<3000; $("lsp").classList.toggle("on",live); if(live){ $("lspimg").src="/api/lsp/frame.jpg?t="+Date.now(); } },250);
 connect();
 </script>
 </body>

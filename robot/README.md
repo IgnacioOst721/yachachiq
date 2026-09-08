@@ -186,11 +186,17 @@ Two USB cameras: find their fixed ids with `ls /dev/v4l/by-id/` and set `YACHACH
 
 El robot está pensado para una mesa de exhibición: **nadie tiene que tocar nada.**
 
-1. **Empieza a hablar.** Con `AUTO_LISTEN` (activado por defecto) el micrófono queda escuchando
+1. **Elige cómo contar la historia.** La pantalla de bienvenida ofrece dos tarjetas animadas:
+   🎙️ **Con mi voz** y 🤟 **En lengua de señas**. Se eligen con el dedo (pantalla táctil), con un
+   mouse, o con Tab + Enter. Al elegir, la tarjeta se ilumina y la otra se apaga.
+   - **Voz** → empieza a grabar de inmediato.
+   - **Señas** → la cámara pasa al centro de la pantalla en grande, con la letra que se está
+     señando y la frase construyéndose en vivo. El micrófono se apaga para que no interrumpa.
+2. **O simplemente habla.** Con `AUTO_LISTEN` (activado por defecto) el micrófono queda escuchando
    en reposo y arranca la grabación cuando alguien habla de verdad (más fuerte que el ruido del
    ambiente, sostenido 0.35 s). El círculo de la pantalla late en amarillo cuando está listo.
-2. **Deja de hablar.** Se detiene solo tras 3.5 s de silencio (`SILENCE_SECONDS`).
-3. **O cuenta la historia en señas** frente a la cámara: dos palmas abiertas 2 s la envían.
+3. **Deja de hablar.** Se detiene solo tras 3.5 s de silencio (`SILENCE_SECONDS`).
+   En señas, dos palmas abiertas 2 s envían la historia.
 4. **Al final decides** si se publica: tapar la cámara = no; sonreír = sí. También hay dos botones
    en pantalla por si la pantalla es táctil.
 
