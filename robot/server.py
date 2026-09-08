@@ -360,6 +360,15 @@ async def api_photo_test():
     return FileResponse(out) if ok else JSONResponse({"ok": False, "error": "sin camara"}, status_code=500)
 
 
+@app.post("/api/clean")
+async def api_clean(req: Request):
+    """Try the corrector on any text (handy while tuning it)."""
+    b = await req.json()
+    import textclean
+    out, notes = textclean.clean(b.get("text", ""), b.get("lang", "spanish"))
+    return {"text": out, "notes": notes}
+
+
 @app.post("/api/consent")
 async def api_consent(req: Request):
     b = await req.json()

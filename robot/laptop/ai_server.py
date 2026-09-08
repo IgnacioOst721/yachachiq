@@ -38,6 +38,19 @@ async def analyze(req: Request):
     return JSONResponse(json.loads(m.group(0)) if m else {})
 
 
+@app.post("/correct")
+async def correct(req: Request):
+    """Fix spelling, accents and punctuation without changing the story."""
+    import requests
+    b = await req.json()
+    prompt = ("Corrige ortografía, tildes y puntuación del siguiente texto en español. "
+              "NO cambies las palabras, no agregues ni quites ideas, no lo traduzcas, no lo resumas. "
+              "Responde SOLO con el texto corregido.\n\n" + b.get("text", ""))
+    r = requests.post(f"{OLLAMA}/api/generate", json={"model": MODEL, "prompt": prompt, "stream": False}, timeout=90)
+    r.raise_for_status()
+    return {"text": " ".join(r.json().get("response", "").split()).strip()}
+
+
 @app.post("/generate")
 async def generate(req: Request):
     global _pipe

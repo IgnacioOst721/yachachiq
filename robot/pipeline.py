@@ -21,6 +21,7 @@ import imagegen
 import photo
 import publish
 import story
+import textclean
 import vectorize
 from audio import Recorder, VoiceTrigger, save_wav
 from language import detect_language
@@ -187,7 +188,13 @@ class Pipeline:
 
     def _run(self, text):
         try:
-            self.emit("transcript", {"text": text})
+            crudo = text
+            if config.CLEAN_TEXT:
+                text, notas = textclean.clean(text)
+                if notas:
+                    log.info("texto corregido (%s)", ", ".join(notas))
+                    self.emit("cleaned", {"before": crudo, "after": text, "notes": notas})
+            self.emit("transcript", {"text": text, "raw": crudo})
             lang, words = detect_language(text)
             self.emit("language", {"lang": lang, "words": words})
 

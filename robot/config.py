@@ -138,3 +138,7 @@ AUTO_LISTEN = _env("AUTO_LISTEN", True)          # start recording by itself whe
 AUTO_LISTEN_RMS = _env("AUTO_LISTEN_RMS", 0.030) # louder than SILENCE_RMS: a real voice, not room noise
 AUTO_LISTEN_HOLD = _env("AUTO_LISTEN_HOLD", 0.35)# seconds of speech before it wakes up
 AUTO_LISTEN_COOLDOWN = _env("AUTO_LISTEN_COOLDOWN", 3.0)  # pause after a story before listening again
+
+# --- Story clean-up before drawing and publishing ------------------------------------
+CLEAN_TEXT = _env("CLEAN_TEXT", True)        # sentence case, punctuation, safe accents
+CLEAN_WITH_LLM = _env("CLEAN_WITH_LLM", True)  # also ask the laptop LLM to fix spelling

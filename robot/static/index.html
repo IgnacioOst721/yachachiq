@@ -197,7 +197,8 @@
         <li><b>El lápiz la dibuja</b> sobre el papel, trazo por trazo.</li>
         <li><b>Tú decides</b> si quieres que se sume al archivo público.</li>
       </ol></div>
-    <div class="card"><h3>Tu historia</h3><p id="transcript" class="muted">Todavía nada. Toca el círculo y cuenta algo.</p></div>
+    <div class="card"><h3>Tu historia</h3><p id="transcript" class="muted">Todavía nada. Cuenta algo y aparecerá aquí.</p>
+      <p id="corregido" style="display:none;margin-top:.5rem;font-size:.78rem;letter-spacing:.1em;text-transform:uppercase;color:#8a7563"></p></div>
     <div class="card"><h3>El dibujo</h3><div id="svgbox"><span class="muted">aparecerá aquí</span></div><div class="stats" id="stats"></div></div>
     <div class="card"><h3>Narración</h3><p id="narration" class="muted">—</p></div>
   </section>
@@ -280,7 +281,9 @@ function showStage(){
   $("bar").style.display  = (idle||signs) ? "none" : "block";
   if(idle){ document.querySelectorAll(".card-opt").forEach(c=>c.classList.remove("elegida","descartada")); }
 }
+function limpiarAviso(){ const n=$("corregido"); if(n) n.style.display="none"; }
 function setState(s,extra){
+  if(s==="listening"||s==="waiting_signs") limpiarAviso();
   state=s; $("fstate").textContent=s;
   const [t,sub]=LABELS[s]||[s,""]; $("bigT").textContent=t; $("bigS").textContent=sub;
   const b=$("big"); b.className=""; if(s==="listening")b.classList.add("listening");
@@ -327,6 +330,8 @@ function handle(ev,d){
     return; }
   if(ev==="transcript"){ $("transcript").textContent=d.text; $("transcript").className="";
     const c=$("comoCard"); if(c) c.style.display="none"; return; }
+  if(ev==="cleaned"){ const n=$("corregido");
+    if(n){ n.style.display="block"; n.innerHTML="✎ texto corregido — "+d.notes.join(" · "); } return; }
   if(ev==="analysis"){ $("hint").textContent=(d.title?`«${d.title}» · `:"")+(d.scene||""); return; }
   if(ev==="image"){ $("svgbox").innerHTML=d.svg; stats(d.stats,d.source); return; }
   if(ev==="progress"){ $("barI").style.width=d.pct+"%"; $("bigS").textContent=`${d.pct}% · ${d.sent}/${d.total} líneas`; return; }

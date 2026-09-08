@@ -48,6 +48,7 @@ the UI says which parts are real.
 | `plotter.py` | GRBL sender with progress and stop. Mock when no serial port. |
 | `tts.py` | Piper narration (macOS `say` while developing). |
 | `button.py` | Optional GPIO arcade button that toggles listening. |
+| `textclean.py` | Tidies the story before it is drawn and published: sentence case, punctuation, safe accents, and an optional LLM pass. |
 | `photo.py` | Photographs the finished drawing (USB webcam or Pi camera, fixed by-id path). |
 | `publish.py` | Store-and-forward upload of stories to `../docs/` (GitHub Pages gallery). |
 | `selftest.py` | Runs the whole pipeline with mocks and checks every stage. |
@@ -173,6 +174,28 @@ time estimate before drawing starts.
 Peruvian manual alphabet (model trained by the team), streams its camera to the kiosk page so
 visitors see the letters appear, and when the signer holds both open palms for 2 s it sends the
 whole story to TCP port 5005 — from there it is exactly like a spoken story.
+
+## Corrección del texto
+
+Antes de dibujar y publicar, la historia pasa por `textclean.py`. Importa sobre todo en señas,
+donde el texto llega en crudo:
+
+| Origen | Antes | Después |
+|---|---|---|
+| Señas | `MI ABUELA VIVIA EN LA SIERRA` | `Mi abuela vivía en la sierra.` |
+| Voz | `habia una vez un condor que bajaba al rio` | `Había una vez un cóndor que bajaba al río.` |
+
+Las reglas son conservadoras y funcionan sin red: mayúscula inicial, punto final, espacios y
+tildes **solo** en palabras donde el español no deja duda (`vivia`→`vivía`, `condor`→`cóndor`).
+Las ambiguas (`papa`/`papá`, `esta`/`está`, `el`/`él`) se dejan como están.
+
+Si la laptop está conectada, además pasa por el LLM (`/correct` en `ai_server.py`, u Ollama /
+Claude), que corrige tildes y comas de verdad. **Su respuesta solo se acepta si sigue siendo la
+misma historia** (se compara el conjunto de palabras): así el modelo nunca puede reescribir,
+resumir ni inventar lo que la persona contó.
+
+`YACHACHIQ_CLEAN_TEXT=0` lo apaga; `YACHACHIQ_CLEAN_WITH_LLM=0` deja solo las reglas offline.
+Probar cualquier texto: `curl -X POST localhost:8877/api/clean -H 'content-type: application/json' -d '{"text":"..."}'`
 
 ## Photo + web archive
 
