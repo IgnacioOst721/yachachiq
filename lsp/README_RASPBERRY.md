@@ -157,3 +157,17 @@ Verificado con los datos reales del proyecto (2,500 muestras):
 - **Carga del modelo.** `model.pkl` pesa 89 MB; medir cuánto tarda al arrancar.
 - **Confirmación local opcional.** Si se quiere feedback sin mirar la otra
   pantalla: un beep, un LED o una pantallita OLED.
+
+## Velocidad al deletrear (2026-09-08)
+
+- **Las letras se aceptan por tiempo, no por frames:** una seña cuenta cuando se mantiene
+  **0.30 s** (`LSP_STABLE_SECONDS`). Antes eran 8 frames: en la Pi, a ~10 fps, eso era 0.8 s por
+  letra; ahora es 0.5 s en la Pi y 0.37 s en la Mac. Si se cuelan letras falsas, subir a 0.40.
+- **Espacio automático:** si la mano sale del cuadro más de **1.2 s** (`LSP_AUTO_SPACE`), se mete
+  un espacio solo. Ya no hace falta la seña SPACE entre palabras. Bajar la mano y volver rápido
+  (menos de 1.2 s) sigue sirviendo para repetir una letra. `LSP_AUTO_SPACE=0` lo apaga.
+- En la Pi, si aun así se siente lento: `ASL_FAST=1` (rastreo de mano más liviano).
+
+Referencia: una frase de 60 letras toma ~40 s en la Pi. Deletrear una historia entera es
+lento en cualquier lengua de señas (los usuarios reales señan palabras, no letras): para la
+demo conviene una o dos frases en modo señas, y la historia larga por voz.

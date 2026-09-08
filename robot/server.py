@@ -99,6 +99,21 @@ def _grab_portrait_frame():
     return b""
 
 
+def _decide(looks, vote):
+    """The contract shown on screen: covering the camera AT ANY MOMENT means no.
+    (two consecutive covered readings ~1 s, so a hand passing by does not count)"""
+    if vote is not None:
+        return bool(vote), ("botón: sí" if vote else "botón: no")
+    if not looks:
+        return False, "sin cámara para preguntar"
+    for a, b in zip(looks, looks[1:]):
+        if a["covered"] and b["covered"]:
+            return False, "cámara tapada"
+    if len(looks) == 1 and looks[0]["covered"]:
+        return False, "cámara tapada"
+    return True, "cámara abierta" + (" · sonrisa" if any(l["smile"] for l in looks[-6:]) else "")
+
+
 def consent_provider(seconds):
     """Runs inside the pipeline thread. Shows the consent screen, watches the camera for
     `seconds`, and decides: covered camera or 'No' button -> private; otherwise -> publish."""
@@ -119,15 +134,8 @@ def consent_provider(seconds):
         broadcast("consent_tick", {"remaining": max(0, int(seconds - (time.time() - t0))),
                                    "camera": bool(frame), **(look or {})})
         time.sleep(0.45)
+    publish, reason = _decide(looks, consent["vote"])
     recent = looks[-6:]
-    if consent["vote"] is not None:
-        publish, reason = bool(consent["vote"]), ("botón: sí" if consent["vote"] else "botón: no")
-    elif not looks:
-        publish, reason = False, "sin cámara para preguntar"
-    elif sum(1 for l in recent if l["covered"]) > len(recent) / 2:
-        publish, reason = False, "cámara tapada"
-    else:
-        publish, reason = True, "cámara abierta" + (" · sonrisa" if any(l["smile"] for l in recent) else "")
     result = {"publish": publish, "reason": reason, "portrait": best if publish else b"",
               "face": any(l["face"] for l in recent), "smile": any(l["smile"] for l in recent)}
     broadcast("consent_result", {k: v for k, v in result.items() if k != "portrait"})

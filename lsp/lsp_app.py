@@ -56,7 +56,13 @@ def dibujable(t):
     return t
 
 MODEL_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "model.pkl")
-STABLE_FRAMES = 8      # how many steady frames before a sign "counts" (~0.4s)
+STABLE_FRAMES = 3      # minimo de frames iguales seguidos (piso de seguridad)
+# Una letra se acepta cuando la MISMA prediccion se mantiene este tiempo. Por tiempo y
+# no por frames, asi en la Pi (menos fps) no se vuelve mas lento. Ajustable sin codigo.
+STABLE_SECONDS = float(os.environ.get("LSP_STABLE_SECONDS", "0.30"))
+# Si la mano sale del cuadro este tiempo, se mete un espacio solo (no hace falta la
+# seña SPACE entre palabras). 0 = desactivado.
+AUTO_SPACE_SECONDS = float(os.environ.get("LSP_AUTO_SPACE", "1.2"))
 CONF_THRESH = 0.50     # minimum confidence to accept a sign
 SEND_HOLD_SECONDS = 2.0  # hold BOTH open palms this long to auto-send
 
@@ -159,6 +165,7 @@ class Typer:
         self.text = ""
         self._prev = None
         self._stable = 0
+        self._stable_since = None  # cuando empezo la prediccion actual
         self._committed = None     # locked until the sign changes or hand leaves
         self.last_motion = 0.0     # movimiento suavizado (lo que se ve en pantalla)
         self._mov_hist = deque(maxlen=self.VENTANA_MOV)
@@ -231,15 +238,19 @@ class Typer:
 
         return best, conf
 
-    def update(self, cur, conf):
-        """Feed one frame. Returns the committed label, or None if nothing fired."""
+    def update(self, cur, conf, now=None):
+        """Feed one frame. Returns the committed label, or None if nothing fired.
+        A sign counts when it has held for STABLE_SECONDS (and >= stable_frames frames)."""
+        now = time.time() if now is None else now
         if cur == self._prev:
             self._stable += 1
         else:
             self._stable = 1
+            self._stable_since = now
             self._prev = cur
-        if (self._stable >= self.stable_frames and conf >= self.conf_thresh
-                and cur != self._committed and cur != "?"):
+        held = now - (self._stable_since if self._stable_since is not None else now)
+        if (self._stable >= self.stable_frames and held >= STABLE_SECONDS
+                and conf >= self.conf_thresh and cur != self._committed and cur != "?"):
             self._committed = cur
             self._apply(cur)
             return cur
@@ -249,11 +260,14 @@ class Typer:
         """Call when the hand leaves the frame, so the same sign can repeat."""
         self._prev = None
         self._stable = 0
+        self._stable_since = None
         self._committed = None
         self._mov_hist.clear()
 
     def progress(self):
-        return min(self._stable / self.stable_frames, 1.0)
+        if self._stable_since is None or STABLE_SECONDS <= 0:
+            return 0.0
+        return min((time.time() - self._stable_since) / STABLE_SECONDS, 1.0)
 
     def _apply(self, label):
         if label == "MODE":
@@ -392,6 +406,7 @@ def run():
         cap.read()
 
     preview = RobotPreview()
+    hand_gone_since = None     # para el espacio automatico entre palabras
     buf = new_motion_buffer()
     send_start = None      # time (seconds) when both palms first appeared
     sent_latch = False     # prevents re-firing until palms are lowered
@@ -449,6 +464,17 @@ def run():
             else:
                 buf.clear()
                 typer.reset()
+                # ESPACIO AUTOMATICO: si la mano sale del cuadro un momento, es fin de
+                # palabra. Bajar la mano y volver rapido (< AUTO_SPACE_SECONDS) sigue
+                # sirviendo para repetir una letra sin meter espacio.
+                if hand_gone_since is None:
+                    hand_gone_since = time.time()
+                elif (AUTO_SPACE_SECONDS > 0 and typer.text and not typer.text.endswith(" ")
+                      and time.time() - hand_gone_since >= AUTO_SPACE_SECONDS):
+                    typer.key_space()
+                    if sender: sender.send("SPACE")
+        if lms:
+            hand_gone_since = None
 
         preview.update(frame, typer.text, ("SEND" if both_open else (cur.upper() if len(cur) == 1 else cur)), typer.mode)
 
