@@ -74,8 +74,9 @@ IMAGE_BACKENDS = _env("IMAGE_BACKENDS", ["comfyui", "remote", "motifs"])
 IMAGE_SIZE = _env("IMAGE_SIZE", 512)
 COMFYUI_URL = _env("COMFYUI_URL", "http://192.168.7.1:8188")
 COMFYUI_WORKFLOW = _env("COMFYUI_WORKFLOW", BASE_DIR / "laptop" / "comfyui_workflow.json")   # API-format export
-COMFYUI_CHECKPOINT = _env("COMFYUI_CHECKPOINT", "")   # "" keeps the checkpoint named in the workflow file
-COMFYUI_STEPS = _env("COMFYUI_STEPS", 0)              # 0 keeps the workflow's steps
+COMFYUI_CHECKPOINT = _env("COMFYUI_CHECKPOINT", "dreamshaper_8.safetensors")   # "" keeps the one in the workflow file
+COMFYUI_STEPS = _env("COMFYUI_STEPS", 22)             # DreamShaper: 20-25 pasos (sd_turbo usa 4)
+COMFYUI_CFG = _env("COMFYUI_CFG", 7.0)                # DreamShaper: ~7 (sd_turbo usa 1.0)
 COMFYUI_TIMEOUT = _env("COMFYUI_TIMEOUT", 240.0)      # seconds to wait for the image
 STYLE_PROMPT = (
     "black ink line drawing, Peruvian folk art, Sarhua tabla style, Ayacucho retablo, "

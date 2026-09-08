@@ -46,7 +46,7 @@ def _trace_with_border(png):
 
 # --- ComfyUI ---------------------------------------------------------------------------------
 
-def patch_workflow(workflow, positive, negative, size=None, seed=None, checkpoint=None, steps=None):
+def patch_workflow(workflow, positive, negative, size=None, seed=None, checkpoint=None, steps=None, cfg=None):
     """Return a copy of an API-format ComfyUI workflow with our prompt, size, seed, checkpoint.
 
     Positive/negative CLIPTextEncode nodes are found by following the KSampler's
@@ -69,6 +69,8 @@ def patch_workflow(workflow, positive, negative, size=None, seed=None, checkpoin
             s["inputs"]["noise_seed"] = seed if seed is not None else random.randint(0, 2**31 - 1)
         if steps:
             s["inputs"]["steps"] = int(steps)
+        if cfg and "cfg" in s["inputs"]:
+            s["inputs"]["cfg"] = float(cfg)
     for n in wf.values():
         if not isinstance(n, dict):
             continue
@@ -90,7 +92,8 @@ def comfyui_generate(positive, negative, out_path, url=None, workflow_path=None,
     if "nodes" in workflow and "links" in workflow:
         raise ValueError("this is a UI-format workflow; in ComfyUI use 'Save (API Format)' (enable dev mode in settings)")
     wf = patch_workflow(workflow, positive, negative, size=size or config.IMAGE_SIZE,
-                        checkpoint=config.COMFYUI_CHECKPOINT or None, steps=config.COMFYUI_STEPS or None)
+                        checkpoint=config.COMFYUI_CHECKPOINT or None, steps=config.COMFYUI_STEPS or None,
+                        cfg=getattr(config, "COMFYUI_CFG", 0) or None)
 
     client_id = uuid.uuid4().hex
     r = requests.post(f"{url}/prompt", json={"prompt": wf, "client_id": client_id}, timeout=(3, 30))
