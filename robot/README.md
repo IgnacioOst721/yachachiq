@@ -182,6 +182,24 @@ copied to `../docs/stories/` and pushed. No internet → it just waits for the n
 Two USB cameras: find their fixed ids with `ls /dev/v4l/by-id/` and set `YACHACHIQ_PHOTO_CAMERA`
 (robot) and `ASL_CAMERA` (lsp service) so they never swap after a reboot.
 
+## Cómo se usa (sin botones ni teclado)
+
+El robot está pensado para una mesa de exhibición: **nadie tiene que tocar nada.**
+
+1. **Empieza a hablar.** Con `AUTO_LISTEN` (activado por defecto) el micrófono queda escuchando
+   en reposo y arranca la grabación cuando alguien habla de verdad (más fuerte que el ruido del
+   ambiente, sostenido 0.35 s). El círculo de la pantalla late en amarillo cuando está listo.
+2. **Deja de hablar.** Se detiene solo tras 3.5 s de silencio (`SILENCE_SECONDS`).
+3. **O cuenta la historia en señas** frente a la cámara: dos palmas abiertas 2 s la envían.
+4. **Al final decides** si se publica: tapar la cámara = no; sonreír = sí. También hay dos botones
+   en pantalla por si la pantalla es táctil.
+
+El círculo grande de la pantalla también funciona como botón si hay pantalla táctil o mouse,
+y la barra espaciadora si hay teclado — pero **ninguno es necesario**.
+
+Ajustes: `YACHACHIQ_AUTO_LISTEN=0` lo apaga (vuelve a modo botón). Si arranca solo con el ruido
+del ambiente, subir `YACHACHIQ_AUTO_LISTEN_RMS` (0.030 por defecto); si cuesta despertarlo, bajarlo.
+
 ## Inputs other than the microphone
 
 - **Typed text**: gear menu on the screen, or `curl -X POST localhost:8877/api/story -H 'content-type: application/json' -d '{"text":"..."}'`.

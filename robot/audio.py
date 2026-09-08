@@ -101,6 +101,63 @@ class Recorder:
         return time.time() - self._t_start if self.recording else 0.0
 
 
+class VoiceTrigger:
+    """Keeps the microphone open while the robot is idle and calls on_speech() as soon
+    as somebody actually starts talking, so no button, touch screen or keyboard is
+    needed. Stops itself while a story is being told (one stream at a time)."""
+
+    def __init__(self, on_speech, on_level=None):
+        self.on_speech = on_speech
+        self.on_level = on_level
+        self.mode = "mock" if (config.MOCK or sd is None) else "mic"
+        self._stream = None
+        self._loud_since = None
+        self.running = False
+
+    def start(self):
+        if self.running or self.mode == "mock" or not config.AUTO_LISTEN:
+            return False
+
+        def cb(indata, frames, t, status):
+            rms = float(np.sqrt(np.mean(indata[:, 0].astype(np.float32) ** 2)) + 1e-9)
+            if self.on_level:
+                self.on_level(min(1.0, rms * 8))
+            now = time.time()
+            if rms > config.AUTO_LISTEN_RMS:
+                if self._loud_since is None:
+                    self._loud_since = now
+                elif now - self._loud_since >= config.AUTO_LISTEN_HOLD and self.running:
+                    self.running = False          # fire once; the pipeline takes the mic
+                    threading.Thread(target=self.on_speech, daemon=True).start()
+            else:
+                self._loud_since = None
+
+        dev = config.AUDIO_DEVICE or None
+        if dev is not None and str(dev).isdigit():
+            dev = int(dev)
+        try:
+            self._stream = sd.InputStream(samplerate=config.SAMPLE_RATE, channels=1, dtype="float32",
+                                          device=dev, blocksize=2048, callback=cb)
+            self._stream.start()
+            self.running = True
+            log.info("auto-listen armed (speak to start)")
+            return True
+        except Exception as e:
+            log.warning("auto-listen unavailable (%s)", e)
+            self.mode = "mock"
+            self._stream = None
+            return False
+
+    def stop(self):
+        self.running = False
+        self._loud_since = None
+        if self._stream is not None:
+            try:
+                self._stream.stop(); self._stream.close()
+            finally:
+                self._stream = None
+
+
 def save_wav(audio, path):
     pcm = (np.clip(audio, -1, 1) * 32767).astype(np.int16)
     with wave.open(str(path), "wb") as w:

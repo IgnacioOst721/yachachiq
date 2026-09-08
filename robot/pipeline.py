@@ -22,7 +22,7 @@ import photo
 import publish
 import story
 import vectorize
-from audio import Recorder, save_wav
+from audio import Recorder, VoiceTrigger, save_wav
 from language import detect_language
 from plotter import Plotter
 from stt import STT
@@ -44,6 +44,8 @@ class Pipeline:
         self.consent = None                 # last decision: {"publish", "reason", "portrait"...}
         self.consent_provider = None        # set by server.py: fn(seconds) -> decision dict
         self.recorder = Recorder()
+        self.trigger = VoiceTrigger(on_speech=self._voice_woke_us,
+                                    on_level=lambda v: self.emit("level", {"level": v, "idle": True}))
         self.stt = STT()
         self.tts = TTS()
         self.plotter = Plotter().connect()
@@ -51,6 +53,7 @@ class Pipeline:
         self._cancel = threading.Event()
         os.makedirs(str(config.OUTPUT_DIR), exist_ok=True)
         os.makedirs(str(config.STORIES_DIR), exist_ok=True)
+        self._arm_trigger()
 
     # --- helpers ---------------------------------------------------------------------------------
     def emit(self, event, data=None):
@@ -62,6 +65,22 @@ class Pipeline:
     def _set_state(self, s, **extra):
         self.state = s
         self.emit("state", {"state": s, **extra})
+        if s in ("idle", "done", "error"):
+            threading.Timer(float(config.AUTO_LISTEN_COOLDOWN), self._arm_trigger).start()
+
+    def _arm_trigger(self):
+        """Listen for a voice again once the robot is free."""
+        if not self.busy() and config.AUTO_LISTEN:
+            if self.trigger.start():
+                self.emit("auto_listen", {"armed": True})
+
+    def _voice_woke_us(self):
+        """Somebody started talking while the robot was idle."""
+        if self.busy():
+            return
+        self.trigger.stop()
+        self.emit("auto_listen", {"armed": False, "woke": True})
+        self.start_listening()
 
     def busy(self):
         return self.state not in ("idle", "done", "error")
@@ -70,6 +89,7 @@ class Pipeline:
         return {"plotter": self.plotter.mode, "stt": self.stt.mode, "audio": self.recorder.mode,
                 "tts": self.tts.mode, "image": ",".join(config.IMAGE_BACKENDS),
                 "story": ",".join(config.STORY_BACKENDS), "photo": photo.mode(), "publish": publish.mode(),
+                "auto_listen": ("on" if self.trigger.running else ("off" if not config.AUTO_LISTEN else self.trigger.mode)),
                 "consent": ("off" if not config.CONSENT_REQUIRED else ("camera" if self.consent_provider else "none"))}
 
     def snapshot(self):
@@ -81,6 +101,7 @@ class Pipeline:
         if self.busy():
             return False
         self._cancel.clear()
+        self.trigger.stop()
         self._set_state("listening")
         def on_level(v):
             self.level = v

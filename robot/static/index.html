@@ -30,6 +30,8 @@
   #big.listening{background:#B1362F}
   #big.busy{background:#6b5a4a;cursor:default}
   #big.done{background:#2f6f5e}
+  #big.armado::after{content:"";position:absolute;inset:-22px;border-radius:50%;border:3px solid var(--amarillo);opacity:.55;animation:latido 2.4s ease-in-out infinite;pointer-events:none}
+  @keyframes latido{0%,100%{transform:scale(1);opacity:.5}50%{transform:scale(1.05);opacity:.15}}
   #big.error{background:#8a3a1a}
   #big .t{font-size:clamp(1.15rem,3.2vw,1.7rem);font-weight:700;line-height:1.15;text-align:center}
   #big .s{font-size:.9rem;opacity:.85;text-align:center}
@@ -118,9 +120,16 @@
       <h3>Lengua de señas</h3>
       <div class="lsprow"><img id="lspimg" alt="cámara de señas"><div id="lspletter">·</div></div>
       <div id="lsptext"></div>
-      <p class="muted" style="font-size:.85rem">Dos palmas abiertas por 2 segundos = enviar la historia</p>
+      <p class="muted" style="font-size:.85rem">Seña las letras una por una · baja la mano un segundo para separar palabras · <b>dos palmas abiertas 2 segundos = enviar</b></p>
     </div>
-    <div class="card"><h3>Tu historia</h3><p id="transcript" class="muted">Todavía nada. Toca el botón y cuenta algo.</p></div>
+    <div class="card" id="comoCard"><h3>Cómo funciona</h3>
+      <ol style="margin:0 0 0 1.1rem;line-height:1.6;font-size:.98rem">
+        <li><b>Cuenta tu historia</b> — toca el círculo y habla, o séñala frente a la cámara.</li>
+        <li><b>El robot la imagina</b> y la convierte en un dibujo de líneas.</li>
+        <li><b>El lápiz la dibuja</b> sobre el papel, trazo por trazo.</li>
+        <li><b>Tú decides</b> si quieres que se sume al archivo público.</li>
+      </ol></div>
+    <div class="card"><h3>Tu historia</h3><p id="transcript" class="muted">Todavía nada. Toca el círculo y cuenta algo.</p></div>
     <div class="card"><h3>El dibujo</h3><div id="svgbox"><span class="muted">aparecerá aquí</span></div><div class="stats" id="stats"></div></div>
     <div class="card"><h3>Narración</h3><p id="narration" class="muted">—</p></div>
   </section>
@@ -178,20 +187,20 @@
 <script>
 const $=id=>document.getElementById(id);
 const LABELS={
-  idle:["Cuéntame una historia","toca el botón y habla"],
-  listening:["Escuchando…","toca para terminar"],
-  transcribing:["Escribiendo lo que dijiste…",""],
+  idle:["Cuéntame tu historia","solo empieza a hablar"],
+  listening:["Te escucho…","habla tranquilo · se detiene solo"],
+  transcribing:["Escribiendo lo que dijiste…","un momento"],
   thinking:["Pensando la escena…",""],
-  imagining:["Imaginando el dibujo…","le pido la imagen a la laptop"],
-  drawing:["Dibujando…","el plotter está trazando"],
+  imagining:["Imaginando el dibujo…",""],
+  drawing:["Dibujando tu historia…","no toques el papel"],
   photographing:["Tomando la foto…","del dibujo terminado"],
   consent:["¿Compartimos tu historia?","mira la pantalla"],
   publishing:["Guardando en el archivo…",""],
   narrating:["Contando la historia…",""],
-  done:["¡Listo!","toca para contar otra"],
-  error:["Ups, algo falló","toca para intentar de nuevo"],
+  done:["¡Listo!","cuando quieras, cuenta otra"],
+  error:["Ups, algo falló","habla de nuevo para reintentar"],
 };
-let state="idle", ws, lspTimer, lspLast=0;
+let state="idle", ws, lspTimer, lspLast=0, listenT0=null;
 function toast(m){$("toast").textContent=m;$("toast").classList.add("on");setTimeout(()=>$("toast").classList.remove("on"),2200)}
 function setState(s,extra){
   state=s; $("fstate").textContent=s;
@@ -200,11 +209,24 @@ function setState(s,extra){
   else if(s==="done")b.classList.add("done"); else if(s==="error")b.classList.add("error");
   else if(s!=="idle")b.classList.add("busy");
   $("ring").classList.toggle("listening",s==="listening");
+  if(s!=="listening") listenT0=null;
   $("bar").classList.toggle("on",s==="drawing");
   if(s==="drawing"){$("barI").style.width="0%"}
+  const HINTS={
+    idle:"Habla y el robot empieza a escuchar solo. También puedes contar tu historia en lengua de señas frente a la cámara. (Si prefieres, toca el círculo para empezar.)",
+    listening:"Habla con calma. Cuando te quedes en silencio unos segundos, el robot deja de escuchar solo — o toca el círculo para terminar ahora.",
+    transcribing:"Convirtiendo tu voz en texto…",
+    thinking:"Buscando qué dibujar de tu historia…",
+    imagining:"Creando la ilustración. Esto toma unos segundos.",
+    drawing:"El lápiz está trazando tu historia. No muevas el papel.",
+    photographing:"Guardando una foto del dibujo terminado.",
+    consent:"Decide en la pantalla si quieres que tu historia sea pública.",
+    publishing:"Subiendo tu historia al archivo…",
+    narrating:"Escucha tu historia contada de vuelta.",
+    done:"Tu historia y tu dibujo quedaron guardados. Cuando quieras contar otra, solo empieza a hablar.",
+  };
   if(s==="error"&&extra&&extra.error){$("hint").textContent=extra.error}
-  else if(s==="idle"){$("hint").textContent="Cuando termines de hablar, el robot imagina un dibujo y lo traza a lápiz sobre el papel."}
-  else if(s==="done"){$("hint").textContent="La historia y el dibujo quedaron guardados en el archivo."}
+  else if(HINTS[s]){$("hint").textContent=HINTS[s]}
 }
 function chips(m){
   const box=$("chips"); box.innerHTML="";
@@ -218,8 +240,13 @@ function chips(m){
 function handle(ev,d){
   if(ev==="snapshot"){ setState(d.state,d); chips(d.modes||{}); if(d.story){ $("transcript").textContent=d.story.text; $("transcript").className=""; $("narration").textContent=d.story.narration||"—"; } if(d.image&&d.image.svg){ $("svgbox").innerHTML=d.image.svg; stats(d.image.stats,d.image.source);} return; }
   if(ev==="state"){ setState(d.state,d); return; }
-  if(ev==="level"){ $("ring").style.setProperty("--lvl",Math.min(1,d.level)); return; }
-  if(ev==="transcript"){ $("transcript").textContent=d.text; $("transcript").className=""; return; }
+  if(ev==="level"){ $("ring").style.setProperty("--lvl",Math.min(1,d.level));
+    if(state==="listening"){ if(!listenT0) listenT0=Date.now();
+      const s=Math.floor((Date.now()-listenT0)/1000);
+      $("bigS").textContent = s<2 ? "habla tranquilo · se detiene solo" : `escuchando ${s}s · se detiene solo`; }
+    return; }
+  if(ev==="transcript"){ $("transcript").textContent=d.text; $("transcript").className="";
+    const c=$("comoCard"); if(c) c.style.display="none"; return; }
   if(ev==="analysis"){ $("hint").textContent=(d.title?`«${d.title}» · `:"")+(d.scene||""); return; }
   if(ev==="image"){ $("svgbox").innerHTML=d.svg; stats(d.stats,d.source); return; }
   if(ev==="progress"){ $("barI").style.width=d.pct+"%"; $("bigS").textContent=`${d.pct}% · ${d.sent}/${d.total} líneas`; return; }
@@ -230,6 +257,10 @@ function handle(ev,d){
   if(ev==="consent_start"){ cOpen(d.seconds); return; }
   if(ev==="consent_tick"){ cTick(d); return; }
   if(ev==="consent_result"){ cResult(d); return; }
+  if(ev==="auto_listen"){ const b=$("big");
+      if(d.armed){ b.classList.add("armado"); $("bigS").textContent="solo empieza a hablar"; }
+      else b.classList.remove("armado");
+      return; }
   if(ev==="lsp"){ lspLast=Date.now(); $("lsp").classList.add("on"); $("lspletter").textContent=d.letter||"·"; $("lsptext").textContent=d.text||""; return; }
   if(ev==="error"){ toast(d.error); return; }
 }
