@@ -63,10 +63,17 @@ X-GNOME-Autostart-enabled=true
 DESK
 
 echo "== cable directo a la laptop (concurso): eth0 = 192.168.7.2"
-if ! nmcli -t -f NAME con show 2>/dev/null | grep -qx lan; then
-  sudo nmcli con add type ethernet ifname eth0 con-name lan ip4 192.168.7.2/24 \
-       connection.autoconnect yes connection.autoconnect-priority 10 >/dev/null && echo "   perfil 'lan' creado"
+# The cable address is added ON TOP of DHCP, not instead of it: plugged into a router the Pi
+# still gets a normal address, and plugged straight into the Mac it answers on 192.168.7.2.
+CON=$(nmcli -t -f NAME,DEVICE con show | awk -F: '$2=="eth0"{print $1; exit}')
+if [ -z "$CON" ]; then
+  sudo nmcli con add type ethernet ifname eth0 con-name lan >/dev/null 2>&1 || true
+  CON=lan
 fi
+sudo nmcli con mod "$CON" ipv4.method auto +ipv4.addresses 192.168.7.2/24 \
+     ipv4.may-fail yes connection.autoconnect yes >/dev/null 2>&1 \
+  && echo "   eth0: DHCP + 192.168.7.2 fija (router y cable directo a la vez)" \
+  || echo "   (no pude configurar eth0; hazlo a mano si usarás el cable directo)"
 
 echo "== 7/7 archivo web (clon de main para publicar historias)"
 ARCHIVO=$HOME/yachachiq-archivo

@@ -20,7 +20,8 @@ No hay parlante: la narración por voz queda desactivada sola (`tts` en modo moc
 
 ## Red con la Mac (sin WiFi, regla de la competencia)
 
-- Mac: Ajustes → Red → adaptador Ethernet/USB-C → IPv4 **Manual**, IP `192.168.7.1`, máscara `255.255.255.0`.
+- Mac: `bash ~/yachachiq/robot/laptop/cable_mac.sh` con el adaptador puesto (o a mano: Ajustes → Red →
+  adaptador → IPv4 **Manual**, IP `192.168.7.1`, máscara `255.255.255.0`).
 - Pi (una vez):
   `sudo nmcli con add type ethernet ifname eth0 con-name lan ip4 192.168.7.2/24 && sudo nmcli con up lan`
 - ComfyUI en la Mac: `python main.py --listen 0.0.0.0 --port 8188`
@@ -40,6 +41,20 @@ Salen dos rutas largas terminadas en `-video-index0`. Copia cada una en su servi
 - `/etc/systemd/system/yachachiq-lsp.service` → `Environment=ASL_CAMERA=/dev/v4l/by-id/...`  (cámara de señas)
 
 Luego `sudo systemctl daemon-reload && sudo systemctl restart yachachiq yachachiq-lsp`.
+
+## El puerto de red de la Pi sirve para las dos cosas
+
+`setup_pi.sh` deja `eth0` con dirección automática **y** la fija `192.168.7.2` a la vez. Así el mismo
+cable sirve para todo, sin cambiar nada:
+
+- **A un router** (casa o colegio): la Pi pide dirección sola y aparece en la red en ~20 s. Es la
+  forma más rápida de recuperarla si el wifi falla — enchufar y listo, sin pantalla ni teclado.
+- **Directo a la Mac** (concurso): responde en `192.168.7.2`, y la Mac se pone `192.168.7.1`.
+
+Alternativa sin cables para el concurso: el **hotspot del celular**. La Pi y la Mac se conectan a él
+y se ven entre sí; no hace falta que el celular tenga datos, porque el tráfico (texto a ComfyUI,
+imagen de vuelta, SSH) nunca sale a internet. Hay que grabar esa red en la Pi antes, como cualquier
+otra wifi.
 
 ## Micrófono
 
