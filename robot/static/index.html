@@ -119,6 +119,10 @@
   .sheet h2{grid-column:1/-1;font-style:italic;color:var(--rojo);display:flex;justify-content:space-between;align-items:center}
   .sheet h4{font-size:.7rem;letter-spacing:.2em;text-transform:uppercase;color:#8a7563;margin:.6rem 0 .4rem}
   textarea{width:100%;min-height:110px;font:inherit;font-size:1rem;padding:.6rem;border:1.5px solid var(--hilo);background:#fff;resize:vertical}
+  #volver{display:none;margin-top:.2rem;border-color:#a2907e;color:#6b5a4a;padding:.7rem 1.3rem;font-size:1rem}
+  #volver.on{display:inline-block;animation:entra .4s}
+  #volver:hover{border-color:var(--rojo);color:var(--rojo)}
+  #volver.confirmar{border-color:var(--rojo);background:var(--rojo);color:#fff;font-weight:600}
   .btn{font:inherit;font-size:.95rem;padding:.55rem .9rem;border:1.5px solid var(--rojo);background:#fff;color:var(--rojo);cursor:pointer;border-radius:2px}
   .btn.p{background:var(--rojo);color:#fff}
   .btn.w{border-color:#8a3a1a;color:#8a3a1a}
@@ -189,6 +193,7 @@
       <button id="big"><span class="t" id="bigT">Cuéntame una historia</span><span class="s" id="bigS">toca el botón y habla</span></button>
     </div>
     <div class="bar" id="bar"><i id="barI"></i></div>
+    <button class="btn" id="volver">← Empezar de nuevo</button>
     <p class="hint" id="hint">Cuando termines de hablar, el robot imagina un dibujo y lo traza a lápiz sobre el papel.</p>
   </section>
 
@@ -292,6 +297,11 @@ function showStage(){
   else if(img.dataset.live){ img.removeAttribute("src"); delete img.dataset.live; }
   $("ring").style.display = (idle||signs) ? "none" : "grid";
   $("bar").style.display  = (idle||signs) ? "none" : "block";
+  // salida siempre visible mientras el robot trabaja: nadie se queda atrapado en una pantalla
+  const ocupado = !idle && !signs && state !== "consent";
+  $("volver").classList.toggle("on", ocupado);
+  if(!ocupado) resetVolver();
+  if(ocupado) $("volver").textContent = (state === "drawing") ? "Detener el dibujo" : "← Empezar de nuevo";
   if(idle){ document.querySelectorAll(".card-opt").forEach(c=>c.classList.remove("elegida","descartada")); }
 }
 function limpiarAviso(){ const n=$("corregido"); if(n) n.style.display="none"; }
@@ -388,6 +398,20 @@ function elegir(cual, quien, otro){
 $("optVoz").onclick=()=>elegir("voz",$("optVoz"),$("optSenas"));
 $("optSenas").onclick=()=>elegir("senas",$("optSenas"),$("optVoz"));
 document.querySelectorAll(".card-opt").forEach(c=>c.onkeydown=e=>{ if(e.key==="Enter"||e.key===" "){e.preventDefault();c.click();} });
+
+let volverArmado = null;
+function resetVolver(){ const b=$("volver"); if(!b) return; clearTimeout(volverArmado); volverArmado=null;
+  b.classList.remove("confirmar"); b.textContent = (state==="drawing") ? "Detener el dibujo" : "← Empezar de nuevo"; }
+$("volver").onclick=()=>{
+  const b=$("volver");
+  if(state==="drawing" && !volverArmado){        // el lápiz está en el papel: confirmar
+    b.classList.add("confirmar"); b.textContent="¿Seguro? toca otra vez";
+    volverArmado=setTimeout(resetVolver, 4000); return;
+  }
+  clearTimeout(volverArmado); volverArmado=null;
+  b.textContent="Deteniendo…"; b.classList.remove("confirmar");
+  post("/api/cancel").then(()=>setTimeout(()=>post("/api/reset"), 400));
+};
 $("sVolver").onclick=()=>post("/api/mode",{mode:null});
 $("big").onclick=()=>{ if(state==="idle"||state==="done"||state==="error") send("start"); else if(state==="listening") send("stop"); };
 document.addEventListener("keydown",e=>{ if(e.code==="Space"&&!$("menu").classList.contains("on")){e.preventDefault();$("big").click();} if(e.key==="Escape"){ send("cancel"); $("menu").classList.remove("on"); } });

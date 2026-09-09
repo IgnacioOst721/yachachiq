@@ -123,8 +123,8 @@ MAX_STROKES = _env("MAX_STROKES", 350)           # keep the longest N strokes. M
 # --- Plotter (Arduino UNO + CNC Shield + grbl-servo, over USB) ----------------------
 SERIAL_PORT = _env("SERIAL_PORT", "/dev/ttyACM0")   # Pi: /dev/ttyACM0 or /dev/ttyUSB0; Mac: /dev/cu.usbmodem*
 BAUD_RATE = 115200
-PAPER_W_MM = _env("PAPER_W_MM", 210.0)    # A4 landscape by default
-PAPER_H_MM = _env("PAPER_H_MM", 148.0)    # half A4 height keeps plots short; set 297 for portrait A4
+PAPER_W_MM = _env("PAPER_W_MM", 297.0)    # A4 apaisado (horizontal): 297 x 210 mm
+PAPER_H_MM = _env("PAPER_H_MM", 210.0)    # baja a 148 (media hoja) si quieres dibujos mas rapidos
 MARGIN_MM = _env("MARGIN_MM", 12.0)
 DRAW_FEED = _env("DRAW_FEED", 800)        # mm/min pen down
 TRAVEL_FEED = _env("TRAVEL_FEED", 1500)   # mm/min pen up

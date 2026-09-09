@@ -287,6 +287,12 @@ async def api_cancel():
     return {"ok": pipe.cancel(), "state": pipe.state}
 
 
+@app.post("/api/reset")
+async def api_reset():
+    """Back to the welcome screen, forgetting the last story (the 'empezar de nuevo' button)."""
+    return {"ok": pipe.reset(), "state": pipe.state}
+
+
 @app.post("/api/redraw")
 async def api_redraw():
     return {"ok": pipe.redraw(), "state": pipe.state}

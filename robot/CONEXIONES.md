@@ -129,6 +129,25 @@ ruido del ambiente y dejaba al robot ocupado justo cuando alguien intentaba envi
 se inicia tocando **Con mi voz** en la pantalla.
 
 
+## Calibrar los pasos/mm (una sola vez por máquina)
+
+Si le pides 100 mm y recorre otra cosa, los dibujos salen deformados. Se mide con una regla:
+
+```
+python3 tools/calibrar.py mover X 100          # levanta el lápiz y mueve 100 mm
+python3 tools/calibrar.py aplicar X 100 97     # pediste 100, mediste 97 -> corrige $100
+```
+
+Lo mismo con `Y`. El valor queda guardado en el Arduino y sobrevive a apagones. La herramienta se
+niega a aplicar correcciones de más del 50 % (eso sería un error de medida, no de calibración).
+
+Valores actuales de la máquina del equipo: `$100=80`, `$101=80` (NEMA17 a 1/16 con polea GT2 de 20
+dientes = 40 mm por vuelta), `$102=400` en Z.
+
+⚠️ La velocidad máxima está en `$110=$111=500` mm/min, por debajo de lo que pide el robot
+(800 al dibujar, 1500 al desplazarse). GRBL recorta a 500, así que los dibujos tardan más de lo que
+estima la pantalla. Subirla depende de que los motores no pierdan pasos: probar con `$110=1000`.
+
 ## Refrigeración (obligatoria en la Pi 5)
 
 La Raspberry Pi 5 **necesita disipador con ventilador**. Sin él, con el robot corriendo, el chip
