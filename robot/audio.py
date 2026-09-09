@@ -22,6 +22,22 @@ except Exception:               # pragma: no cover
 
 
 
+def _resolve_input(dev):
+    """Turn a configured microphone name into a device index. sounddevice matches names word by
+    word and refuses ambiguous ones ('Usb' also matches the webcams' 'USB Audio'), so match the
+    whole string ourselves against input devices only."""
+    if dev is None or isinstance(dev, int) or sd is None:
+        return dev
+    try:
+        want = str(dev).lower()
+        for i, d in enumerate(sd.query_devices()):
+            if d["max_input_channels"] > 0 and want in d["name"].lower():
+                return i
+    except Exception:
+        pass
+    return dev
+
+
 def _input_rate(dev):
     """Sample rate to open the microphone at: 16 kHz when the device supports it (what Whisper
     wants), otherwise the device's native rate (cheap USB mics only do 44.1/48 kHz)."""
@@ -58,7 +74,6 @@ class Recorder:
         self._auto_stop = None
         self.recording = False
         self._gen = 0                      # session counter: an old mock session must not stop a new one
-        self._fallback = False
         self.no_speech = False
 
     @staticmethod
@@ -74,22 +89,13 @@ class Recorder:
     def start(self, on_level=None, on_auto_stop=None):
         self._frames, self._spoke, self._t_last_speech = [], False, None
         self.no_speech = False
-        self._fallback = False
         self._auto_stop, self.recording, self._t_start = on_auto_stop, True, time.time()
         self._gen += 1
         gen = self._gen
-        if self.mode == "mock" or self._fallback:
-            def fake():
-                t0 = time.time()
-                while self.recording and self._gen == gen and time.time() - t0 < 6.0:
-                    if on_level:
-                        on_level(0.05 + 0.04 * abs(np.sin(time.time() * 6)))
-                    time.sleep(0.1)
-                if self.recording and self._gen == gen and self._auto_stop:
-                    self._auto_stop()
-            self._timer = threading.Thread(target=fake, daemon=True)
-            self._timer.start()
-            return True
+        if self.mode == "mock":
+            return self._start_fake(on_level, gen)
+
+        noise = []                      # RMS of the first blocks = the room's noise floor
 
         def cb(indata, frames, t, status):
             chunk = indata[:, 0].astype(np.float32).copy()
@@ -99,7 +105,13 @@ class Recorder:
             if on_level:
                 on_level(min(1.0, rms * 8))
             now = time.time()
-            if rms > config.SILENCE_RMS:
+            # speech = clearly louder than the room, whatever the mic's gain or the room's hum
+            if len(noise) < 10:
+                noise.append(rms)
+                thr = float("inf")
+            else:
+                thr = max(config.SILENCE_RMS, 2.5 * float(np.median(noise)))
+            if rms > thr:
                 self._spoke, self._t_last_speech = True, now
             elapsed = now - self._t_start
             quiet = self._spoke and self._t_last_speech and (now - self._t_last_speech) > config.SILENCE_SECONDS
@@ -112,6 +124,7 @@ class Recorder:
         dev = config.AUDIO_DEVICE or None
         if dev is not None and str(dev).isdigit():
             dev = int(dev)
+        dev = _resolve_input(dev)
         try:
             self._rate = _input_rate(dev)
             self._stream = sd.InputStream(samplerate=self._rate, channels=1, dtype="float32",
@@ -125,8 +138,21 @@ class Recorder:
             # language still drive the whole pipeline.
             log.warning("no microphone (%s) -> mock recorder for this session", e)
             self._stream = None
-            self._fallback = True
-            return self.start(on_level=on_level, on_auto_stop=on_auto_stop)
+            return self._start_fake(on_level, gen)
+        return True
+
+    def _start_fake(self, on_level, gen):
+        """No microphone (mock mode, or the real one failed): a 6 s pretend recording."""
+        def fake():
+            t0 = time.time()
+            while self.recording and self._gen == gen and time.time() - t0 < 6.0:
+                if on_level:
+                    on_level(0.05 + 0.04 * abs(np.sin(time.time() * 6)))
+                time.sleep(0.1)
+            if self.recording and self._gen == gen and self._auto_stop:
+                self._auto_stop()
+        self._timer = threading.Thread(target=fake, daemon=True)
+        self._timer.start()
         return True
 
     def stop(self):
@@ -178,6 +204,7 @@ class VoiceTrigger:
         dev = config.AUDIO_DEVICE or None
         if dev is not None and str(dev).isdigit():
             dev = int(dev)
+        dev = _resolve_input(dev)
         try:
             self._stream = sd.InputStream(samplerate=_input_rate(dev), channels=1, dtype="float32",
                                           device=dev, blocksize=2048, callback=cb)
