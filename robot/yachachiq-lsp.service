@@ -13,7 +13,7 @@ Environment=LSP_ROBOT=http://127.0.0.1:8877
 # Environment=ASL_FAST=1
 ExecStart=/home/pi/yachachiq/robot/venv/bin/python lsp_app.py robot
 Restart=always
-RestartSec=5
+RestartSec=15
 
 [Install]
 WantedBy=multi-user.target

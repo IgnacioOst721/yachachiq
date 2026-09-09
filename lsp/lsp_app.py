@@ -397,11 +397,17 @@ def run():
                            min_tracking_confidence=0.7)
 
     cap = open_camera()
-    if not cap.isOpened():
-        print("[ERROR] Camera won't open.")
-        print("  Mac: System Settings > Privacy & Security > Camera.")
-        print("  Raspberry Pi: check `ls /dev/video*` and try ASL_CAMERA=1.")
-        raise SystemExit(1)
+    # As a background service on the Pi (ASL_HEADLESS=1) the webcam may simply not be
+    # plugged in yet: wait for it instead of exiting, so systemd does not restart us
+    # (and reload MediaPipe) every few seconds.
+    while not cap.isOpened():
+        if os.environ.get("ASL_HEADLESS") != "1":
+            print("[ERROR] Camera won't open.")
+            print("  Mac: System Settings > Privacy & Security > Camera.")
+            print("  Raspberry Pi: check `ls /dev/video*` and try ASL_CAMERA=1.")
+            raise SystemExit(1)
+        print("[LSP] no camera yet - retrying in 15 s (plug in the sign webcam)", flush=True)
+        cap.release(); time.sleep(15); cap = open_camera()
     for _ in range(10):
         cap.read()
 

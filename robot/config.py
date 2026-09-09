@@ -60,9 +60,13 @@ WHISPER_CPU_THREADS = _env("WHISPER_CPU_THREADS", 4)
 #   anthropic  -> Claude API (needs internet + ANTHROPIC_API_KEY)
 #   rules      -> offline keyword rules, always available
 STORY_BACKENDS = _env("STORY_BACKENDS", ["remote", "rules"])
-AI_SERVER_URL = _env("AI_SERVER_URL", "http://192.168.7.1:8600")
+# The laptop is reached by its mDNS name, which resolves both on a shared WiFi and over the
+# direct Ethernet cable (avahi on the Pi, Bonjour on the Mac). Override with the env var if
+# the Mac is renamed or a fixed IP is preferred (competition cable: 192.168.7.1).
+LAPTOP_HOST = _env("LAPTOP_HOST", "el-loco-candy.local")
+AI_SERVER_URL = _env("AI_SERVER_URL", f"http://{LAPTOP_HOST}:8600")
 AI_SERVER_TIMEOUT = _env("AI_SERVER_TIMEOUT", 120.0)
-OLLAMA_URL = _env("OLLAMA_URL", "http://192.168.7.1:11434")
+OLLAMA_URL = _env("OLLAMA_URL", f"http://{LAPTOP_HOST}:11434")
 OLLAMA_MODEL = _env("OLLAMA_MODEL", "llama3.2")
 ANTHROPIC_MODEL = _env("ANTHROPIC_MODEL", "claude-opus-5")
 
@@ -72,7 +76,7 @@ ANTHROPIC_MODEL = _env("ANTHROPIC_MODEL", "claude-opus-5")
 #   motifs  -> offline procedural Andean scene built from the story's elements (always works)
 IMAGE_BACKENDS = _env("IMAGE_BACKENDS", ["comfyui", "remote", "motifs"])
 IMAGE_SIZE = _env("IMAGE_SIZE", 512)
-COMFYUI_URL = _env("COMFYUI_URL", "http://192.168.7.1:8188")
+COMFYUI_URL = _env("COMFYUI_URL", f"http://{LAPTOP_HOST}:8188")
 COMFYUI_WORKFLOW = _env("COMFYUI_WORKFLOW", BASE_DIR / "laptop" / "comfyui_workflow.json")   # API-format export
 COMFYUI_CHECKPOINT = _env("COMFYUI_CHECKPOINT", "dreamshaper_8.safetensors")   # "" keeps the one in the workflow file
 COMFYUI_STEPS = _env("COMFYUI_STEPS", 22)             # DreamShaper: 20-25 pasos (sd_turbo usa 4)

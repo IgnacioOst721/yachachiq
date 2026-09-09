@@ -59,3 +59,12 @@ Si hay más de un dispositivo de audio: `YACHACHIQ_AUDIO_DEVICE=<nombre o númer
 3. Mac con ComfyUI abierto y el cable de red puesto.
 4. Papel en la cama. En la pantalla, ⚙ → mover el lápiz a la esquina inferior izquierda hasta que toque → **Fijar origen**.
 5. Botón grande → contar la historia.
+
+
+## La laptop se busca por nombre, no por IP
+
+El robot llega a la Mac de Ignacio como `el-loco-candy.local` (mDNS: avahi en la Pi, Bonjour en la
+Mac). Ese nombre resuelve igual en el WiFi de la casa y por el cable Ethernet directo del concurso,
+así que no hay que cambiar ninguna IP entre un lugar y otro. Si se usa otra laptop o se renombra la
+Mac, basta con `Environment=YACHACHIQ_LAPTOP_HOST=<nombre>.local` (o una IP fija) en
+`yachachiq.service`.

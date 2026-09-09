@@ -8,6 +8,9 @@ Type=simple
 User=pi
 WorkingDirectory=/home/pi/yachachiq/robot
 ExecStart=/home/pi/yachachiq/robot/venv/bin/python server.py
+# OpenCV probes every camera backend when a webcam is missing; keep that quiet in the journal
+Environment=OPENCV_LOG_LEVEL=FATAL
+Environment=OPENCV_VIDEOIO_PRIORITY_OBSENSOR=0
 Restart=always
 RestartSec=3
 # --- overrides (uncomment / edit) ---
