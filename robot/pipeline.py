@@ -142,6 +142,11 @@ class Pipeline:
         self.emit("mode", {"mode": self.input_mode})
         if self.input_mode == "voz":
             return self.start_listening()
+        if self.input_mode is None:
+            # "elegir otra forma": back to the welcome screen. This used to fall through into
+            # waiting_signs, so the back button in sign mode did nothing visible.
+            self._set_state("idle")
+            return True
         # sign language: the mic must not butt in while somebody is signing
         self.trigger.stop()
         self._set_state("waiting_signs")
