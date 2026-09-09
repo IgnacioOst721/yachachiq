@@ -1,6 +1,6 @@
 (Yachachiq: $110/$111 velocidad max, $120/$121 aceleracion - subidas de 500/10 a 1000/100;
  el 10 mm/s2 de fabrica hacia que un dibujo de 9 min tardara 19. $130=250: el eje X util es corto)
-$1=255
+$1=25
 $3=0
 $20=0
 $21=0
