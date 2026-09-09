@@ -19,7 +19,7 @@ import threading
 import time
 
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
+from fastapi.responses import StreamingResponse, FileResponse, HTMLResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 import config
@@ -28,6 +28,10 @@ from pipeline import Pipeline
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
 log = logging.getLogger("server")
+
+# changes each time the server starts; the kiosk page reloads itself when it sees a new one,
+# so a deploy + restart never leaves an old page on the touchscreen
+BOOT_ID = str(int(time.time()))
 
 app = FastAPI(title="Yachachiq")
 STATIC = os.path.join(str(config.BASE_DIR), "static")
@@ -210,7 +214,7 @@ async def ws_endpoint(ws: WebSocket):
     await ws.accept()
     clients.add(ws)
     try:
-        await ws.send_text(json.dumps({"event": "snapshot", "data": pipe.snapshot()}, ensure_ascii=False, default=str))
+        await ws.send_text(json.dumps({"event": "snapshot", "data": {**pipe.snapshot(), "boot": BOOT_ID}}, ensure_ascii=False, default=str))
         while True:
             raw = await ws.receive_text()
             try:
@@ -389,6 +393,22 @@ async def api_lsp_frame_get():
     if not lsp["frame"] or time.time() - lsp["t"] > 3:
         return Response(status_code=204)
     return Response(content=lsp["frame"], media_type="image/jpeg", headers={"Cache-Control": "no-store"})
+
+
+@app.get("/api/lsp/stream")
+async def api_lsp_stream():
+    """MJPEG stream of the sign camera: one part per new frame, so the kiosk shows the
+    signer at the rate lsp_app.py sends (~12 fps) without polling."""
+    async def gen():
+        last = 0.0
+        while True:
+            if lsp["frame"] and lsp["t"] != last and time.time() - lsp["t"] < 3:
+                last = lsp["t"]
+                yield (b"--frame\r\nContent-Type: image/jpeg\r\nContent-Length: "
+                       + str(len(lsp["frame"])).encode() + b"\r\n\r\n" + lsp["frame"] + b"\r\n")
+            await asyncio.sleep(0.02)
+    return StreamingResponse(gen(), media_type="multipart/x-mixed-replace; boundary=frame",
+                             headers={"Cache-Control": "no-store"})
 
 
 @app.post("/api/lsp/text")

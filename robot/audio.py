@@ -21,6 +21,30 @@ except Exception:               # pragma: no cover
     sd = None
 
 
+
+def _input_rate(dev):
+    """Sample rate to open the microphone at: 16 kHz when the device supports it (what Whisper
+    wants), otherwise the device's native rate (cheap USB mics only do 44.1/48 kHz)."""
+    try:
+        sd.check_input_settings(device=dev, samplerate=config.SAMPLE_RATE, channels=1, dtype="float32")
+        return int(config.SAMPLE_RATE)
+    except Exception:
+        try:
+            return int(sd.query_devices(dev, "input")["default_samplerate"])
+        except Exception:
+            return int(config.SAMPLE_RATE)
+
+
+def _to_16k(audio, rate):
+    """Resample mono float32 audio to config.SAMPLE_RATE (linear; plenty for speech)."""
+    if rate == config.SAMPLE_RATE or len(audio) == 0:
+        return audio
+    n = int(len(audio) * config.SAMPLE_RATE / rate)
+    x_old = np.linspace(0.0, 1.0, num=len(audio), endpoint=False)
+    x_new = np.linspace(0.0, 1.0, num=n, endpoint=False)
+    return np.interp(x_new, x_old, audio).astype(np.float32)
+
+
 class Recorder:
     def __init__(self):
         self.mode = "mock" if (config.MOCK or sd is None) else "mic"
@@ -34,13 +58,27 @@ class Recorder:
         self._auto_stop = None
         self.recording = False
         self._gen = 0                      # session counter: an old mock session must not stop a new one
+        self._fallback = False
+        self.no_speech = False
+
+    @staticmethod
+    def available():
+        """True when an input device exists right now (or we are in mock mode)."""
+        if config.MOCK or sd is None:
+            return True
+        try:
+            return any(d["max_input_channels"] > 0 for d in sd.query_devices())
+        except Exception:
+            return False
 
     def start(self, on_level=None, on_auto_stop=None):
         self._frames, self._spoke, self._t_last_speech = [], False, None
+        self.no_speech = False
+        self._fallback = False
         self._auto_stop, self.recording, self._t_start = on_auto_stop, True, time.time()
         self._gen += 1
         gen = self._gen
-        if self.mode == "mock":
+        if self.mode == "mock" or self._fallback:
             def fake():
                 t0 = time.time()
                 while self.recording and self._gen == gen and time.time() - t0 < 6.0:
@@ -65,7 +103,9 @@ class Recorder:
                 self._spoke, self._t_last_speech = True, now
             elapsed = now - self._t_start
             quiet = self._spoke and self._t_last_speech and (now - self._t_last_speech) > config.SILENCE_SECONDS
-            if self.recording and (quiet or elapsed > config.MAX_RECORD_SECONDS) and self._auto_stop:
+            silent_start = (not self._spoke) and elapsed > config.NO_SPEECH_SECONDS
+            if self.recording and (quiet or silent_start or elapsed > config.MAX_RECORD_SECONDS) and self._auto_stop:
+                self.no_speech = silent_start
                 self.recording = False
                 threading.Thread(target=self._auto_stop, daemon=True).start()
 
@@ -73,16 +113,19 @@ class Recorder:
         if dev is not None and str(dev).isdigit():
             dev = int(dev)
         try:
-            self._stream = sd.InputStream(samplerate=config.SAMPLE_RATE, channels=1, dtype="float32",
+            self._rate = _input_rate(dev)
+            self._stream = sd.InputStream(samplerate=self._rate, channels=1, dtype="float32",
                                           device=dev, blocksize=1024, callback=cb)
             self._stream.start()
+            if self._rate != config.SAMPLE_RATE:
+                log.info("microphone at %d Hz, resampling to %d for Whisper", self._rate, config.SAMPLE_RATE)
         except Exception as e:
             # No microphone plugged in (or busy): keep working instead of crashing.
             # The UI chip already says "micrófono: mock"; typed text and sign
             # language still drive the whole pipeline.
-            log.warning("no microphone (%s) -> mock recorder", e)
-            self.mode = "mock"
+            log.warning("no microphone (%s) -> mock recorder for this session", e)
             self._stream = None
+            self._fallback = True
             return self.start(on_level=on_level, on_auto_stop=on_auto_stop)
         return True
 
@@ -95,7 +138,7 @@ class Recorder:
                 self._stream = None
         with self._lock:
             audio = np.concatenate(self._frames) if self._frames else np.zeros(config.SAMPLE_RATE, np.float32)
-        return audio
+        return _to_16k(audio, getattr(self, "_rate", config.SAMPLE_RATE))
 
     def seconds(self):
         return time.time() - self._t_start if self.recording else 0.0
@@ -136,15 +179,14 @@ class VoiceTrigger:
         if dev is not None and str(dev).isdigit():
             dev = int(dev)
         try:
-            self._stream = sd.InputStream(samplerate=config.SAMPLE_RATE, channels=1, dtype="float32",
+            self._stream = sd.InputStream(samplerate=_input_rate(dev), channels=1, dtype="float32",
                                           device=dev, blocksize=2048, callback=cb)
             self._stream.start()
             self.running = True
             log.info("auto-listen armed (speak to start)")
             return True
         except Exception as e:
-            log.warning("auto-listen unavailable (%s)", e)
-            self.mode = "mock"
+            log.warning("auto-listen unavailable (%s) - will retry when a microphone appears", e)
             self._stream = None
             return False
 

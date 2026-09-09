@@ -68,3 +68,47 @@ Mac). Ese nombre resuelve igual en el WiFi de la casa y por el cable Ethernet di
 así que no hay que cambiar ninguna IP entre un lugar y otro. Si se usa otra laptop o se renombra la
 Mac, basta con `Environment=YACHACHIQ_LAPTOP_HOST=<nombre>.local` (o una IP fija) en
 `yachachiq.service`.
+
+
+## Qué cámara es cuál
+
+Las dos webcams se nombran por su id estable en `/dev/v4l/by-id/` (nunca por `/dev/video0`, que
+cambia según el orden en que se enchufan). En la Pi del equipo:
+
+| Función | Cámara | Dispositivo |
+|---|---|---|
+| Foto del dibujo terminado (mejor calidad, 1080p) | Logitech **Brio 105** | `/dev/v4l/by-id/usb-046d_Brio_105_2549ZB20HA58-video-index0` |
+| Lengua de señas + foto de consentimiento (640×480 a 30 fps) | Logitech **C270** | `/dev/v4l/by-id/usb-046d_C270_HD_WEBCAM_200901010001-video-index0` |
+
+La asignación vive en *drop-ins* de systemd, fuera del repo, porque es propia de cada Pi:
+
+```
+/etc/systemd/system/yachachiq.service.d/camaras.conf
+    [Service]
+    Environment=YACHACHIQ_PHOTO_CAMERA=/dev/v4l/by-id/...Brio...-video-index0
+    Environment=YACHACHIQ_LSP_CAMERA=/dev/v4l/by-id/...C270...-video-index0
+/etc/systemd/system/yachachiq-lsp.service.d/camaras.conf
+    [Service]
+    Environment=ASL_CAMERA=/dev/v4l/by-id/...C270...-video-index0
+```
+
+Para intercambiarlas basta con cruzar las rutas y `sudo systemctl daemon-reload && sudo systemctl
+restart yachachiq yachachiq-lsp`. Ver las cámaras conectadas: `ls /dev/v4l/by-id/`.
+
+
+## Micrófono
+
+El micrófono USB se fija por nombre (sounddevice acepta una parte del nombre), también en un drop-in,
+porque la Brio 105 trae su propio micrófono y sin esto el sistema podría elegir ese:
+
+```
+/etc/systemd/system/yachachiq.service.d/audio.conf
+    [Service]
+    Environment=YACHACHIQ_AUDIO_DEVICE=Usb Audio Device
+    Environment=YACHACHIQ_AUTO_LISTEN=0
+```
+
+Ver los micrófonos: `venv/bin/python -c "import sounddevice as sd; print(sd.query_devices())"`.
+La escucha manos-libres (`AUTO_LISTEN`) queda apagada: con un micrófono real se disparaba con el
+ruido del ambiente y dejaba al robot ocupado justo cuando alguien intentaba enviar en señas. La voz
+se inicia tocando **Con mi voz** en la pantalla.

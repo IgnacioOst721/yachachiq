@@ -72,12 +72,19 @@ class Pipeline:
             threading.Timer(float(config.AUTO_LISTEN_COOLDOWN), self._arm_trigger).start()
 
     def _arm_trigger(self):
-        """Listen for a voice again once the robot is free (never while signing)."""
+        """Listen for a voice again once the robot is free (never while signing).
+        With no microphone yet, try again every 20 s so plugging one in later just works."""
         if self.state == "waiting_signs":
             return
         if not self.busy() and config.AUTO_LISTEN:
             if self.trigger.start():
                 self.emit("auto_listen", {"armed": True})
+            else:
+                if getattr(self, "_rearm", None):
+                    self._rearm.cancel()
+                self._rearm = threading.Timer(20.0, self._arm_trigger)
+                self._rearm.daemon = True
+                self._rearm.start()
 
     def _voice_woke_us(self):
         """Somebody started talking while the robot was idle."""
@@ -120,6 +127,13 @@ class Pipeline:
     def start_listening(self):
         if self.busy():
             return False
+        if not self.recorder.available():
+            log.warning("start_listening: no microphone connected")
+            self.input_mode = None
+            self.emit("mode", {"mode": None})
+            self.emit("notice", {"text": "No hay micrófono conectado. Cuenta tu historia en lengua de señas, "
+                                         "o conecta un micrófono."})
+            return False
         self._cancel.clear()
         self.trigger.stop()
         self._set_state("listening")
@@ -133,6 +147,12 @@ class Pipeline:
         if self.state != "listening":
             return False
         audio = self.recorder.stop()
+        if getattr(self.recorder, "no_speech", False):
+            # nobody said anything: back to the welcome screen instead of transcribing silence
+            log.info("nobody spoke in %.0f s -> back to idle", config.NO_SPEECH_SECONDS)
+            self._set_state("idle")
+            self.emit("notice", {"text": "No escuché nada. Elige cómo contar tu historia y empieza cuando quieras."})
+            return True
         self._start(self._run_audio, audio)
         return True
 

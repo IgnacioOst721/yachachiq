@@ -98,7 +98,8 @@ def robot_send_story(text):
 
 
 class RobotPreview:
-    """Envia al kiosko un frame pequeño cada ~0.2 s y el texto actual (hilo aparte)."""
+    """Envia al kiosko un frame pequeño ~12 veces por segundo y el texto actual (hilo aparte).
+    El kiosko lo muestra como stream MJPEG continuo, sin polling."""
     def __init__(self):
         self.frame = None
         self.text = ("", "", "letter")
@@ -108,7 +109,9 @@ class RobotPreview:
             threading.Thread(target=self._loop, daemon=True).start()
 
     def update(self, frame, text, letter, mode):
-        self.frame = frame
+        # copy now: the main loop draws its debug HUD onto `frame` right after this call, and the
+        # kiosk (and the consent portrait) must get the clean picture
+        self.frame = frame.copy()
         self.text = (text, letter, mode)
 
     def _post(self, path, data, ctype):
@@ -120,7 +123,7 @@ class RobotPreview:
         import json
         fails = 0
         while True:
-            time.sleep(0.2)
+            time.sleep(0.07)                      # ~12-14 fps, the same rate the tracking loop runs at on the Pi
             try:
                 if self.frame is not None:
                     small = cv2.resize(self.frame, (480, int(self.frame.shape[0] * 480 / self.frame.shape[1])))

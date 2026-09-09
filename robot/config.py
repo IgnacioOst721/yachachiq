@@ -44,6 +44,7 @@ SAMPLE_RATE = 16000                       # Whisper wants 16 kHz mono
 AUDIO_DEVICE = _env("AUDIO_DEVICE", "")   # "" = system default input; or a name/index for sounddevice
 MAX_RECORD_SECONDS = _env("MAX_RECORD_SECONDS", 90.0)
 SILENCE_RMS = _env("SILENCE_RMS", 0.012)  # RMS level (0..1) under which audio counts as silence
+NO_SPEECH_SECONDS = _env("NO_SPEECH_SECONDS", 10.0)  # nobody spoke at all -> back to start
 SILENCE_SECONDS = _env("SILENCE_SECONDS", 3.5)   # auto-stop after this much trailing silence
 MIN_SPEECH_SECONDS = _env("MIN_SPEECH_SECONDS", 1.0)   # ignore recordings shorter than this
 
@@ -142,7 +143,9 @@ PORTRAIT_ENABLED = _env("PORTRAIT_ENABLED", True)      # keep the storyteller's 
 COVERED_BRIGHTNESS = _env("COVERED_BRIGHTNESS", 40.0)  # mean gray level below this = camera covered = "no"
 
 # --- Hands-free start (no button, no touch, no keyboard) ----------------------------
-AUTO_LISTEN = _env("AUTO_LISTEN", True)          # start recording by itself when someone speaks
+# Hands-free start. Off by default since the welcome screen has a voice/signs chooser: with a
+# real microphone the trigger fires on room noise and hijacks the robot while someone is signing.
+AUTO_LISTEN = _env("AUTO_LISTEN", False)
 AUTO_LISTEN_RMS = _env("AUTO_LISTEN_RMS", 0.030) # louder than SILENCE_RMS: a real voice, not room noise
 AUTO_LISTEN_HOLD = _env("AUTO_LISTEN_HOLD", 0.35)# seconds of speech before it wakes up
 AUTO_LISTEN_COOLDOWN = _env("AUTO_LISTEN_COOLDOWN", 3.0)  # pause after a story before listening again

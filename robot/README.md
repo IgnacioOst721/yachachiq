@@ -232,7 +232,7 @@ El robot está pensado para una mesa de exhibición: **nadie tiene que tocar nad
    - **Voz** → empieza a grabar de inmediato.
    - **Señas** → la cámara pasa al centro de la pantalla en grande, con la letra que se está
      señando y la frase construyéndose en vivo. El micrófono se apaga para que no interrumpa.
-2. **O simplemente habla.** Con `AUTO_LISTEN` (activado por defecto) el micrófono queda escuchando
+2. **O, si se activa `YACHACHIQ_AUTO_LISTEN=1`, simplemente habla.** Con `AUTO_LISTEN` (apagado por defecto) el micrófono queda escuchando
    en reposo y arranca la grabación cuando alguien habla de verdad (más fuerte que el ruido del
    ambiente, sostenido 0.35 s). El círculo de la pantalla late en amarillo cuando está listo.
 3. **Deja de hablar.** Se detiene solo tras 3.5 s de silencio (`SILENCE_SECONDS`).
@@ -243,7 +243,7 @@ El robot está pensado para una mesa de exhibición: **nadie tiene que tocar nad
 El círculo grande de la pantalla también funciona como botón si hay pantalla táctil o mouse,
 y la barra espaciadora si hay teclado — pero **ninguno es necesario**.
 
-Ajustes: `YACHACHIQ_AUTO_LISTEN=0` lo apaga (vuelve a modo botón). Si arranca solo con el ruido
+Ajustes: `YACHACHIQ_AUTO_LISTEN=1` lo enciende (por defecto la voz se inicia tocando **Con mi voz**). Si arranca solo con el ruido
 del ambiente, subir `YACHACHIQ_AUTO_LISTEN_RMS` (0.030 por defecto); si cuesta despertarlo, bajarlo.
 
 ## Inputs other than the microphone

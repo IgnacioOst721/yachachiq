@@ -66,6 +66,15 @@
   @keyframes descartar{to{opacity:.15;transform:scale(.94) translateY(6px);filter:grayscale(1)}}
   @keyframes entra{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
   /* --- modo señas: la camara al centro --- */
+  .aviso-fuerte{color:var(--rojo) !important;font-weight:700;font-style:normal !important;animation:entra .4s}
+  /* señas: el usuario ocupa toda la pantalla */
+  body.modo-senas main{grid-template-columns:1fr !important}
+  body.modo-senas .panel{display:none !important}
+  body.modo-senas #signStage{max-width:none;height:100%;gap:.6rem}
+  body.modo-senas #signStage .marco{height:min(74vh,100%);width:auto;max-width:100%;aspect-ratio:4/3}
+  body.modo-senas #signStage .letra{font-size:8.5rem;right:1.4rem;top:.6rem}
+  body.modo-senas #signStage .frase{font-size:2rem;padding:.8rem 1.2rem;letter-spacing:.06em}
+  body.modo-senas #signStage .aviso{font-size:1.05rem}
   #signStage{display:none;flex-direction:column;align-items:center;gap:1rem;width:100%;max-width:620px}
   #signStage.on{display:flex;animation:entra .5s cubic-bezier(.2,.7,.2,1)}
   #signStage .marco{position:relative;width:100%;background:#111;border:2px solid var(--rojo);aspect-ratio:4/3;overflow:hidden}
@@ -277,6 +286,10 @@ function showStage(){
   const signs = (state==="waiting_signs");
   $("chooser").classList.toggle("on", idle && !signs);
   $("signStage").classList.toggle("on", signs);
+  document.body.classList.toggle("modo-senas", signs);
+  // stream continuo mientras se seña; al salir se corta la conexión
+  const img=$("sImg"); if(signs){ if(!img.dataset.live){ img.src="/api/lsp/stream"; img.dataset.live="1"; } }
+  else if(img.dataset.live){ img.removeAttribute("src"); delete img.dataset.live; }
   $("ring").style.display = (idle||signs) ? "none" : "grid";
   $("bar").style.display  = (idle||signs) ? "none" : "block";
   if(idle){ document.querySelectorAll(".card-opt").forEach(c=>c.classList.remove("elegida","descartada")); }
@@ -321,7 +334,7 @@ function chips(m){
   $("modesTxt").innerHTML=Object.entries(m).map(([k,v])=>`<b>${k}</b>: ${v}`).join(" · ");
 }
 function handle(ev,d){
-  if(ev==="snapshot"){ setState(d.state,d); chips(d.modes||{}); if(d.story){ $("transcript").textContent=d.story.text; $("transcript").className=""; $("narration").textContent=d.story.narration||"—"; } if(d.image&&d.image.svg){ $("svgbox").innerHTML=d.image.svg; stats(d.image.stats,d.image.source);} return; }
+  if(ev==="snapshot"){ if(window.__boot&&d.boot&&d.boot!==window.__boot){ location.reload(); return; } window.__boot=d.boot; setState(d.state,d); chips(d.modes||{}); if(d.story){ $("transcript").textContent=d.story.text; $("transcript").className=""; $("narration").textContent=d.story.narration||"—"; } if(d.image&&d.image.svg){ $("svgbox").innerHTML=d.image.svg; stats(d.image.stats,d.image.source);} return; }
   if(ev==="state"){ setState(d.state,d); return; }
   if(ev==="level"){ $("ring").style.setProperty("--lvl",Math.min(1,d.level));
     if(state==="listening"){ if(!listenT0) listenT0=Date.now();
@@ -330,6 +343,8 @@ function handle(ev,d){
     return; }
   if(ev==="transcript"){ $("transcript").textContent=d.text; $("transcript").className="";
     const c=$("comoCard"); if(c) c.style.display="none"; return; }
+  if(ev==="notice"){ const h=$("hint"); if(h){ h.textContent=d.text; h.classList.add("aviso-fuerte"); setTimeout(()=>h.classList.remove("aviso-fuerte"),6000); }
+    document.querySelectorAll(".card-opt").forEach(c=>c.classList.remove("elegida","descartada")); showStage(); return; }
   if(ev==="cleaned"){ const n=$("corregido");
     if(n){ n.style.display="block"; n.innerHTML="✎ texto corregido — "+d.notes.join(" · "); } return; }
   if(ev==="analysis"){ $("hint").textContent=(d.title?`«${d.title}» · `:"")+(d.scene||""); return; }
@@ -400,7 +415,7 @@ function cResult(d){ clearInterval(cTimer); $("ccount").textContent="";
   $("cst").className="st "+(d.publish?"ok":"no"); $("cst").textContent=d.publish?"Publicando…":"No se publica.";
   setTimeout(()=>$("consent").classList.remove("on"),3800); }
 $("cYes").onclick=()=>post("/api/consent",{publish:true}); $("cNo").onclick=()=>post("/api/consent",{publish:false});
-setInterval(()=>{ if(state==="waiting_signs") $("sImg").src="/api/lsp/frame.jpg?t="+Date.now();
+setInterval(()=>{
   const live=Date.now()-lspLast<3000; $("lsp").classList.toggle("on",live); if(live){ $("lspimg").src="/api/lsp/frame.jpg?t="+Date.now(); } },250);
 connect();
 </script>
