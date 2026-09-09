@@ -338,6 +338,9 @@ class Plotter:
             for line in f:
                 if line.strip().startswith("$"):
                     self.send(line)
+        self._limits = None            # feed/accel may have changed: re-read for the time estimate
+        import vectorize
+        vectorize.MACHINE_LIMITS = self.limits()
 
 
 def create_plotter(mock=None):

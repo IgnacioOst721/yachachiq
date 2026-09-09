@@ -3,7 +3,7 @@
 (Before running: lower the pen so it touches the paper at the bottom-left corner)
 G21
 G90
-G92 X0 Y0 Z0
+(origen: NO se toca aqui; se fija desde la pantalla con G10 L20 y se conserva)
 G1 Z5 F300
 G1 X10 Y10 F1500
 G1 Z0 F300
@@ -19,4 +19,4 @@ G1 X40 Y45 F800
 G1 X60 Y45 F800
 G1 X60 Y10 F800
 G1 Z5 F300
-G1 X0 Y0 F1500
+G0 X0 Y0

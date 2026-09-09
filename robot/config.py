@@ -135,7 +135,7 @@ MAX_STROKES = _env("MAX_STROKES", 350)           # keep the longest N strokes. M
 # --- Plotter (Arduino UNO + CNC Shield + grbl-servo, over USB) ----------------------
 SERIAL_PORT = _env("SERIAL_PORT", "/dev/ttyACM0")   # Pi: /dev/ttyACM0 or /dev/ttyUSB0; Mac: /dev/cu.usbmodem*
 BAUD_RATE = 115200
-PAPER_W_MM = _env("PAPER_W_MM", 210.0)    # A4 con el lado largo en Y: 210 mm de ancho (eje X)
+PAPER_W_MM = _env("PAPER_W_MM", 105.0)    # ancho util en X: la mitad de un A4 (el eje X de la maquina es corto)
 PAPER_H_MM = _env("PAPER_H_MM", 297.0)    # ...y 297 mm de alto (eje Y). Maquina: 500 x 400 mm
 MARGIN_MM = _env("MARGIN_MM", 12.0)
 DRAW_FEED = _env("DRAW_FEED", 800)        # mm/min pen down
