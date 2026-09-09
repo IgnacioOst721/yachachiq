@@ -124,7 +124,19 @@ def comfyui_generate(positive, negative, out_path, url=None, workflow_path=None,
 
 def from_comfyui(analysis):
     png = _out_dir() / f"comfy_{int(time.time())}.png"
-    comfyui_generate(_prompt(analysis), config.NEGATIVE_PROMPT, png)
+    urls = [config.COMFYUI_URL] + [u for u in config.laptop_urls(8188) if u != config.COMFYUI_URL]
+    last = None
+    for i, u in enumerate(urls):
+        try:
+            comfyui_generate(_prompt(analysis), config.NEGATIVE_PROMPT, png, url=u)
+            if i:
+                log.info("comfyui reached at %s (the first address did not answer)", u)
+            break
+        except Exception as e:
+            last = e
+            log.info("comfyui at %s: %s", u, str(e)[:90])
+    else:
+        raise last
     return {"source": "comfyui", "png_path": str(png), "polylines_mm": _trace_with_border(png)}
 
 

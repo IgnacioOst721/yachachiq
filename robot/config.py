@@ -68,6 +68,22 @@ STORY_BACKENDS = _env("STORY_BACKENDS", ["remote", "rules"])
 # direct Ethernet cable (avahi on the Pi, Bonjour on the Mac). Override with the env var if
 # the Mac is renamed or a fixed IP is preferred (competition cable: 192.168.7.1).
 LAPTOP_HOST = _env("LAPTOP_HOST", "el-loco-candy.local")
+# At the competition there is no internet and no router: the Mac is wired straight to the Pi with
+# static IPs (Mac 192.168.7.1). mDNS usually still resolves over that cable, but if it does not,
+# every laptop request falls back to the fixed address instead of silently dropping to motifs.
+LAPTOP_FALLBACK = _env("LAPTOP_FALLBACK", "192.168.7.1")
+
+
+def laptop_urls(port):
+    """Both ways to reach the laptop on a port, in order: mDNS name first, cable IP second."""
+    hosts = [h for h in (LAPTOP_HOST, LAPTOP_FALLBACK) if h]
+    seen, out = set(), []
+    for h in hosts:
+        if h not in seen:
+            seen.add(h)
+            out.append("http://%s:%d" % (h, port))
+    return out
+
 AI_SERVER_URL = _env("AI_SERVER_URL", f"http://{LAPTOP_HOST}:8600")
 AI_SERVER_TIMEOUT = _env("AI_SERVER_TIMEOUT", 120.0)
 OLLAMA_URL = _env("OLLAMA_URL", f"http://{LAPTOP_HOST}:11434")

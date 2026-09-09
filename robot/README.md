@@ -192,6 +192,12 @@ cd ~/yachachiq/robot && bash setup_pi.sh
   modelo de manos son idénticos entre MediaPipe 0.10.9 (donde se entrenó `model.pkl`) y 0.10.18 (ARM),
   así que los 21 puntos y la precisión son los mismos.
 
+## Sin internet
+
+Todo el robot funciona sin conexión; ver **Modo concurso** en `CONEXIONES.md`. Lo único que espera
+internet es la publicación en la galería web, que es *store-and-forward*: la historia se guarda en
+la Pi y sube sola la próxima vez que haya red.
+
 ## La pantalla se reinicia sola
 
 Cuando una historia termina (se publique o quede privada), el resultado se queda

@@ -1,7 +1,8 @@
 [Unit]
 Description=Yachachiq robot (web kiosk + pipeline)
-After=network-online.target sound.target
-Wants=network-online.target
+# No network dependency on purpose: at the competition there is no internet, and publishing is
+# store-and-forward. Waiting for network-online would leave the screen blank for up to 90 s.
+After=sound.target
 
 [Service]
 Type=simple

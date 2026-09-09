@@ -28,8 +28,16 @@ class STT:
             return
         from faster_whisper import WhisperModel
         t0 = time.time()
-        self.model = WhisperModel(config.WHISPER_MODEL, device="cpu", compute_type=config.WHISPER_COMPUTE,
-                                  cpu_threads=int(config.WHISPER_CPU_THREADS))
+        kw = dict(device="cpu", compute_type=config.WHISPER_COMPUTE,
+                  cpu_threads=int(config.WHISPER_CPU_THREADS))
+        try:
+            # Load straight from the local cache. Without this the loader asks huggingface.co for
+            # the model revision on every start, which at a competition with no internet means a
+            # DNS wait before it falls back on its own.
+            self.model = WhisperModel(config.WHISPER_MODEL, local_files_only=True, **kw)
+        except Exception:
+            log.info("whisper '%s' is not in the cache yet: downloading (needs internet)", config.WHISPER_MODEL)
+            self.model = WhisperModel(config.WHISPER_MODEL, **kw)
         log.info("whisper '%s' loaded in %.1fs", config.WHISPER_MODEL, time.time() - t0)
 
     def transcribe(self, audio):

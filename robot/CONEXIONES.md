@@ -128,3 +128,29 @@ vcgencmd get_throttled       # 0x0 = sin limitación
 El *Active Cooler* oficial se conecta al zócalo de 4 pines del ventilador y el sistema lo controla
 solo. Además, el reconocimiento de señas ya solo hace seguimiento de manos mientras alguien está
 señando, lo que bajó el consumo de un núcleo completo a casi nada en reposo.
+
+
+## Modo concurso: todo funciona sin internet
+
+En la WRO no hay wifi ni router. El sistema está hecho para eso:
+
+| Parte | Sin internet |
+|---|---|
+| Micrófono → texto (Whisper) | ✅ el modelo vive en la tarjeta; se carga con `local_files_only` para no preguntar a internet |
+| Lengua de señas | ✅ todo en la Pi (MediaPipe + `model.pkl`) |
+| Corrección del texto | ✅ reglas locales (la parte con IA es opcional) |
+| Análisis de la historia | ✅ reglas locales con el léxico español→inglés |
+| Imagen (ComfyUI) | ✅ la Mac va **por cable de red directo**, sin internet |
+| Imagen sin la Mac | ✅ cae a los motivos andinos, nunca se queda sin dibujo |
+| Trazos y G-code | ✅ OpenCV en la Pi |
+| Plotter | ✅ USB |
+| Fotos y consentimiento | ✅ webcams USB |
+| Pantalla del kiosko | ✅ cero recursos externos: ni fuentes ni librerías de internet |
+| Publicar en la web | ⏳ se guarda en la Pi y sube sola cuando vuelva a haber internet |
+
+El cable Mac↔Pi con IPs fijas (Mac `192.168.7.1`, Pi `192.168.7.2`) está descrito arriba. El robot
+intenta la Mac primero por su nombre mDNS y, si no responde, por `192.168.7.1`, así que sirve tanto
+en casa (wifi) como en el concurso (cable) sin cambiar nada.
+
+El servicio del robot ya **no espera a la red** para arrancar: antes systemd podía quedarse hasta
+90 segundos buscando una red que en el concurso no existe, dejando la pantalla en blanco.
