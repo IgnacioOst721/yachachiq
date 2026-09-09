@@ -1,4 +1,4 @@
-# Raspberry Pi (64-bit Raspberry Pi OS Bookworm). Install with: pip install -r requirements.txt
+# Raspberry Pi (64-bit, Debian 12 Bookworm or 13 Trixie). Install with: pip install -r requirements.txt
 fastapi>=0.110
 uvicorn[standard]>=0.29
 numpy>=1.24
@@ -8,6 +8,6 @@ requests>=2.31
 sounddevice>=0.4.6
 faster-whisper>=1.0
 # sign language camera (lsp/)
-mediapipe>=0.10
-scikit-learn>=1.3
+mediapipe>=0.10,<1     # 1.x removed mp.solutions.hands; model trained on 0.10.x
+scikit-learn>=1.6,<1.7   # model.pkl was trained with 1.6.1; other versions spam unpickle warnings
 joblib>=1.3

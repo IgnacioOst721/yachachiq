@@ -175,6 +175,23 @@ Peruvian manual alphabet (model trained by the team), streams its camera to the 
 visitors see the letters appear, and when the signer holds both open palms for 2 s it sends the
 whole story to TCP port 5005 — from there it is exactly like a spoken story.
 
+## Instalación en la Raspberry Pi (Debian 12 o 13)
+
+```bash
+git clone --branch dev https://github.com/IgnacioOst721/yachachiq.git ~/yachachiq
+cd ~/yachachiq/robot && bash setup_pi.sh
+```
+
+`setup_pi.sh` resuelve dos cosas que cambian entre versiones de Debian:
+
+- **Nombres de paquetes** (`libopenblas0` en vez de `libatlas-base-dev`, `chromium`, `libglib2.0-0t64`):
+  instala el que exista.
+- **Python.** El reconocimiento de señas usa MediaPipe **0.10** (`mp.solutions.hands`); la versión 1.x
+  eliminó esa API y solo existe para Python 3.13. Como Debian 13 trae Python 3.13, el instalador
+  descarga un Python 3.12 independiente en `~/.local/pythons` y crea el `venv` con él. Los archivos del
+  modelo de manos son idénticos entre MediaPipe 0.10.9 (donde se entrenó `model.pkl`) y 0.10.18 (ARM),
+  así que los 21 puntos y la precisión son los mismos.
+
 ## Corrección del texto
 
 Antes de dibujar y publicar, la historia pasa por `textclean.py`. Importa sobre todo en señas,
