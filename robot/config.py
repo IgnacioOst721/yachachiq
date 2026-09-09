@@ -128,7 +128,11 @@ PHOTO_CAMERA = _env("PHOTO_CAMERA", "")              # "" = first camera, "1" = 
 PHOTO_SETTLE_SECONDS = _env("PHOTO_SETTLE_SECONDS", 2.0)   # let the plotter stop shaking
 STORIES_DIR = _env("STORIES_DIR", OUTPUT_DIR / "stories")  # one folder per story (text + images + photo)
 PUBLISH_ENABLED = _env("PUBLISH_ENABLED", True)      # store-and-forward upload to the web gallery
-PUBLISH_REPO_DIR = _env("PUBLISH_REPO_DIR", BASE_DIR.parent)   # git repo that holds docs/ (GitHub Pages)
+# Stories are published from a separate clone of the `main` branch (GitHub Pages serves
+# main:/docs), so publishing never mixes with the code branch the robot runs from.
+# setup_pi.sh creates it at ~/yachachiq-archivo; without it, fall back to this repo.
+_ARCHIVO = Path.home() / "yachachiq-archivo"
+PUBLISH_REPO_DIR = Path(_env("PUBLISH_REPO_DIR", str(_ARCHIVO if _ARCHIVO.is_dir() else BASE_DIR.parent)))
 LSP_CAMERA = _env("LSP_CAMERA", "")                  # sign-language camera for lsp_app (index or by-id path)
 
 # --- Consent before publishing + storyteller portrait --------------------------------

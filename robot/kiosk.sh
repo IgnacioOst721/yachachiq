@@ -11,5 +11,5 @@ fi
 until curl -s http://localhost:8877/api/state >/dev/null; do sleep 1; done
 BROWSER=$(command -v chromium || command -v chromium-browser)
 exec "$BROWSER" --kiosk --noerrdialogs --disable-infobars --disable-session-crashed-bubble \
-     --check-for-update-interval=31536000 --touch-events=enabled --start-maximized \
+     --check-for-update-interval=31536000 --touch-events=enabled --start-maximized --lang=es --disable-features=Translate,TranslateUI \
      --ozone-platform=$PLATFORM http://localhost:8877
