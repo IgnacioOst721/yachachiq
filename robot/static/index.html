@@ -261,6 +261,13 @@
       </div>
       <div class="row"><button class="btn" id="penUp">Lápiz arriba</button><button class="btn" id="penDown">Lápiz abajo</button></div>
       <div class="row"><button class="btn p" id="origin">0 · Fijar origen aquí</button><button class="btn" id="home">Ir al origen</button><button class="btn" id="unlock">Desbloquear ($X)</button></div>
+      <div class="row" id="calRow" style="align-items:center;flex-wrap:wrap;gap:.5rem">
+        <label class="small">calibrar&nbsp;<select id="calEje"><option>X</option><option>Y</option></select></label>
+        <button class="btn" id="calMover">1 · Mover 20 mm</button>
+        <label class="small">midió&nbsp;<input id="calMedido" type="number" inputmode="decimal" min="1" step="0.5" style="width:5.5rem;font:inherit;padding:.4rem" placeholder="mm"> mm</label>
+        <button class="btn p" id="calAplicar">2 · Aplicar</button>
+        <span class="small" id="calInfo"></span>
+      </div>
       <div class="row"><button class="btn" id="settings">Cargar settings GRBL</button><button class="btn" id="testDraw">Dibujo de prueba (casa)</button></div>
       <p class="small">Pon el papel, lleva el lápiz a la esquina inferior izquierda hasta que toque, y presiona <b>Fijar origen</b>. Ese punto es 0,0.</p>
     </div>
@@ -424,6 +431,18 @@ document.querySelectorAll(".jog [data-j]").forEach(b=>b.onclick=()=>{ const [x,y
 $("penUp").onclick=()=>post("/api/pen",{up:true}); $("penDown").onclick=()=>post("/api/pen",{up:false});
 $("origin").onclick=()=>post("/api/origin").then(r=>r&&toast("Origen fijado: aquí es 0,0"));
 $("home").onclick=()=>post("/api/home"); $("unlock").onclick=()=>post("/api/unlock");
+
+// calibración con regla, desde la pantalla: mover 20 mm -> medir -> aplicar
+const CAL_MM = 20;
+$("calMover").onclick=()=>{ const eje=$("calEje").value; const b={}; b[eje==="X"?"dx":"dy"]=CAL_MM;
+  post("/api/pen",{up:true}).then(()=>post("/api/jog",b)).then(r=>{ if(r) toast("Movido "+CAL_MM+" mm en "+eje+": mide con la regla y escribe lo que midió"); }); };
+$("calAplicar").onclick=()=>{ const eje=$("calEje").value, m=Number($("calMedido").value);
+  if(!m){ toast("Escribe cuántos mm se movió de verdad"); return; }
+  post("/api/plotter/calibrate",{axis:eje,commanded:CAL_MM,measured:m}).then(r=>{
+    if(!r) return;
+    if(r.ok){ toast(`Calibrado ${eje}: ${r.old} → ${r.new} pasos/mm (guardado en el Arduino)`); $("calInfo").textContent=`${eje}: ${r.new} pasos/mm`; $("calMedido").value=""; }
+    else toast("No se aplicó: "+(r.error||"error")); }); };
+fetch("/api/plotter/steps").then(r=>r.json()).then(d=>{ if(d&&d.X) $("calInfo").textContent=`X ${d.X} · Y ${d.Y} pasos/mm`; }).catch(()=>{});
 $("settings").onclick=()=>post("/api/plotter/settings").then(r=>r&&toast("Settings GRBL cargados"));
 $("testDraw").onclick=()=>post("/api/plotter/test").then(r=>{ if(r){toast("Dibujando la casa de prueba"); $("menu").classList.remove("on");} });
 $("photoTest").onclick=()=>{ window.open("/api/photo/test","_blank"); };

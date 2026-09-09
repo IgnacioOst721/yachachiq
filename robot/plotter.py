@@ -177,6 +177,49 @@ class Plotter:
         self._limits = vals
         return vals
 
+    def read_settings(self):
+        """All GRBL '$$' settings as {'$100': 80.0, ...}; {} in mock."""
+        if self.mock or self.ser is None:
+            return {}
+        with self._lock:
+            self.ser.reset_input_buffer()
+            self.ser.write(b"$$\n")
+            time.sleep(1.2)
+            data = self.ser.read(self.ser.in_waiting or 1).decode(errors="ignore")
+        out = {}
+        for line in data.splitlines():
+            if line.startswith("$") and "=" in line:
+                k, v = line.strip().split("=", 1)
+                try:
+                    out[k] = float(v)
+                except ValueError:
+                    pass
+        return out
+
+    STEPS_KEY = {"X": "$100", "Y": "$101", "Z": "$102"}
+
+    def calibrate(self, axis, commanded, measured):
+        """Ruler calibration: we asked for `commanded` mm, the axis really moved `measured` mm.
+        steps_new = steps_old * commanded / measured, written to the board (EEPROM)."""
+        axis = str(axis).upper()
+        key = self.STEPS_KEY.get(axis)
+        commanded, measured = float(commanded), float(measured)
+        if not key or commanded <= 0 or measured <= 0:
+            return {"ok": False, "error": "datos invalidos"}
+        if self.mock or self.ser is None:
+            return {"ok": False, "error": "sin plotter"}
+        old = self.read_settings().get(key)
+        if old is None:
+            return {"ok": False, "error": "no pude leer %s de la placa" % key}
+        new = round(old * commanded / measured, 3)
+        ratio = new / old
+        if not (0.2 <= ratio <= 5.0):
+            return {"ok": False, "error": "correccion de %.1fx: revisa la medida" % ratio, "old": old, "new": new}
+        r = self.send("%s=%g" % (key, new))
+        self._limits = None
+        log.info("calibrated %s: %s %g -> %g steps/mm (%g mm commanded, %g measured)", axis, key, old, new, commanded, measured)
+        return {"ok": str(r).lower().startswith("ok"), "axis": axis, "key": key, "old": old, "new": new, "reply": r}
+
     def status(self):
         """Ask GRBL for a status report; returns e.g. 'Idle', 'Run', 'Alarm', or '' in mock."""
         if self.mock or self.ser is None:

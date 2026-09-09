@@ -141,6 +141,17 @@ el lápiz → vuelve a `X0 Y0`. El siguiente dibujo empieza del mismo origen.
 
 ## Calibrar los pasos/mm (una sola vez por máquina)
 
+**Desde la pantalla táctil** (⚙ → fila *calibrar*): elige el eje, toca **1 · Mover 20 mm**, mide con
+la regla cuánto se movió el carro de verdad, escribe ese número en *midió* y toca **2 · Aplicar**. El
+robot calcula `pasos_nuevos = pasos_viejos × 20 / medido` y lo graba en el Arduino. Repite con el
+otro eje. Comprueba: vuelve a tocar *Mover 20 mm* y ahora debe medir 20.
+
+Si el carro recorre MÁS de lo pedido (poleas que multiplican), el número medido es mayor que 20 y
+los pasos/mm bajan; si recorre menos, suben. No achiques el papel para "compensar": eso deforma
+los dibujos. Primero calibra, después ajusta el tamaño del papel al recorrido real.
+
+Por SSH:
+
 Si le pides 100 mm y recorre otra cosa, los dibujos salen deformados. Se mide con una regla:
 
 ```

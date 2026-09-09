@@ -355,6 +355,26 @@ async def api_settings():
     return {"ok": True}
 
 
+@app.post("/api/plotter/calibrate")
+async def api_calibrate(req: Request):
+    """Ruler calibration from the screen: {"axis":"X","commanded":20,"measured":58}."""
+    b = await req.json()
+    if not _free():
+        return JSONResponse({"ok": False, "error": "ocupado"}, status_code=409)
+    res = await run_in_threadpool(pipe.plotter.calibrate, b.get("axis", "X"), b.get("commanded", 20), b.get("measured", 0))
+    if res.get("ok"):
+        import vectorize
+        vectorize.MACHINE_LIMITS = pipe.plotter.limits()
+    return res
+
+
+@app.get("/api/plotter/steps")
+async def api_steps():
+    """Current steps/mm per axis, for the calibration panel."""
+    st = await run_in_threadpool(pipe.plotter.read_settings)
+    return {"X": st.get("$100"), "Y": st.get("$101"), "Z": st.get("$102")}
+
+
 @app.post("/api/plotter/test")
 async def api_test_drawing():
     if not _free():

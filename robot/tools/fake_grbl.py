@@ -15,6 +15,7 @@ busy_until = 0.0
 alarm = True                          # GRBL powers up in alarm when homing is enabled
 hold = False
 pos = [0.0, 0.0, 0.0]
+settings = {"$100": 80.0, "$101": 80.0, "$102": 400.0, "$110": 500.0, "$111": 500.0, "$120": 10.0, "$121": 10.0, "$130": 500.0, "$131": 400.0}
 received, buf = [], b""
 def w(s): os.write(master, s.encode())
 w("\r\nGrbl 1.1h ['$' for help]\r\n")
@@ -49,6 +50,11 @@ while True:
             received.append(line)
             if line == "$X":
                 alarm = False; w("[MSG:Caution: Unlocked]\r\nok\r\n"); continue
+            if line == "$$":
+                w("".join("%s=%.3f\r\n" % (k, v) for k, v in settings.items()) + "ok\r\n"); continue
+            m = re.match(r"^(\$\d+)=([\d.]+)$", line)
+            if m:
+                settings[m.group(1)] = float(m.group(2)); w("ok\r\n"); continue
             if alarm and re.match(r"^G[01]", line):
                 w("error:9\r\n"); continue
             if re.match(r"^G[01]\b", line):
