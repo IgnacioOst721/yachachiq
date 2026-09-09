@@ -192,6 +192,21 @@ cd ~/yachachiq/robot && bash setup_pi.sh
   modelo de manos son idénticos entre MediaPipe 0.10.9 (donde se entrenó `model.pkl`) y 0.10.18 (ARM),
   así que los 21 puntos y la precisión son los mismos.
 
+## Probar el plotter sin Arduino
+
+`tools/fake_grbl.py` simula una placa GRBL en un puerto serie falso (responde `ok`, `?` → `<Idle|…>`,
+`$X`, Ctrl-X). Sirve para probar el driver y el G-code sin hardware:
+
+```
+python3 tools/fake_grbl.py /tmp/ttyFAKE &          # crea el puerto falso
+YACHACHIQ_SERIAL_PORT=/tmp/ttyFAKE python3 server.py   # el robot lo ve como un plotter real
+```
+
+## Actualizar la Pi
+
+`ssh admin@definitelyawesome.local 'bash ~/yachachiq/robot/deploy.sh'` trae la rama `dev`, reinstala los
+servicios y los reinicia; la pantalla del kiosko se recarga sola.
+
 ## Sin internet
 
 Todo el robot funciona sin conexión; ver **Modo concurso** en `CONEXIONES.md`. Lo único que espera

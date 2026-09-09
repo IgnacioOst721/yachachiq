@@ -348,6 +348,7 @@ function handle(ev,d){
   if(ev==="reset"){ $("transcript").textContent="Todavía nada. Cuenta algo y aparecerá aquí."; $("transcript").className="muted";
     $("narration").textContent="—"; $("svgbox").innerHTML='<span class="muted">aparecerá aquí</span>'; stats(null,null);
     limpiarAviso(); const c=$("comoCard"); if(c) c.style.display=""; return; }
+  if(ev==="modes"){ chips(d||{}); return; }
   if(ev==="cleaned"){ const n=$("corregido");
     if(n){ n.style.display="block"; n.innerHTML="✎ texto corregido — "+d.notes.join(" · "); } return; }
   if(ev==="analysis"){ $("hint").textContent=(d.title?`«${d.title}» · `:"")+(d.scene||""); return; }

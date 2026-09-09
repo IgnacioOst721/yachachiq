@@ -55,6 +55,7 @@ class Plotter:
         self._stop = threading.Event()
         self._lock = threading.Lock()
         self.last_status = ""
+        self.missing = False               # True when we are mock only because no board was found
 
     # --- connection ------------------------------------------------------------------------------
     def connect(self):
@@ -66,18 +67,41 @@ class Plotter:
         if serial is None or port is None:
             log.warning("plotter: %s -> mock", "pyserial missing" if serial is None else f"no port ({self.port})")
             self.mock, self.mode = True, "mock"
+            self.missing = serial is not None          # a board may still be plugged in later
             return self
         try:
             self.ser = serial.Serial(port, self.baud, timeout=2)
             self.ser.write(b"\r\n\r\n")
             time.sleep(2)
             self.ser.reset_input_buffer()
-            self.port, self.mode = port, "real"
+            self.port, self.mode, self.missing = port, "real", False
             log.info("plotter connected on %s", port)
         except Exception as e:
             log.warning("plotter: could not open %s (%s) -> mock", port, e)
             self.ser, self.mock, self.mode = None, True, "mock"
         return self
+
+    def reconnect_if_needed(self):
+        """The board was not there when the robot started (or the cable was pulled): try again.
+        Lets the Arduino be plugged in after power-on and still get a real drawing."""
+        if config.MOCK:
+            return False
+        if self.ser is not None:
+            try:
+                if os.path.exists(self.port):
+                    return True
+            except Exception:
+                pass
+            log.warning("plotter: %s disappeared, reconnecting", self.port)
+            self.close()
+            self.mock, self.mode, self.missing = True, "mock", True
+        if not getattr(self, "missing", True) and self.ser is not None:
+            return True
+        if _find_port(config.SERIAL_PORT) is None:
+            return False
+        self.mock, self.port = False, config.SERIAL_PORT
+        self.connect()
+        return self.mode == "real"
 
     def close(self):
         if self.ser is not None:
@@ -140,6 +164,8 @@ class Plotter:
             return True
         t0 = time.time()
         while time.time() - t0 < timeout:
+            if self._stop.is_set():          # the drawing was cancelled: nothing to wait for
+                return False
             if self.status() == "Idle":
                 return True
             time.sleep(0.3)

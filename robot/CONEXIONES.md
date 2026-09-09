@@ -154,3 +154,36 @@ en casa (wifi) como en el concurso (cable) sin cambiar nada.
 
 El servicio del robot ya **no espera a la red** para arrancar: antes systemd podía quedarse hasta
 90 segundos buscando una red que en el concurso no existe, dejando la pantalla en blanco.
+
+
+## Día del concurso: encender y comprobar
+
+Todo arranca solo. El orden que evita sorpresas:
+
+1. **Mac**: abrir la tapa e iniciar sesión. ComfyUI se levanta solo (agente de inicio de sesión; log
+   en `~/Library/Logs/yachachiq-comfyui.log`). Conectar el adaptador Ethernet y el cable a la Pi.
+   Si es la primera vez con ese adaptador: `bash ~/yachachiq/robot/laptop/cable_mac.sh`.
+2. **Plotter**: corriente al CNC Shield, USB del Arduino a la Pi (da igual antes o después de
+   encenderla: el robot lo detecta solo y el chip de arriba pasa de `plotter: mock` a `real`).
+3. **Pi**: cámaras y micrófono en los USB, pantalla táctil, corriente. En ~40 s aparece la pantalla
+   de bienvenida.
+4. **Origen del papel**: con el lápiz en la esquina del papel, en la pantalla → ⚙ → *fijar origen*
+   (manda `G92`). Solo una vez por sesión, mientras no se apague el Arduino.
+5. **Prueba de humo**: ⚙ → *Dibujo de prueba (casa)*. Si dibuja, todo el camino funciona.
+
+Comprobaciones rápidas desde la Mac (por el cable, `ssh admin@192.168.7.2`; por wifi,
+`admin@definitelyawesome.local`):
+
+```
+curl -s http://192.168.7.2:8877/api/state | python3 -m json.tool | grep -E '"state"|plotter|audio|photo'
+ssh admin@192.168.7.2 'vcgencmd measure_temp; vcgencmd get_throttled'      # < 70 °C y 0x0
+ssh admin@192.168.7.2 'ls /dev/v4l/by-id/ /dev/serial/by-id/'              # 2 cámaras + Arduino
+```
+
+Actualizar el código en la Pi (un solo comando, la pantalla se recarga sola):
+
+```
+ssh admin@definitelyawesome.local 'bash ~/yachachiq/robot/deploy.sh'
+```
+
+Sin internet nada cambia (ver *Modo concurso*): las historias se guardan y suben solas después.

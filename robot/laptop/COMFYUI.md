@@ -78,3 +78,17 @@ es una lámina de líneas correcta. Lo que sí se ajustó fue el **tiempo de dib
 
 Para una demo con cola de visitantes, subir `MIN_STROKE_PX` a 26-35 baja el tiempo sin
 cambiar el aspecto general.
+
+
+## Arranque automático en la Mac
+
+`pe.fdr.yachachiq.comfyui.plist` es un *LaunchAgent*: ComfyUI se levanta solo al iniciar sesión y se
+reinicia si se cae (log en `~/Library/Logs/yachachiq-comfyui.log`). Instalarlo en otra Mac:
+
+```
+cp pe.fdr.yachachiq.comfyui.plist ~/Library/LaunchAgents/
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/pe.fdr.yachachiq.comfyui.plist
+```
+
+Quitarlo: `launchctl bootout gui/$(id -u)/pe.fdr.yachachiq.comfyui`. Las rutas dentro del plist son las
+de la Mac de Ignacio (`/Users/ignacioosterling/ComfyUI`); cambiarlas si se usa otra.

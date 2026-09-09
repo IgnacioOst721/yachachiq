@@ -62,6 +62,12 @@ Exec=$ROBOT/kiosk.sh
 X-GNOME-Autostart-enabled=true
 DESK
 
+echo "== cable directo a la laptop (concurso): eth0 = 192.168.7.2"
+if ! nmcli -t -f NAME con show 2>/dev/null | grep -qx lan; then
+  sudo nmcli con add type ethernet ifname eth0 con-name lan ip4 192.168.7.2/24 \
+       connection.autoconnect yes connection.autoconnect-priority 10 >/dev/null && echo "   perfil 'lan' creado"
+fi
+
 echo "== 7/7 archivo web (clon de main para publicar historias)"
 ARCHIVO=$HOME/yachachiq-archivo
 if [ ! -d "$ARCHIVO/.git" ]; then

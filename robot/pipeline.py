@@ -51,6 +51,7 @@ class Pipeline:
         self.stt = STT()
         self.tts = TTS()
         self.plotter = Plotter().connect()
+        threading.Timer(10.0, self._watch_plotter).start()
         self._thread = None
         self._cancel = threading.Event()
         os.makedirs(str(config.OUTPUT_DIR), exist_ok=True)
@@ -95,6 +96,18 @@ class Pipeline:
         self.emit("reset", {})
         self._set_state("idle")
         return True
+
+    def _watch_plotter(self):
+        """Every 10 s, if the board was missing, see whether it has been plugged in."""
+        try:
+            if not self.busy() and getattr(self.plotter, "missing", False):
+                if self.plotter.reconnect_if_needed():
+                    log.info("plotter appeared: %s", self.plotter.port)
+                    self.emit("modes", self.modes())
+        finally:
+            t = threading.Timer(10.0, self._watch_plotter)
+            t.daemon = True
+            t.start()
 
     def _arm_trigger(self):
         """Listen for a voice again once the robot is free (never while signing).
@@ -284,6 +297,9 @@ class Pipeline:
         def on_progress(sent, total):
             self.progress = (sent, total)
             self.emit("progress", {"sent": sent, "total": total, "pct": int(100 * sent / max(total, 1))})
+        # the Arduino may have been plugged in after the robot started
+        if self.plotter.reconnect_if_needed():
+            self.emit("modes", self.modes())
         if self.plotter.mode != "mock":
             self.plotter.unlock()
         ok = self.plotter.run(lines, on_progress=on_progress)
