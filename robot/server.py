@@ -237,6 +237,8 @@ def _command(cmd, args):
         return pipe.stop_listening()
     if cmd == "cancel":
         return pipe.cancel()
+    if cmd == "reset":
+        return pipe.reset()
     if cmd == "mode":
         return pipe.choose_mode(args.get("mode"))
     if cmd == "story":

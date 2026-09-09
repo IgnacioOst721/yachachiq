@@ -44,6 +44,9 @@ SAMPLE_RATE = 16000                       # Whisper wants 16 kHz mono
 AUDIO_DEVICE = _env("AUDIO_DEVICE", "")   # "" = system default input; or a name/index for sounddevice
 MAX_RECORD_SECONDS = _env("MAX_RECORD_SECONDS", 90.0)
 SILENCE_RMS = _env("SILENCE_RMS", 0.012)  # RMS level (0..1) under which audio counts as silence
+# After a story finishes, how long the result stays on screen before the welcome screen
+# comes back ready for the next visitor. 0 = never reset on its own.
+IDLE_RESET_SECONDS = _env("IDLE_RESET_SECONDS", 25.0)
 NO_SPEECH_SECONDS = _env("NO_SPEECH_SECONDS", 10.0)  # nobody spoke at all -> back to start
 SILENCE_SECONDS = _env("SILENCE_SECONDS", 3.5)   # auto-stop after this much trailing silence
 MIN_SPEECH_SECONDS = _env("MIN_SPEECH_SECONDS", 1.0)   # ignore recordings shorter than this

@@ -70,6 +70,31 @@ class Pipeline:
         if s in ("idle", "done", "error"):
             self.input_mode = None
             threading.Timer(float(config.AUTO_LISTEN_COOLDOWN), self._arm_trigger).start()
+        if s in ("done", "error") and config.IDLE_RESET_SECONDS:
+            self._schedule_reset()
+
+    def _schedule_reset(self):
+        """Clear the finished story after a while so the next visitor finds a clean screen."""
+        t = getattr(self, "_reset_timer", None)
+        if t:
+            t.cancel()
+        self._reset_timer = threading.Timer(float(config.IDLE_RESET_SECONDS), self.reset)
+        self._reset_timer.daemon = True
+        self._reset_timer.start()
+
+    def reset(self):
+        """Back to the welcome screen: forget the last story, drawing and error."""
+        if self.busy():
+            return False
+        self.last_story = None
+        self.last_image = None
+        self.last_error = None
+        self.progress = (0, 0)
+        self.level = 0.0
+        self.input_mode = None
+        self.emit("reset", {})
+        self._set_state("idle")
+        return True
 
     def _arm_trigger(self):
         """Listen for a voice again once the robot is free (never while signing).

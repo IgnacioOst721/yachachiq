@@ -47,6 +47,72 @@ _JSON_INSTRUCTIONS = (
 )
 
 
+# Concrete words that actually appear in the stories people tell the robot, so the offline
+# analysis can draw what was said instead of a generic Andean postcard. Keys are accent-free
+# and matched on word stems, values are what goes into the English drawing prompt.
+LEXICON = {
+    # familia y gente
+    "abuelo": "an old man", "abuela": "an old woman", "abuelita": "an old woman",
+    "madre": "a mother", "mama": "a mother", "padre": "a father", "papa_": "a father",
+    "nino": "a child", "nina": "a girl", "hijo": "a child", "hija": "a girl",
+    "hermano": "a brother", "hermana": "a sister", "nieto": "a grandchild", "nieta": "a grandchild",
+    "familia": "a family", "amigo": "a friend", "hombre": "a man", "mujer": "a woman",
+    "pastor": "a shepherd", "viajero": "a traveller", "tejedora": "a weaver",
+    # animales
+    "llama": "a llama", "alpaca": "an alpaca", "vicuna": "a vicuna", "oveja": "sheep",
+    "condor": "a condor", "zorro": "a fox", "puma": "a puma", "oso": "a spectacled bear",
+    "perro": "a dog", "gato": "a cat", "pajaro": "a bird", "ave": "a bird", "pez": "a fish",
+    "serpiente": "a snake", "culebra": "a snake", "vaca": "a cow", "toro": "a bull",
+    "caballo": "a horse", "burro": "a donkey", "gallina": "a hen", "rana": "a frog",
+    "mariposa": "a butterfly", "colibri": "a hummingbird", "aguila": "an eagle", "raton": "a mouse",
+    "jaguar": "a jaguar", "otorongo": "a jaguar", "mono": "a monkey", "tortuga": "a turtle",
+    "cuy": "a guinea pig", "chancho": "a pig", "pato": "a duck", "abeja": "bees", "arana": "a spider",
+    # paisaje
+    "montana": "Andean mountains", "cerro": "a hill", "nevado": "a snowy peak", "cordillera": "a mountain range",
+    "rio": "a river", "laguna": "a lagoon", "lago": "a lake", "mar": "the sea", "playa": "a beach",
+    "valle": "a valley", "selva": "the jungle", "bosque": "a forest", "desierto": "a desert",
+    "arbol": "a tree", "flor": "flowers", "piedra": "stones", "cueva": "a cave",
+    "camino": "a path", "puente": "a rope bridge", "chacra": "farm fields", "campo": "fields",
+    "pueblo": "a village", "ciudad": "a town", "sierra": "the highlands", "pampa": "an open plain",
+    # cielo y clima
+    "sol": "the sun", "luna": "the moon", "estrella": "stars", "nube": "clouds",
+    "lluvia": "rain", "viento": "wind", "nieve": "snow", "tormenta": "a storm",
+    "arcoiris": "a rainbow", "noche": "night", "amanecer": "sunrise", "atardecer": "sunset",
+    # cosas
+    "casa": "an adobe house", "choza": "a hut", "puerta": "a door", "ventana": "a window",
+    "olla": "a clay pot", "pan": "bread", "manta": "a woven blanket", "poncho": "a poncho",
+    "sombrero": "a hat", "canasta": "a basket", "telar": "a loom", "quena": "a flute",
+    "tambor": "a drum", "charango": "a charango", "bote": "a reed boat", "barco": "a boat",
+    "fuego": "a fire", "fogata": "a bonfire", "vela": "a candle", "libro": "a book",
+    "maiz": "corn plants", "quinua": "quinoa", "trigo": "wheat", "coca": "coca leaves",
+    "templo": "an Inca temple", "iglesia": "a church", "escuela": "a school", "mercado": "a market",
+    # acciones (dan movimiento al dibujo)
+    "tejer": "weaving", "tejia": "weaving", "camina": "walking", "corr": "running",
+    "vola": "flying", "nada": "swimming", "duerme": "sleeping", "dormia": "sleeping",
+    "canta": "singing", "baila": "dancing", "siembra": "planting", "cosecha": "harvesting",
+    "pasta": "grazing", "cocina": "cooking", "llora": "crying", "rie": "laughing",
+    "sube": "climbing", "baja": "going down", "pesca": "fishing", "monta": "riding",
+}
+_ACENTOS = str.maketrans("áéíóúü", "aeiouu")
+
+
+def _content(text, limit=7):
+    """Words from the story itself, translated for the drawing prompt, in the order they appear."""
+    plain = text.lower().translate(_ACENTOS)
+    words = re.findall(r"[a-zñ]+", plain)
+    out, seen = [], set()
+    for w in words:
+        for key, en in LEXICON.items():
+            k = key.rstrip("_")
+            if (w == k or w == k + "s" or w == k + "es" or (len(k) > 4 and w.startswith(k))) and en not in seen:
+                seen.add(en)
+                out.append(en)
+                break
+        if len(out) >= limit:
+            break
+    return out
+
+
 def _title_from(text):
     words = re.findall(r"[\wñáéíóúü']+", text)
     t = " ".join(words[:6]).strip()
@@ -70,18 +136,26 @@ def _join_en(names):
 
 
 def _rules(text, lang):
-    elements = find_elements(text) or ["mountain", "sun", "person"]
-    es = [SPANISH.get(e, e) for e in elements]
-    en = [ENGLISH.get(e, e) for e in elements]
-    scene = f"Una escena andina con {_join_es(es)}."
-    image_prompt = f"{_join_en(en)}, in the Andes"
+    """Offline analysis. Builds the picture from what the story actually says; only falls back
+    to a generic Andean scene when no known word appears at all."""
+    found = find_elements(text)
+    words = _content(text)
+    elements = found or ["mountain", "sun", "person"]
+    es = [SPANISH.get(e, e) for e in found]
+
+    if words:
+        image_prompt = ", ".join(words) + ", in the Andes"
+        scene = "Una escena de la historia: " + _join_es(es) + "." if es else "Una escena de la historia."
+    else:
+        image_prompt = f"{_join_en([ENGLISH.get(e, e) for e in elements])}, in the Andes"
+        scene = f"Una escena andina con {_join_es([SPANISH.get(e, e) for e in elements])}."
+
     short = text.strip()
     if len(short) > 220:
         short = short[:217].rsplit(" ", 1)[0] + "..."
-    if lang == "quechua":
-        narration = f"Esta historia fue contada en quechua. Habla de {_join_es(es)}. {short}"
-    else:
-        narration = f"Esta es la historia de {_join_es(es)}. {short}"
+    # Without a language model the honest retelling is the story itself: adding "una historia de
+    # X" invented characters (a story about a grandmother came back as "una niña con poncho").
+    narration = f"Contada en quechua. {short}" if lang == "quechua" else short
     return {"title": _title_from(text), "elements": elements, "scene": scene,
             "image_prompt": image_prompt, "narration": narration}
 

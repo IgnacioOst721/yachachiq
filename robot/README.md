@@ -192,6 +192,13 @@ cd ~/yachachiq/robot && bash setup_pi.sh
   modelo de manos son idénticos entre MediaPipe 0.10.9 (donde se entrenó `model.pkl`) y 0.10.18 (ARM),
   así que los 21 puntos y la precisión son los mismos.
 
+## La pantalla se reinicia sola
+
+Cuando una historia termina (se publique o quede privada), el resultado se queda
+`YACHACHIQ_IDLE_RESET_SECONDS` segundos (25 por defecto) y luego la pantalla vuelve sola a la
+bienvenida, borrando el texto, el dibujo y la narración. Así el siguiente visitante nunca encuentra
+la historia de otra persona. `YACHACHIQ_IDLE_RESET_SECONDS=0` lo desactiva.
+
 ## Corrección del texto
 
 Antes de dibujar y publicar, la historia pasa por `textclean.py`. Importa sobre todo en señas,

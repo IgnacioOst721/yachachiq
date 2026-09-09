@@ -112,3 +112,19 @@ Ver los micrófonos: `venv/bin/python -c "import sounddevice as sd; print(sd.que
 La escucha manos-libres (`AUTO_LISTEN`) queda apagada: con un micrófono real se disparaba con el
 ruido del ambiente y dejaba al robot ocupado justo cuando alguien intentaba enviar en señas. La voz
 se inicia tocando **Con mi voz** en la pantalla.
+
+
+## Refrigeración (obligatoria en la Pi 5)
+
+La Raspberry Pi 5 **necesita disipador con ventilador**. Sin él, con el robot corriendo, el chip
+llegó a 86 °C, se limitó solo (`vcgencmd get_throttled` distinto de `0x0`) y terminó colgándose.
+Comprobar en cualquier momento:
+
+```
+vcgencmd measure_temp        # sano por debajo de 70 °C
+vcgencmd get_throttled       # 0x0 = sin limitación
+```
+
+El *Active Cooler* oficial se conecta al zócalo de 4 pines del ventilador y el sistema lo controla
+solo. Además, el reconocimiento de señas ya solo hace seguimiento de manos mientras alguien está
+señando, lo que bajó el consumo de un núcleo completo a casi nada en reposo.

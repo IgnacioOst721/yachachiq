@@ -345,6 +345,9 @@ function handle(ev,d){
     const c=$("comoCard"); if(c) c.style.display="none"; return; }
   if(ev==="notice"){ const h=$("hint"); if(h){ h.textContent=d.text; h.classList.add("aviso-fuerte"); setTimeout(()=>h.classList.remove("aviso-fuerte"),6000); }
     document.querySelectorAll(".card-opt").forEach(c=>c.classList.remove("elegida","descartada")); showStage(); return; }
+  if(ev==="reset"){ $("transcript").textContent="Todavía nada. Cuenta algo y aparecerá aquí."; $("transcript").className="muted";
+    $("narration").textContent="—"; $("svgbox").innerHTML='<span class="muted">aparecerá aquí</span>'; stats(null,null);
+    limpiarAviso(); const c=$("comoCard"); if(c) c.style.display=""; return; }
   if(ev==="cleaned"){ const n=$("corregido");
     if(n){ n.style.display="block"; n.innerHTML="✎ texto corregido — "+d.notes.join(" · "); } return; }
   if(ev==="analysis"){ $("hint").textContent=(d.title?`«${d.title}» · `:"")+(d.scene||""); return; }
@@ -369,7 +372,7 @@ function handle(ev,d){
     } $("lsp").classList.add("on"); $("lspletter").textContent=d.letter||"·"; $("lsptext").textContent=d.text||""; return; }
   if(ev==="error"){ toast(d.error); return; }
 }
-function stats(s,src){ if(!s)return; const m=Math.round(s.seconds/60); $("stats").innerHTML=`<span><b>${s.strokes}</b> trazos</span><span><b>${s.points}</b> puntos</span><span>≈ <b>${m}</b> min</span><span>origen: <b>${src||"?"}</b></span>`; }
+function stats(s,src){ if(!s){ $("stats").innerHTML=""; return; } const m=Math.round(s.seconds/60); $("stats").innerHTML=`<span><b>${s.strokes}</b> trazos</span><span><b>${s.points}</b> puntos</span><span>≈ <b>${m}</b> min</span><span>origen: <b>${src||"?"}</b></span>`; }
 function connect(){
   ws=new WebSocket((location.protocol==="https:"?"wss://":"ws://")+location.host+"/ws");
   ws.onmessage=e=>{try{const m=JSON.parse(e.data);handle(m.event,m.data)}catch(err){}};

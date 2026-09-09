@@ -97,11 +97,47 @@ def robot_send_story(text):
         return False
 
 
+class RobotState:
+    """Follows the robot's state so hand tracking only runs when somebody is actually signing.
+
+    MediaPipe costs a full CPU core; on a Raspberry Pi 5 leaving it on all day pushed the chip to
+    85 C and the whole machine throttled. While the robot is drawing, imagining or idle we keep
+    sending the camera picture (the kiosk and the consent portrait need it) but skip the tracking.
+    """
+    TRACK_IN = ("waiting_signs",)          # hand tracking (expensive)
+    SHOW_IN = ("waiting_signs", "consent")  # the kiosk is displaying the camera
+
+    def __init__(self):
+        self.state = "idle"
+        self.enabled = bool(LSP_ROBOT)
+        if self.enabled:
+            threading.Thread(target=self._loop, daemon=True).start()
+
+    def tracking(self):
+        return (not self.enabled) or self.state in self.TRACK_IN
+
+    def showing(self):
+        return (not self.enabled) or self.state in self.SHOW_IN
+
+    def _loop(self):
+        import json as _json
+        import urllib.request
+        while True:
+            try:
+                with urllib.request.urlopen(LSP_ROBOT + "/api/state", timeout=2) as r:
+                    self.state = _json.loads(r.read().decode()).get("state", self.state)
+            except Exception:
+                self.state = "waiting_signs"     # cannot ask: assume someone may be signing
+            time.sleep(1.5)
+
+
 class RobotPreview:
     """Envia al kiosko un frame pequeño ~12 veces por segundo y el texto actual (hilo aparte).
     El kiosko lo muestra como stream MJPEG continuo, sin polling."""
     def __init__(self):
         self.frame = None
+        self.seq = 0
+        self._sent = -1
         self.text = ("", "", "letter")
         self._last_text = None
         self.enabled = bool(LSP_ROBOT)
@@ -112,6 +148,7 @@ class RobotPreview:
         # copy now: the main loop draws its debug HUD onto `frame` right after this call, and the
         # kiosk (and the consent portrait) must get the clean picture
         self.frame = frame.copy()
+        self.seq += 1
         self.text = (text, letter, mode)
 
     def _post(self, path, data, ctype):
@@ -125,7 +162,8 @@ class RobotPreview:
         while True:
             time.sleep(0.07)                      # ~12-14 fps, the same rate the tracking loop runs at on the Pi
             try:
-                if self.frame is not None:
+                if self.frame is not None and self.seq != self._sent:
+                    self._sent = self.seq
                     small = cv2.resize(self.frame, (480, int(self.frame.shape[0] * 480 / self.frame.shape[1])))
                     ok, jpg = cv2.imencode(".jpg", small, [cv2.IMWRITE_JPEG_QUALITY, 60])
                     if ok:
@@ -415,6 +453,7 @@ def run():
         cap.read()
 
     preview = RobotPreview()
+    robot = RobotState()
     hand_gone_since = None     # para el espacio automatico entre palabras
     buf = new_motion_buffer()
     send_start = None      # time (seconds) when both palms first appeared
@@ -435,6 +474,20 @@ def run():
             continue
         frame = cv2.flip(frame, 1)
         h, w = frame.shape[:2]
+
+        if not robot.tracking():
+            # nobody is signing: skip hand tracking entirely, and only encode/send the picture
+            # while the kiosk is actually showing it (sign screen or consent screen)
+            if robot.showing():
+                preview.update(frame, typer.text, "", typer.mode)
+            if not HEADLESS:
+                cv2.imshow("ASL app - Q to quit", frame)
+                if cv2.waitKey(60) & 0xFF in (ord("q"), 27):
+                    break
+            else:
+                time.sleep(0.08 if robot.showing() else 0.4)
+            continue
+
         rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         results = hands.process(rgb)
 
