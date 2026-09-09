@@ -209,7 +209,7 @@
     <div class="card"><h3>Tu historia</h3><p id="transcript" class="muted">Todavía nada. Cuenta algo y aparecerá aquí.</p>
       <p id="corregido" style="display:none;margin-top:.5rem;font-size:.78rem;letter-spacing:.1em;text-transform:uppercase;color:#8a7563"></p></div>
     <div class="card"><h3>El dibujo</h3><div id="svgbox"><span class="muted">aparecerá aquí</span></div><div class="stats" id="stats"></div></div>
-    <div class="card"><h3>Lo que el robot dibuja</h3><p id="narration" class="muted">—</p></div>
+    
   </section>
 </main>
 
@@ -334,7 +334,7 @@ function chips(m){
   $("modesTxt").innerHTML=Object.entries(m).map(([k,v])=>`<b>${k}</b>: ${v}`).join(" · ");
 }
 function handle(ev,d){
-  if(ev==="snapshot"){ if(window.__boot&&d.boot&&d.boot!==window.__boot){ location.reload(); return; } window.__boot=d.boot; setState(d.state,d); chips(d.modes||{}); if(d.story){ $("transcript").textContent=d.story.text; $("transcript").className=""; $("narration").textContent=d.story.scene||d.story.narration||"—"; } if(d.image&&d.image.svg){ $("svgbox").innerHTML=d.image.svg; stats(d.image.stats,d.image.source);} return; }
+  if(ev==="snapshot"){ if(window.__boot&&d.boot&&d.boot!==window.__boot){ location.reload(); return; } window.__boot=d.boot; setState(d.state,d); chips(d.modes||{}); if(d.story){ $("transcript").textContent=d.story.text; $("transcript").className="";  } if(d.image&&d.image.svg){ $("svgbox").innerHTML=d.image.svg; stats(d.image.stats,d.image.source);} return; }
   if(ev==="state"){ setState(d.state,d); return; }
   if(ev==="level"){ $("ring").style.setProperty("--lvl",Math.min(1,d.level));
     if(state==="listening"){ if(!listenT0) listenT0=Date.now();
@@ -346,7 +346,7 @@ function handle(ev,d){
   if(ev==="notice"){ const h=$("hint"); if(h){ h.textContent=d.text; h.classList.add("aviso-fuerte"); setTimeout(()=>h.classList.remove("aviso-fuerte"),6000); }
     document.querySelectorAll(".card-opt").forEach(c=>c.classList.remove("elegida","descartada")); showStage(); return; }
   if(ev==="reset"){ $("transcript").textContent="Todavía nada. Cuenta algo y aparecerá aquí."; $("transcript").className="muted";
-    $("narration").textContent="—"; $("svgbox").innerHTML='<span class="muted">aparecerá aquí</span>'; stats(null,null);
+ $("svgbox").innerHTML='<span class="muted">aparecerá aquí</span>'; stats(null,null);
     limpiarAviso(); const c=$("comoCard"); if(c) c.style.display=""; return; }
   if(ev==="modes"){ chips(d||{}); return; }
   if(ev==="cleaned"){ const n=$("corregido");
@@ -354,7 +354,7 @@ function handle(ev,d){
   if(ev==="analysis"){ $("hint").textContent=(d.title?`«${d.title}» · `:"")+(d.scene||""); return; }
   if(ev==="image"){ $("svgbox").innerHTML=d.svg; stats(d.stats,d.source); return; }
   if(ev==="progress"){ $("barI").style.width=d.pct+"%"; $("bigS").textContent=`${d.pct}% · ${d.sent}/${d.total} líneas`; return; }
-  if(ev==="narration"){ $("narration").textContent=d.text||"—"; $("narration").className=""; return; }
+  if(ev==="narration"){ return; }   // la tarjeta se quitó; el texto sigue en los datos para el parlante
   if(ev==="backend"){ if(d.stage==="image") $("bigS").textContent="imagen: "+d.backend; return; }
   if(ev==="photo"){ toast(d.ok?"Foto del dibujo guardada":"No se pudo tomar la foto"); return; }
   if(ev==="published"){ const s=d.status; toast(s==="published"?`Publicado en la web (${d.new})`:s==="offline"?"Sin internet: guardado, se subirá después":s==="mock"?"Publicación simulada":"Archivo: "+s); return; }
