@@ -129,6 +129,16 @@ ruido del ambiente y dejaba al robot ocupado justo cuando alguien intentaba envi
 se inicia tocando **Con mi voz** en la pantalla.
 
 
+## El origen del papel
+
+*Fijar origen* (⚙ en la pantalla) se hace con el lápiz tocando la esquina inferior izquierda del
+papel. Se guarda con `G10 L20 P1` (el offset de trabajo G54 de GRBL), que vive en la EEPROM del
+Arduino: **sobrevive a cancelar un dibujo, a apagar la máquina y a reiniciar la Pi**. Solo hay que
+volver a fijarlo si se mueve el papel o los motores pierden pasos.
+
+*Empezar de nuevo* durante un dibujo hace: pausa (`!`) → reset con la posición conservada → levanta
+el lápiz → vuelve a `X0 Y0`. El siguiente dibujo empieza del mismo origen.
+
 ## Calibrar los pasos/mm (una sola vez por máquina)
 
 Si le pides 100 mm y recorre otra cosa, los dibujos salen deformados. Se mide con una regla:

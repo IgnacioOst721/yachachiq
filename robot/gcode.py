@@ -35,6 +35,9 @@ def from_polylines(polylines, name="story"):
         for x, y in pl[1:]:
             lines.append(f"G1 X{x:.2f} Y{y:.2f} F{int(config.DRAW_FEED)}")
         lines += pen_up()
+    # al terminar: el lapiz queda arriba (el bucle ya lo subio) y el cabezal vuelve al origen,
+    # que es donde se fijo el papel. Asi la camara ve el dibujo despejado y el siguiente
+    # dibujo empieza siempre desde el mismo punto conocido.
     lines.append("G0 X0 Y0")
     return lines
 

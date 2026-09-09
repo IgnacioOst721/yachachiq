@@ -238,7 +238,30 @@ def order_strokes(pls):
     return out
 
 
-def stats(pls):
+# set by the pipeline once the board is connected: {'max_feed': mm/min, 'accel': mm/s^2}
+MACHINE_LIMITS = {}
+
+
+def _segment_seconds(d, feed_mm_min, vmax_mm_min, accel):
+    """How long GRBL really takes for one move: it accelerates and decelerates on every
+    segment, and short segments never reach the requested speed at all."""
+    if d <= 0:
+        return 0.0
+    v = min(feed_mm_min, vmax_mm_min) / 60.0            # mm/s actually reachable
+    d_acc = v * v / (2.0 * accel)                       # distance needed to reach it
+    if 2.0 * d_acc >= d:                                # triangular profile
+        return 2.0 * math.sqrt(d / accel)
+    return 2.0 * (v / accel) + (d - 2.0 * d_acc) / v
+
+
+def stats(pls, machine=None):
+    """Stroke counts and an HONEST time estimate.
+
+    `machine` is what the board actually allows: {"max_feed": mm/min, "accel": mm/s^2}, read
+    from GRBL at connect time. Without it we fall back to the configured feeds, which is what
+    the estimate used to do - and it lied by half, because the team's machine is set to
+    10 mm/s^2 (GRBL's minimum) and spends most of a drawing accelerating.
+    """
     draw = sum(_length(pl) for pl in pls)
     travel, cur = 0.0, (0.0, 0.0)
     for pl in pls:
@@ -249,7 +272,24 @@ def stats(pls):
         pen_s = 0.6
     else:
         pen_s = 2.0 * abs(config.PEN_UP_Z - config.PEN_DOWN_Z) / max(config.PEN_FEED, 1) * 60.0
-    seconds = (draw / max(config.DRAW_FEED, 1) + travel / max(config.TRAVEL_FEED, 1)) * 60.0 * 1.15 + len(pls) * pen_s
+
+    machine = machine if machine is not None else MACHINE_LIMITS
+    vmax = (machine or {}).get("max_feed") or 0
+    accel = (machine or {}).get("accel") or 0
+    if vmax and accel:
+        seconds = 0.0
+        cur = (0.0, 0.0)
+        for pl in pls:
+            seconds += _segment_seconds(math.hypot(pl[0][0] - cur[0], pl[0][1] - cur[1]),
+                                        config.TRAVEL_FEED, vmax, accel) + pen_s
+            for a, b in zip(pl, pl[1:]):
+                seconds += _segment_seconds(math.hypot(b[0] - a[0], b[1] - a[1]),
+                                            config.DRAW_FEED, vmax, accel)
+            cur = pl[-1]
+        seconds += _segment_seconds(math.hypot(cur[0], cur[1]), config.TRAVEL_FEED, vmax, accel)
+    else:
+        seconds = (draw / max(config.DRAW_FEED, 1) + travel / max(config.TRAVEL_FEED, 1)) * 60.0 * 1.15 \
+                  + len(pls) * pen_s
     return {"strokes": len(pls), "points": sum(len(pl) for pl in pls),
             "draw_mm": round(draw, 1), "travel_mm": round(travel, 1), "seconds": int(seconds)}
 

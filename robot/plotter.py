@@ -130,6 +130,8 @@ class Plotter:
             self.ser.write((clean + "\n").encode())
             t0 = time.time()
             while time.time() - t0 < 120:
+                if self._stop.is_set():
+                    return "aborted"           # the board was reset under us: stop waiting for 'ok'
                 resp = self._readline()
                 if not resp:
                     continue
@@ -142,6 +144,38 @@ class Plotter:
                 if resp.startswith("<"):
                     self.last_status = resp
             return "timeout"
+
+    def limits(self):
+        """{'max_feed': mm/min, 'accel': mm/s^2} read from the board ($110/$120), cached.
+        Used for an honest drawing-time estimate; empty in mock mode."""
+        if self.mock or self.ser is None:
+            return {}
+        if getattr(self, "_limits", None) is not None:
+            return self._limits
+        vals = {}
+        try:
+            with self._lock:
+                self.ser.reset_input_buffer()
+                self.ser.write(b"$$\n")
+                time.sleep(1.2)
+                data = self.ser.read(self.ser.in_waiting or 1).decode(errors="ignore")
+            cfg = {}
+            for line in data.splitlines():
+                if line.startswith("$") and "=" in line:
+                    k, v = line.strip().split("=", 1)
+                    try:
+                        cfg[k] = float(v)
+                    except ValueError:
+                        pass
+            feed = min([cfg[k] for k in ("$110", "$111") if k in cfg] or [0])
+            acc = min([cfg[k] for k in ("$120", "$121") if k in cfg] or [0])
+            if feed and acc:
+                vals = {"max_feed": feed, "accel": acc}
+                log.info("machine limits: %g mm/min, %g mm/s2", feed, acc)
+        except Exception as e:
+            log.info("could not read machine limits: %s", e)
+        self._limits = vals
+        return vals
 
     def status(self):
         """Ask GRBL for a status report; returns e.g. 'Idle', 'Run', 'Alarm', or '' in mock."""
@@ -176,17 +210,74 @@ class Plotter:
     def unlock(self):
         return self.send("$X")
 
-    def soft_reset(self):
+    def soft_reset(self, settle=2.0):
+        """Ctrl-X: stop the machine now. Deliberately does NOT take self._lock - GRBL's realtime
+        commands bypass the line protocol, and waiting for a send() in flight is exactly what
+        made 'cancel' feel dead in the middle of a drawing."""
         if self.mock or self.ser is None:
             return
-        with self._lock:
+        try:
             self.ser.write(b"\x18")
-            time.sleep(2)
+        except Exception as e:
+            log.warning("soft reset failed: %s", e)
+            return
+        if settle:
+            time.sleep(settle)
+        try:
             self.ser.reset_input_buffer()
+        except Exception:
+            pass
+
+    def _realtime(self, byte):
+        """GRBL realtime command (!, ~, ?, Ctrl-X): written immediately, never takes the lock."""
+        try:
+            self.ser.write(byte)
+        except Exception as e:
+            log.warning("realtime %r failed: %s", byte, e)
+
+    def abort(self):
+        """Stop NOW and come back to the paper origin with the pen up.
+
+        Order matters for GRBL: a feed hold ('!') first, so the reset that follows happens
+        with the machine stopped and its position is preserved (a reset while moving raises
+        ALARM:3 'position lost'). The origin itself is safe because set_origin() uses G10.
+        """
+        self._stop.set()
+        if self.mock or self.ser is None:
+            return
+        self._realtime(b"!")
+        for _ in range(20):                       # up to ~2 s for the decel to finish
+            time.sleep(0.1)
+            if "Hold:0" in (self.status_raw() or "") or self.status() == "Hold":
+                break
+        self.soft_reset(settle=1.5)
+        self._stop.clear()
+        try:
+            self.unlock()
+            self.pen_up()
+            self.send("G0 X0 Y0")
+            self.wait_idle(timeout=120)
+            log.info("plotter: aborted and back at the origin")
+        except Exception as e:
+            log.warning("plotter: abort/return failed: %s", e)
+
+    def status_raw(self):
+        """Last raw status report after asking '?', without the lock (safe during a hold)."""
+        try:
+            self._realtime(b"?")
+            time.sleep(0.15)
+            data = self.ser.read(self.ser.in_waiting or 1).decode(errors="ignore")
+            if "<" in data:
+                self.last_status = data.strip()
+            return data
+        except Exception:
+            return ""
 
     def stop(self):
+        """Cancel the drawing: flag first so run() exits at its next line, then the abort
+        sequence in the background so the API call returns at once."""
         self._stop.set()
-        self.soft_reset()
+        threading.Thread(target=self.abort, daemon=True).start()
 
     def run(self, lines, on_progress=None):
         """Stream lines. on_progress(sent, total). Returns True if it finished."""
@@ -229,8 +320,14 @@ class Plotter:
             self.send(l)
 
     def set_origin(self):
-        """Call with the pen at the bottom-left corner of the paper, touching it."""
-        return self.send("G92 X0 Y0 Z0")
+        """Call with the pen at the bottom-left corner of the paper, touching it.
+
+        Uses the G54 work offset (G10 L20), which GRBL keeps in EEPROM: it survives a cancel
+        (soft reset), a power cycle and a reboot. G92 did not - every 'empezar de nuevo' lost
+        the paper origin and the next drawing started from wherever the head had stopped."""
+        r = self.send("G10 L20 P1 X0 Y0 Z0")
+        self.send("G54")
+        return r
 
     def home_xy(self):
         self.pen_up()

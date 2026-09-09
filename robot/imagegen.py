@@ -75,8 +75,8 @@ def patch_workflow(workflow, positive, negative, size=None, seed=None, checkpoin
         if not isinstance(n, dict):
             continue
         if n.get("class_type") == "EmptyLatentImage" and size:
-            n["inputs"]["width"] = int(size)
-            n["inputs"]["height"] = int(size)
+            w, h = size if isinstance(size, (tuple, list)) else (int(size), int(size))
+            n["inputs"]["width"], n["inputs"]["height"] = int(w), int(h)
         if n.get("class_type") == "CheckpointLoaderSimple" and checkpoint:
             n["inputs"]["ckpt_name"] = checkpoint
     return wf
@@ -91,7 +91,7 @@ def comfyui_generate(positive, negative, out_path, url=None, workflow_path=None,
         workflow = json.load(f)
     if "nodes" in workflow and "links" in workflow:
         raise ValueError("this is a UI-format workflow; in ComfyUI use 'Save (API Format)' (enable dev mode in settings)")
-    wf = patch_workflow(workflow, positive, negative, size=size or config.IMAGE_SIZE,
+    wf = patch_workflow(workflow, positive, negative, size=size or config.image_wh(),
                         checkpoint=config.COMFYUI_CHECKPOINT or None, steps=config.COMFYUI_STEPS or None,
                         cfg=getattr(config, "COMFYUI_CFG", 0) or None)
 
@@ -145,7 +145,7 @@ def from_comfyui(analysis):
 def from_remote(analysis):
     import requests
     r = requests.post(f"{config.AI_SERVER_URL.rstrip('/')}/generate",
-                      json={"prompt": _prompt(analysis), "negative_prompt": config.NEGATIVE_PROMPT, "size": config.IMAGE_SIZE},
+                      json={"prompt": _prompt(analysis), "negative_prompt": config.NEGATIVE_PROMPT, "size": list(config.image_wh())},
                       timeout=(3, config.AI_SERVER_TIMEOUT))
     r.raise_for_status()
     if not r.headers.get("content-type", "").startswith("image/"):

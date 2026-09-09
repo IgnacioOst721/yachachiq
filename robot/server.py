@@ -19,6 +19,7 @@ import threading
 import time
 
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
+from starlette.concurrency import run_in_threadpool
 from fastapi.responses import StreamingResponse, FileResponse, HTMLResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
@@ -284,7 +285,10 @@ async def api_mode(req: Request):
 
 @app.post("/api/cancel")
 async def api_cancel():
-    return {"ok": pipe.cancel(), "state": pipe.state}
+    # in a thread: cancelling talks to the serial port, and doing that in the event loop froze
+    # every other request (and the live updates) until it finished
+    ok = await run_in_threadpool(pipe.cancel)
+    return {"ok": ok, "state": pipe.state}
 
 
 @app.post("/api/reset")

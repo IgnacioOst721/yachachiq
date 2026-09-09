@@ -95,7 +95,19 @@ ANTHROPIC_MODEL = _env("ANTHROPIC_MODEL", "claude-opus-5")
 #   remote  -> laptop AI server /generate (diffusers Stable Diffusion, no ComfyUI needed)
 #   motifs  -> offline procedural Andean scene built from the story's elements (always works)
 IMAGE_BACKENDS = _env("IMAGE_BACKENDS", ["comfyui", "remote", "motifs"])
-IMAGE_SIZE = _env("IMAGE_SIZE", 512)
+# Tamano de la imagen que genera ComfyUI. Acepta "512" (cuadrada) o "512x720" (ancho x alto).
+# Conviene que la proporcion se parezca a la del papel: con papel A4 vertical (1:1.41) una imagen
+# cuadrada solo llena dos tercios de la hoja. 512x720 = 1:1.41, y SD 1.5 lo dibuja bien.
+IMAGE_SIZE = _env("IMAGE_SIZE", "512x720")
+
+
+def image_wh():
+    """(ancho, alto) en pixeles a partir de IMAGE_SIZE."""
+    v = str(IMAGE_SIZE).lower().replace(" ", "")
+    if "x" in v:
+        w, h = v.split("x", 1)
+        return int(float(w)), int(float(h))
+    return int(float(v)), int(float(v))
 COMFYUI_URL = _env("COMFYUI_URL", f"http://{LAPTOP_HOST}:8188")
 COMFYUI_WORKFLOW = _env("COMFYUI_WORKFLOW", BASE_DIR / "laptop" / "comfyui_workflow.json")   # API-format export
 COMFYUI_CHECKPOINT = _env("COMFYUI_CHECKPOINT", "dreamshaper_8.safetensors")   # "" keeps the one in the workflow file
@@ -123,8 +135,8 @@ MAX_STROKES = _env("MAX_STROKES", 350)           # keep the longest N strokes. M
 # --- Plotter (Arduino UNO + CNC Shield + grbl-servo, over USB) ----------------------
 SERIAL_PORT = _env("SERIAL_PORT", "/dev/ttyACM0")   # Pi: /dev/ttyACM0 or /dev/ttyUSB0; Mac: /dev/cu.usbmodem*
 BAUD_RATE = 115200
-PAPER_W_MM = _env("PAPER_W_MM", 297.0)    # A4 apaisado (horizontal): 297 x 210 mm
-PAPER_H_MM = _env("PAPER_H_MM", 210.0)    # baja a 148 (media hoja) si quieres dibujos mas rapidos
+PAPER_W_MM = _env("PAPER_W_MM", 210.0)    # A4 con el lado largo en Y: 210 mm de ancho (eje X)
+PAPER_H_MM = _env("PAPER_H_MM", 297.0)    # ...y 297 mm de alto (eje Y). Maquina: 500 x 400 mm
 MARGIN_MM = _env("MARGIN_MM", 12.0)
 DRAW_FEED = _env("DRAW_FEED", 800)        # mm/min pen down
 TRAVEL_FEED = _env("TRAVEL_FEED", 1500)   # mm/min pen up

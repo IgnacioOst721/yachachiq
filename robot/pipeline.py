@@ -51,6 +51,7 @@ class Pipeline:
         self.stt = STT()
         self.tts = TTS()
         self.plotter = Plotter().connect()
+        vectorize.MACHINE_LIMITS = self.plotter.limits()     # honest "≈ N min" on screen
         threading.Timer(10.0, self._watch_plotter).start()
         self._thread = None
         self._cancel = threading.Event()
@@ -103,6 +104,7 @@ class Pipeline:
             if not self.busy() and getattr(self.plotter, "missing", False):
                 if self.plotter.reconnect_if_needed():
                     log.info("plotter appeared: %s", self.plotter.port)
+                    vectorize.MACHINE_LIMITS = self.plotter.limits()
                     self.emit("modes", self.modes())
         finally:
             t = threading.Timer(10.0, self._watch_plotter)
