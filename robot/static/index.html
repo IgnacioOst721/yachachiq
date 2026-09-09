@@ -209,7 +209,7 @@
     <div class="card"><h3>Tu historia</h3><p id="transcript" class="muted">Todavía nada. Cuenta algo y aparecerá aquí.</p>
       <p id="corregido" style="display:none;margin-top:.5rem;font-size:.78rem;letter-spacing:.1em;text-transform:uppercase;color:#8a7563"></p></div>
     <div class="card"><h3>El dibujo</h3><div id="svgbox"><span class="muted">aparecerá aquí</span></div><div class="stats" id="stats"></div></div>
-    <div class="card"><h3>Narración</h3><p id="narration" class="muted">—</p></div>
+    <div class="card"><h3>Lo que el robot dibuja</h3><p id="narration" class="muted">—</p></div>
   </section>
 </main>
 
@@ -334,7 +334,7 @@ function chips(m){
   $("modesTxt").innerHTML=Object.entries(m).map(([k,v])=>`<b>${k}</b>: ${v}`).join(" · ");
 }
 function handle(ev,d){
-  if(ev==="snapshot"){ if(window.__boot&&d.boot&&d.boot!==window.__boot){ location.reload(); return; } window.__boot=d.boot; setState(d.state,d); chips(d.modes||{}); if(d.story){ $("transcript").textContent=d.story.text; $("transcript").className=""; $("narration").textContent=d.story.narration||"—"; } if(d.image&&d.image.svg){ $("svgbox").innerHTML=d.image.svg; stats(d.image.stats,d.image.source);} return; }
+  if(ev==="snapshot"){ if(window.__boot&&d.boot&&d.boot!==window.__boot){ location.reload(); return; } window.__boot=d.boot; setState(d.state,d); chips(d.modes||{}); if(d.story){ $("transcript").textContent=d.story.text; $("transcript").className=""; $("narration").textContent=d.story.scene||d.story.narration||"—"; } if(d.image&&d.image.svg){ $("svgbox").innerHTML=d.image.svg; stats(d.image.stats,d.image.source);} return; }
   if(ev==="state"){ setState(d.state,d); return; }
   if(ev==="level"){ $("ring").style.setProperty("--lvl",Math.min(1,d.level));
     if(state==="listening"){ if(!listenT0) listenT0=Date.now();

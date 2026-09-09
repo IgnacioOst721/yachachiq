@@ -275,12 +275,15 @@ class Pipeline:
             gcode_mod.save(lines, gcode_path)
             self.story_dir = self._save_story(text, analysis, img, lines)
             self.last_story = {"title": analysis.get("title"), "text": text, "lang": lang, "elements": analysis.get("elements"),
+                               "scene": analysis.get("scene"),
                                "narration": analysis.get("narration"), "backend": analysis.get("backend"),
                                "image_source": img["source"], "stats": stats, "dir": self.story_dir}
             with open(os.path.join(str(config.OUTPUT_DIR), "last_story.json"), "w", encoding="utf-8") as f:
                 json.dump(self.last_story, f, ensure_ascii=False, indent=1)
 
-            self.emit("narration", {"text": analysis.get("narration", "")})
+            # the screen shows what the robot understood and is about to draw; the narration
+            # text stays in the data for the speaker (tts) when there is one
+            self.emit("narration", {"text": analysis.get("scene") or analysis.get("narration", "")})
             if config.SPEAK_WHILE_DRAWING:
                 self.tts.speak(analysis.get("narration", ""))
 

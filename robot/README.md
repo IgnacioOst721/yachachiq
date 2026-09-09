@@ -213,6 +213,19 @@ Todo el robot funciona sin conexión; ver **Modo concurso** en `CONEXIONES.md`. 
 internet es la publicación en la galería web, que es *store-and-forward*: la historia se guarda en
 la Pi y sube sola la próxima vez que haya red.
 
+## Las tarjetas de la pantalla
+
+**Tu historia** es lo que la persona contó (ya corregido). **Lo que el robot dibuja** es lo que el
+análisis entendió, en español y en el mismo orden que entra al dibujo:
+
+| Contó | Dibuja |
+|---|---|
+| "Mi abuelo tejía mantas en la sierra mientras las llamas pastaban" | Un abuelo, tejiendo, una manta, la sierra, una llama y pastando. |
+
+Antes esa tarjeta se llamaba *Narración* y mostraba el texto que el robot leería en voz alta; sin
+parlante repetía la historia palabra por palabra. El texto de la narración sigue en los datos
+(`narration`) para cuando haya parlante.
+
 ## La pantalla se reinicia sola
 
 Cuando una historia termina (se publique o quede privada), el resultado se queda

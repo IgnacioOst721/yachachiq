@@ -51,66 +51,105 @@ _JSON_INSTRUCTIONS = (
 # analysis can draw what was said instead of a generic Andean postcard. Keys are accent-free
 # and matched on word stems, values are what goes into the English drawing prompt.
 LEXICON = {
+    # cada palabra -> (para el dibujo en ingles, para mostrar en pantalla en espanol)
     # familia y gente
-    "abuelo": "an old man", "abuela": "an old woman", "abuelita": "an old woman",
-    "madre": "a mother", "mama": "a mother", "padre": "a father", "papa_": "a father",
-    "nino": "a child", "nina": "a girl", "hijo": "a child", "hija": "a girl",
-    "hermano": "a brother", "hermana": "a sister", "nieto": "a grandchild", "nieta": "a grandchild",
-    "familia": "a family", "amigo": "a friend", "hombre": "a man", "mujer": "a woman",
-    "pastor": "a shepherd", "viajero": "a traveller", "tejedora": "a weaver",
+    "abuelo": ("an old man", "un abuelo"), "abuela": ("an old woman", "una abuela"),
+    "abuelita": ("an old woman", "una abuelita"), "madre": ("a mother", "una madre"),
+    "mama": ("a mother", "una mamá"), "padre": ("a father", "un padre"),
+    "nino": ("a child", "un niño"), "nina": ("a girl", "una niña"),
+    "hijo": ("a child", "un hijo"), "hija": ("a girl", "una hija"),
+    "hermano": ("a brother", "un hermano"), "hermana": ("a sister", "una hermana"),
+    "nieto": ("a grandchild", "un nieto"), "nieta": ("a grandchild", "una nieta"),
+    "familia": ("a family", "una familia"), "amigo": ("a friend", "un amigo"),
+    "hombre": ("a man", "un hombre"), "mujer": ("a woman", "una mujer"),
+    "pastor": ("a shepherd", "un pastor"), "viajero": ("a traveller", "un viajero"),
+    "tejedora": ("a weaver", "una tejedora"),
     # animales
-    "llama": "a llama", "alpaca": "an alpaca", "vicuna": "a vicuna", "oveja": "sheep",
-    "condor": "a condor", "zorro": "a fox", "puma": "a puma", "oso": "a spectacled bear",
-    "perro": "a dog", "gato": "a cat", "pajaro": "a bird", "ave": "a bird", "pez": "a fish",
-    "serpiente": "a snake", "culebra": "a snake", "vaca": "a cow", "toro": "a bull",
-    "caballo": "a horse", "burro": "a donkey", "gallina": "a hen", "rana": "a frog",
-    "mariposa": "a butterfly", "colibri": "a hummingbird", "aguila": "an eagle", "raton": "a mouse",
-    "jaguar": "a jaguar", "otorongo": "a jaguar", "mono": "a monkey", "tortuga": "a turtle",
-    "cuy": "a guinea pig", "chancho": "a pig", "pato": "a duck", "abeja": "bees", "arana": "a spider",
+    "llama": ("a llama", "una llama"), "alpaca": ("an alpaca", "una alpaca"),
+    "vicuna": ("a vicuna", "una vicuña"), "oveja": ("sheep", "ovejas"),
+    "condor": ("a condor", "un cóndor"), "zorro": ("a fox", "un zorro"),
+    "puma": ("a puma", "un puma"), "oso": ("a spectacled bear", "un oso"),
+    "perro": ("a dog", "un perro"), "gato": ("a cat", "un gato"),
+    "pajaro": ("a bird", "un pájaro"), "ave": ("a bird", "un ave"),
+    "pez": ("a fish", "un pez"), "serpiente": ("a snake", "una serpiente"),
+    "culebra": ("a snake", "una culebra"), "vaca": ("a cow", "una vaca"),
+    "toro": ("a bull", "un toro"), "caballo": ("a horse", "un caballo"),
+    "burro": ("a donkey", "un burro"), "gallina": ("a hen", "una gallina"),
+    "rana": ("a frog", "una rana"), "mariposa": ("a butterfly", "una mariposa"),
+    "colibri": ("a hummingbird", "un colibrí"), "aguila": ("an eagle", "un águila"),
+    "raton": ("a mouse", "un ratón"), "jaguar": ("a jaguar", "un jaguar"),
+    "otorongo": ("a jaguar", "un otorongo"), "mono": ("a monkey", "un mono"),
+    "tortuga": ("a turtle", "una tortuga"), "cuy": ("a guinea pig", "un cuy"),
+    "chancho": ("a pig", "un chancho"), "pato": ("a duck", "un pato"),
+    "abeja": ("bees", "abejas"), "arana": ("a spider", "una araña"),
     # paisaje
-    "montana": "Andean mountains", "cerro": "a hill", "nevado": "a snowy peak", "cordillera": "a mountain range",
-    "rio": "a river", "laguna": "a lagoon", "lago": "a lake", "mar": "the sea", "playa": "a beach",
-    "valle": "a valley", "selva": "the jungle", "bosque": "a forest", "desierto": "a desert",
-    "arbol": "a tree", "flor": "flowers", "piedra": "stones", "cueva": "a cave",
-    "camino": "a path", "puente": "a rope bridge", "chacra": "farm fields", "campo": "fields",
-    "pueblo": "a village", "ciudad": "a town", "sierra": "the highlands", "pampa": "an open plain",
+    "montana": ("Andean mountains", "las montañas"), "cerro": ("a hill", "un cerro"),
+    "nevado": ("a snowy peak", "un nevado"), "cordillera": ("a mountain range", "la cordillera"),
+    "rio": ("a river", "un río"), "laguna": ("a lagoon", "una laguna"),
+    "lago": ("a lake", "un lago"), "mar": ("the sea", "el mar"),
+    "playa": ("a beach", "una playa"), "valle": ("a valley", "un valle"),
+    "selva": ("the jungle", "la selva"), "bosque": ("a forest", "un bosque"),
+    "desierto": ("a desert", "el desierto"), "arbol": ("a tree", "un árbol"),
+    "flor": ("flowers", "flores"), "piedra": ("stones", "piedras"),
+    "cueva": ("a cave", "una cueva"), "camino": ("a path", "un camino"),
+    "puente": ("a rope bridge", "un puente"), "chacra": ("farm fields", "la chacra"),
+    "campo": ("fields", "el campo"), "pueblo": ("a village", "un pueblo"),
+    "ciudad": ("a town", "una ciudad"), "sierra": ("the highlands", "la sierra"),
+    "pampa": ("an open plain", "la pampa"),
     # cielo y clima
-    "sol": "the sun", "luna": "the moon", "estrella": "stars", "nube": "clouds",
-    "lluvia": "rain", "viento": "wind", "nieve": "snow", "tormenta": "a storm",
-    "arcoiris": "a rainbow", "noche": "night", "amanecer": "sunrise", "atardecer": "sunset",
+    "sol": ("the sun", "el sol"), "luna": ("the moon", "la luna"),
+    "estrella": ("stars", "estrellas"), "nube": ("clouds", "nubes"),
+    "lluvia": ("rain", "la lluvia"), "viento": ("wind", "el viento"),
+    "nieve": ("snow", "la nieve"), "tormenta": ("a storm", "una tormenta"),
+    "arcoiris": ("a rainbow", "un arcoíris"), "noche": ("night", "la noche"),
+    "amanecer": ("sunrise", "el amanecer"), "atardecer": ("sunset", "el atardecer"),
     # cosas
-    "casa": "an adobe house", "choza": "a hut", "puerta": "a door", "ventana": "a window",
-    "olla": "a clay pot", "pan": "bread", "manta": "a woven blanket", "poncho": "a poncho",
-    "sombrero": "a hat", "canasta": "a basket", "telar": "a loom", "quena": "a flute",
-    "tambor": "a drum", "charango": "a charango", "bote": "a reed boat", "barco": "a boat",
-    "fuego": "a fire", "fogata": "a bonfire", "vela": "a candle", "libro": "a book",
-    "maiz": "corn plants", "quinua": "quinoa", "trigo": "wheat", "coca": "coca leaves",
-    "templo": "an Inca temple", "iglesia": "a church", "escuela": "a school", "mercado": "a market",
-    # acciones (dan movimiento al dibujo)
-    "tejer": "weaving", "tejia": "weaving", "camina": "walking", "corr": "running",
-    "vola": "flying", "nada": "swimming", "duerme": "sleeping", "dormia": "sleeping",
-    "canta": "singing", "baila": "dancing", "siembra": "planting", "cosecha": "harvesting",
-    "pasta": "grazing", "cocina": "cooking", "llora": "crying", "rie": "laughing",
-    "sube": "climbing", "baja": "going down", "pesca": "fishing", "monta": "riding",
+    "casa": ("an adobe house", "una casa"), "choza": ("a hut", "una choza"),
+    "puerta": ("a door", "una puerta"), "ventana": ("a window", "una ventana"),
+    "olla": ("a clay pot", "una olla"), "pan": ("bread", "pan"),
+    "manta": ("a woven blanket", "una manta"), "poncho": ("a poncho", "un poncho"),
+    "sombrero": ("a hat", "un sombrero"), "canasta": ("a basket", "una canasta"),
+    "telar": ("a loom", "un telar"), "quena": ("a flute", "una quena"),
+    "tambor": ("a drum", "un tambor"), "charango": ("a charango", "un charango"),
+    "bote": ("a reed boat", "un bote"), "barco": ("a boat", "un barco"),
+    "fuego": ("a fire", "fuego"), "fogata": ("a bonfire", "una fogata"),
+    "vela": ("a candle", "una vela"), "libro": ("a book", "un libro"),
+    "maiz": ("corn plants", "maíz"), "quinua": ("quinoa", "quinua"),
+    "trigo": ("wheat", "trigo"), "coca": ("coca leaves", "hojas de coca"),
+    "templo": ("an Inca temple", "un templo"), "iglesia": ("a church", "una iglesia"),
+    "escuela": ("a school", "una escuela"), "mercado": ("a market", "un mercado"),
+    # acciones
+    "tejer": ("weaving", "tejiendo"), "tejia": ("weaving", "tejiendo"),
+    "camina": ("walking", "caminando"), "corr": ("running", "corriendo"),
+    "vola": ("flying", "volando"), "nada": ("swimming", "nadando"),
+    "duerme": ("sleeping", "durmiendo"), "dormia": ("sleeping", "durmiendo"),
+    "canta": ("singing", "cantando"), "baila": ("dancing", "bailando"),
+    "siembra": ("planting", "sembrando"), "cosecha": ("harvesting", "cosechando"),
+    "pasta": ("grazing", "pastando"), "cocina": ("cooking", "cocinando"),
+    "llora": ("crying", "llorando"), "rie": ("laughing", "riendo"),
+    "sube": ("climbing", "subiendo"), "baja": ("going down", "bajando"),
+    "pesca": ("fishing", "pescando"), "monta": ("riding", "montando"),
 }
 _ACENTOS = str.maketrans("áéíóúü", "aeiouu")
 
 
 def _content(text, limit=7):
-    """Words from the story itself, translated for the drawing prompt, in the order they appear."""
+    """Words from the story itself, in the order they appear.
+    Returns (para_el_dibujo_en_ingles, para_mostrar_en_espanol)."""
     plain = text.lower().translate(_ACENTOS)
-    words = re.findall(r"[a-zñ]+", plain)
-    out, seen = [], set()
+    words = re.findall(r"[a-zn]+", plain)
+    en, es, seen = [], [], set()
     for w in words:
-        for key, en in LEXICON.items():
+        for key, (ingles, espanol) in LEXICON.items():
             k = key.rstrip("_")
-            if (w == k or w == k + "s" or w == k + "es" or (len(k) > 4 and w.startswith(k))) and en not in seen:
-                seen.add(en)
-                out.append(en)
+            if (w == k or w == k + "s" or w == k + "es" or (len(k) > 4 and w.startswith(k))) and ingles not in seen:
+                seen.add(ingles)
+                en.append(ingles)
+                es.append(espanol)
                 break
-        if len(out) >= limit:
+        if len(en) >= limit:
             break
-    return out
+    return en, es
 
 
 def _title_from(text):
@@ -139,13 +178,14 @@ def _rules(text, lang):
     """Offline analysis. Builds the picture from what the story actually says; only falls back
     to a generic Andean scene when no known word appears at all."""
     found = find_elements(text)
-    words = _content(text)
+    words, palabras = _content(text)
     elements = found or ["mountain", "sun", "person"]
     es = [SPANISH.get(e, e) for e in found]
 
     if words:
         image_prompt = ", ".join(words) + ", in the Andes"
-        scene = "Una escena de la historia: " + _join_es(es) + "." if es else "Una escena de la historia."
+        # what the screen shows: the same things that went into the drawing, in Spanish
+        scene = _join_es(palabras).capitalize() + "."
     else:
         image_prompt = f"{_join_en([ENGLISH.get(e, e) for e in elements])}, in the Andes"
         scene = f"Una escena andina con {_join_es([SPANISH.get(e, e) for e in elements])}."
