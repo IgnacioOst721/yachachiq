@@ -161,9 +161,9 @@ SERVO_DOWN = _env("SERVO_DOWN", 30)
 # "Volver a casa" despues de cada dibujo: barrer hacia el tope izquierdo y el de abajo (la
 # maquina no tiene finales de carrera) y fijar ahi el origen. Ignacio: ~100 mm izquierda, ~50 abajo.
 HOME_SWEEP = _env("HOME_SWEEP", True)
-HOME_SWEEP_X = _env("HOME_SWEEP_X", 100.0)
-HOME_SWEEP_Y = _env("HOME_SWEEP_Y", 10.0)
-HOME_SWEEP_FEED = _env("HOME_SWEEP_FEED", 400)
+HOME_SWEEP_X = _env("HOME_SWEEP_X", 26.0)   # recorrido X medido = 24 + margen
+HOME_SWEEP_Y = _env("HOME_SWEEP_Y", 16.0)   # recorrido Y medido = 15 + margen
+HOME_SWEEP_FEED = _env("HOME_SWEEP_FEED", 150)
 MOCK_LINE_DELAY = _env("MOCK_LINE_DELAY", 0.004)   # seconds per G-code line in mock plotter (UI animation)
 
 # --- Text to speech (Piper, runs on the Pi) ---------------------------------------
