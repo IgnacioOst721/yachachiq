@@ -45,7 +45,8 @@ inside = all(0 <= x <= config.PAPER_W_MM and 0 <= y <= config.PAPER_H_MM for pl 
 check(inside, "all strokes inside the paper")
 lines = gcode.from_polylines(pls, "test")
 check(lines[1] == "G21" and any(l.startswith("G1 X") for l in lines), f"gcode has {len(lines)} lines")
-check(lines[-1].startswith("G0 X0 Y0") or lines[-1] == "M5", "gcode ends by parking at origin")
+parked = any(l.startswith("G0 X0 Y0") for l in lines[-7:])          # ...then the optional home sweep
+check(parked and (lines[-1] in ("G54", "M5") or lines[-1].startswith("G0 X0 Y0")), "gcode ends by parking at origin (+ home sweep)")
 st = vectorize.stats(pls)
 check(st["seconds"] < 900, f"estimated plot time {st['seconds']} s")
 svg = vectorize.to_svg(pls)
