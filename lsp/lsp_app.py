@@ -297,16 +297,6 @@ class Typer:
                 if c != "z":
                     best, conf = c, float(probs[self.idx[c]])
                     break
-        # I y J son la misma mano: la orientacion del meñique decide (equipo, 2026-09-10).
-        # Meñique hacia arriba = I, hacia abajo (la I al reves) = J. J_ES_ARRIBA=1 lo invierte.
-        if best in ("i", "j") and feats is not None:
-            tip_y = float(np.asarray(feats).ravel()[20 * 3 + 1])   # punta del meñique respecto a la muñeca (y crece hacia abajo)
-            abajo = tip_y > 0
-            if os.environ.get("J_ES_ARRIBA") == "1":
-                abajo = not abajo
-            quiere = "j" if abajo else "i"
-            if quiere in self.idx and quiere in opts:
-                best, conf = quiere, max(conf, float(probs[self.idx["i"]] + probs[self.idx["j"]]))
 
         # I vs J: misma forma, decide el movimiento del menique.
         if best in ("i", "j"):
