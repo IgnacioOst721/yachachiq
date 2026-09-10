@@ -8,7 +8,7 @@ No internet -> nothing happens: the stories wait on the SD card and go up the ne
 runs (after every story, every few minutes, and after boot). The SD card is the source of truth:
 the archive clone is reset to origin/main before every publish, so a push that failed halfway can
 never wedge publishing for good. A story that made it to the web gets a `.published` marker; one
-the storyteller kept private has `.private`. Never raises.
+the storyteller kept private has `.private`; only stories with `.ready` (finished) are considered. Never raises.
 """
 import json
 import logging
@@ -54,10 +54,11 @@ def _story_dirs(stories_dir):
 
 
 def pending(stories_dir=None):
-    """Stories that said yes to the archive and are not on the web yet."""
+    """Finished stories (`.ready`: photo taken and consent given) that are not on the web yet."""
     stories_dir = str(stories_dir or config.STORIES_DIR)
     return [d for d in _story_dirs(stories_dir)
-            if not os.path.exists(os.path.join(stories_dir, d, ".private"))
+            if os.path.exists(os.path.join(stories_dir, d, ".ready"))
+            and not os.path.exists(os.path.join(stories_dir, d, ".private"))
             and not os.path.exists(os.path.join(stories_dir, d, ".published"))]
 
 
@@ -92,7 +93,7 @@ def _publish_once(repo, stories_dir, names):
         src, dst = os.path.join(stories_dir, name), os.path.join(web, name)
         if os.path.exists(dst):
             shutil.rmtree(dst)
-        shutil.copytree(src, dst, ignore=shutil.ignore_patterns("*.gcode", "*.wav", "*.json", ".private", ".published"))
+        shutil.copytree(src, dst, ignore=shutil.ignore_patterns("*.gcode", "*.wav", "*.json", ".private", ".published", ".ready"))
         new += 1
     with open(os.path.join(repo, "docs", "stories.json"), "w", encoding="utf-8") as f:
         json.dump(_index(web), f, ensure_ascii=False, indent=1)

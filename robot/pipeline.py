@@ -454,9 +454,12 @@ class Pipeline:
             if d.get("portrait") and config.PORTRAIT_ENABLED and d["publish"]:
                 with open(os.path.join(self.story_dir, "storyteller_photo.jpg"), "wb") as f:
                     f.write(d["portrait"])
-            if not d["publish"]:
-                with open(os.path.join(self.story_dir, ".private"), "w", encoding="utf-8") as f:
-                    f.write(d.get("reason", ""))
+            # the story is complete only now (drawing photo + portrait + decision). Without this
+            # marker the publisher once shipped a story while it was still being drawn, and the
+            # photo and the portrait that arrived minutes later never made it to the web.
+            marker = ".ready" if d["publish"] else ".private"
+            with open(os.path.join(self.story_dir, marker), "w", encoding="utf-8") as f:
+                f.write(d.get("reason", ""))
         self.consent = {k: v for k, v in d.items() if k != "portrait"}
         self.consent["portrait"] = bool(d.get("portrait"))
         self.emit("consent", self.consent)
