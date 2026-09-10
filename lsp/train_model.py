@@ -21,6 +21,21 @@ with open(CSV_PATH) as f:
 X = np.array(X, dtype=np.float32)
 y = np.array(y)
 
+# J = la I volteada (meñique hacia abajo), quieta. Las J grabadas eran "I con movimiento" (guía
+# MINEDU) y el equipo decidió señarla como I invertida: se entrena la J con las muestras de I
+# rotadas 180 grados en el plano de la imagen (la mano al revés) y sin movimiento.
+i_rows = X[y == "i"]
+if len(i_rows):
+    jr = i_rows.copy()
+    pts = jr[:, :63].reshape(-1, 21, 3)
+    pts[:, :, 0] *= -1
+    pts[:, :, 1] *= -1
+    jr[:, :63] = pts.reshape(len(jr), 63)
+    jr[:, 63:] = 0.0
+    keep = y != "j"
+    X = np.concatenate([X[keep], jr]); y = np.concatenate([y[keep], np.array(["j"] * len(jr))])
+    print(f"J sintetica: {len(jr)} muestras (I rotada 180 grados); J grabadas descartadas")
+
 print(f"Loaded {len(y)} samples across {len(set(y))} labels:")
 for lab, n in sorted(Counter(y).items()):
     print(f"   {lab}: {n}")
