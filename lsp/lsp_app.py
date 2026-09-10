@@ -525,11 +525,12 @@ def run():
         frame = cv2.flip(frame, 1)
         h, w = frame.shape[:2]
 
-        # the picture goes to the kiosk NOW, before the ~70 ms of hand tracking: what you see on
-        # the screen is the current frame, the recognised letter arrives a moment later
-        if robot.showing():
-            preview.update(frame)
         tracking = robot.tracking()
+        # consent (no hand tracking): the clean picture goes to the kiosk right away. While signing,
+        # ONE frame per loop goes out below, with the hand dots drawn on it: sending a clean frame
+        # here and a dotted one later made the dots flicker on and off.
+        if robot.showing() and not tracking:
+            preview.update(frame)
         if was_tracking and not tracking:
             # the visitor left sign mode (story sent, or chose another way): forget the half-typed
             # text so it is not glued to the front of the next person's story
@@ -558,14 +559,8 @@ def run():
         both_open = len(lms) >= 2 and all(is_open_palm(hd) for hd in lms[:2])
         cur, conf = "?", 0.0
         if both_open:
-            if not HEADLESS:
-                for hnd in lms[:2]:
-                    mp_draw.draw_landmarks(frame, hnd, mp_hands.HAND_CONNECTIONS)
-            elif robot.showing():
-                dotted = frame.copy()
-                for hnd in lms[:2]:
-                    mp_draw.draw_landmarks(dotted, hnd, mp_hands.HAND_CONNECTIONS)
-                preview.update(dotted)
+            for hnd in lms[:2]:
+                mp_draw.draw_landmarks(frame, hnd, mp_hands.HAND_CONNECTIONS)
             buf.clear()
             typer.reset()
             cur, conf = "SEND", 1.0
@@ -590,14 +585,9 @@ def run():
             sent_latch = False
             if lms:
                 hand = lms[0]
-                if not HEADLESS:
-                    mp_draw.draw_landmarks(frame, hand, mp_hands.HAND_CONNECTIONS)
-                elif robot.showing():
-                    # the visitor sees the dots on their own hand: without them there is no way to
-                    # tell "the robot does not see my hand" from "it sees it and does not know the sign"
-                    dotted = frame.copy()
-                    mp_draw.draw_landmarks(dotted, hand, mp_hands.HAND_CONNECTIONS)
-                    preview.update(dotted)
+                # the visitor sees the dots on their own hand: without them there is no way to
+                # tell "the robot does not see my hand" from "it sees it and does not know the sign"
+                mp_draw.draw_landmarks(frame, hand, mp_hands.HAND_CONNECTIONS)
                 buf.append(fingertip_xy(hand))
                 feats = augment(np.array([extract_shape(hand) + motion_features(buf)],
                                          dtype=np.float32))
@@ -632,6 +622,8 @@ def run():
                     if sender: sender.send("SPACE")
         if lms:
             hand_gone_since = None
+        if robot.showing():
+            preview.update(frame)          # one frame per loop, dots included (HUD is drawn after this)
 
         preview.text = (typer.text, ("SEND" if both_open else (cur.upper() if len(cur) == 1 else cur)), typer.mode)
 
