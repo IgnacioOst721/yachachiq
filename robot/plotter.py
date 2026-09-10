@@ -213,8 +213,10 @@ class Plotter:
             return {"ok": False, "error": "no pude leer %s de la placa" % key}
         new = round(old * commanded / measured, 3)
         ratio = new / old
-        if not (0.2 <= ratio <= 5.0):
-            return {"ok": False, "error": "correccion de %.1fx: revisa la medida" % ratio, "old": old, "new": new}
+        if not (0.02 <= ratio <= 50.0):
+            # this machine's pulley chain multiplies travel ~15-25x, so big corrections are real;
+            # only absurd ones (1000x) are refused as mis-measurements
+            return {"ok": False, "error": "correccion de %.3fx: revisa la medida" % ratio, "old": old, "new": new}
         r = self.send("%s=%g" % (key, new))
         self._limits = None
         log.info("calibrated %s: %s %g -> %g steps/mm (%g mm commanded, %g measured)", axis, key, old, new, commanded, measured)
