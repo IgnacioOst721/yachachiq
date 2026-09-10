@@ -150,7 +150,7 @@ DRAW_FEED = _env("DRAW_FEED", 600)        # mm/min pen down (600: lineas mas lim
 TRAVEL_FEED = _env("TRAVEL_FEED", 1500)   # mm/min pen up
 PEN_FEED = _env("PEN_FEED", 600)          # mm/min Z moves
 PEN_MODE = _env("PEN_MODE", "z")          # "z" = Z stepper lift, "servo" = grbl-servo M3/M5 on D11
-PEN_UP_Z = _env("PEN_UP_Z", 2.0)
+PEN_UP_Z = _env("PEN_UP_Z", 4.0)
 PEN_DOWN_Z = _env("PEN_DOWN_Z", 0.0)
 SERVO_UP = _env("SERVO_UP", 90)           # M3 S<value> when PEN_MODE = servo
 SERVO_DOWN = _env("SERVO_DOWN", 30)
