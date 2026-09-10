@@ -144,7 +144,7 @@ MAX_STROKES = _env("MAX_STROKES", 70)           # keep the longest N strokes. Me
 SERIAL_PORT = _env("SERIAL_PORT", "/dev/ttyACM0")   # Pi: /dev/ttyACM0 or /dev/ttyUSB0; Mac: /dev/cu.usbmodem*
 BAUD_RATE = 115200
 PAPER_W_MM = _env("PAPER_W_MM", 15.0)     # ancho en X que pidio Ignacio para esta maquina (eje X muy corto)
-PAPER_H_MM = _env("PAPER_H_MM", 30.0)     # alto en Y: chico a proposito para probar el CNC (subir cuando dibuje bien)
+PAPER_H_MM = _env("PAPER_H_MM", 15.0)     # limite del eje Y (riel de arriba) medido con Ignacio: 15 mm pedidos = tope
 MARGIN_MM = _env("MARGIN_MM", 2.0)       # con 15 mm de ancho no cabe mas margen
 DRAW_FEED = _env("DRAW_FEED", 600)        # mm/min pen down (600: lineas mas limpias en esta maquina)
 TRAVEL_FEED = _env("TRAVEL_FEED", 1500)   # mm/min pen up
