@@ -1,0 +1,11 @@
+STORY
+========================================
+Un león corriendo.
+
+SCENES
+========================================
+1. Un león.
+
+TITLE: Un león corriendo
+LANG: spanish
+IMAGE: comfyui

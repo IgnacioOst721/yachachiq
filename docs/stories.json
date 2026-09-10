@@ -1,5 +1,17 @@
 [
  {
+  "id": "2026-09-10_02-47-33",
+  "images": [
+   "preview.png",
+   "scene_1.png"
+  ],
+  "photos": [
+   "scene_1_photo.png"
+  ],
+  "portrait": "storyteller_photo.jpg",
+  "story": "STORY\n========================================\nUn león corriendo.\n\nSCENES\n========================================\n1. Un león.\n\nTITLE: Un león corriendo\nLANG: spanish\nIMAGE: comfyui\n"
+ },
+ {
   "id": "2026-09-10_01-50-31",
   "images": [
    "preview.png",
