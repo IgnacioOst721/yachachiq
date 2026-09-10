@@ -322,10 +322,21 @@ class Plotter:
         """Cancel the drawing: flag first so run() exits at its next line, then the abort
         sequence in the background so the API call returns at once."""
         self._stop.set()
-        threading.Thread(target=self.abort, daemon=True).start()
+        self._abort_thread = threading.Thread(target=self.abort, daemon=True)
+        self._abort_thread.start()
+
+    def wait_abort(self, timeout=90):
+        """A cancel returns the head to the origin in the background (~15 s). Anything that
+        wants to move the machine must wait for it, or its moves interleave with the return
+        trip and the head drives into a stop at the start of the next drawing."""
+        t = getattr(self, "_abort_thread", None)
+        if t is not None and t.is_alive():
+            log.info("plotter: waiting for the previous cancel to finish returning home")
+            t.join(timeout=timeout)
 
     def run(self, lines, on_progress=None):
         """Stream lines. on_progress(sent, total). Returns True if it finished."""
+        self.wait_abort()
         self._stop.clear()
         motion = [l for l in lines if _clean(l)]
         total = len(motion)
@@ -345,6 +356,7 @@ class Plotter:
 
     # --- manual control (gear menu on the screen) --------------------------------------------------------
     def jog(self, dx=0.0, dy=0.0, dz=0.0, feed=None):
+        self.wait_abort()
         feed = feed or config.TRAVEL_FEED
         parts = []
         if dx: parts.append(f"X{dx:.2f}")
