@@ -42,6 +42,10 @@ def _trace_with_border(png):
     if len(pls_px) < 5:
         raise RuntimeError("image traced to almost nothing")
     pls_mm = vectorize.fit_to_paper(pls_px, w, h)
+    if not config.AI_BORDER:
+        # no frame: on the plotter the stepped border was the longest, thickest thing on the
+        # page and the actual drawing ended up squeezed inside it
+        return pls_mm
     inset = min(config.PAPER_W_MM, config.PAPER_H_MM) * 0.075
     border = motifs.stepped_border(config.PAPER_W_MM, config.PAPER_H_MM, inset)
     return border + pls_mm

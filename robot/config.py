@@ -134,10 +134,11 @@ CANNY_HIGH = _env("CANNY_HIGH", 160)
 # (a black shape used to become dozens of strokes). FILL_THICK_PX: a region thicker than this is a fill.
 # Strokes that run around (almost) the whole picture are a decorative frame the model added,
 # not part of the story: they are dropped (the pen spent most of its time on that border).
+AI_BORDER = _env("AI_BORDER", False)          # decorative Andean border around AI drawings (off: only thin lines)
 DROP_FRAME = _env("DROP_FRAME", True)
 FRAME_MIN_COVER = _env("FRAME_MIN_COVER", 0.8)     # bbox wider AND taller than 80% of the image
 FILL_TO_OUTLINE = _env("FILL_TO_OUTLINE", True)
-FILL_THICK_PX = _env("FILL_THICK_PX", 4)
+FILL_THICK_PX = _env("FILL_THICK_PX", 8)   # thick outlines (< 16 px) become ONE centre line, only blobs get contours
 SIMPLIFY_EPS_PX = _env("SIMPLIFY_EPS_PX", 0.6)   # Douglas-Peucker tolerance in pixels (0.6 = curvas mas fieles)
 MIN_STROKE_PX = _env("MIN_STROKE_PX", 25.0)      # drop strokes shorter than this (pixels)
 MAX_STROKES = _env("MAX_STROKES", 160)           # keep the longest N strokes. Measured with DreamShaper
