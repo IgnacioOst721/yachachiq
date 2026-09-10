@@ -207,6 +207,23 @@ def _simplify(pls, eps):
     return out
 
 
+def _drop_frame(pls, w, h, cover=None):
+    """Remove strokes whose bounding box spans most of the image: that is a frame/border."""
+    cover = cover or config.FRAME_MIN_COVER
+    out = []
+    for pl in pls:
+        xs = [p[0] for p in pl]; ys = [p[1] for p in pl]
+        bw, bh = (max(xs) - min(xs)) / float(w), (max(ys) - min(ys)) / float(h)
+        if bw >= cover and bh >= cover:
+            continue
+        # also the straight edge-hugging pieces of a broken frame
+        near_edge = all(min(x, w - x) < 0.06 * w or min(y, h - y) < 0.06 * h for x, y in pl)
+        if near_edge and (bw >= 0.5 or bh >= 0.5):
+            continue
+        out.append(pl)
+    return out
+
+
 def trace_image(path, mode=None):
     """Image file -> (polylines in pixels, width, height)."""
     gray = _load_gray(path)
@@ -225,6 +242,8 @@ def trace_image(path, mode=None):
             alt = _trace_skeleton(_skeleton(thin)) + outlines
             if sum(_length(pl) for pl in alt) < sum(_length(pl) for pl in pls):
                 pls = alt
+    if config.DROP_FRAME:
+        pls = _drop_frame(pls, w, h)
     pls = _simplify(pls, config.SIMPLIFY_EPS_PX)
     pls = [pl for pl in pls if _length(pl) >= config.MIN_STROKE_PX]
     pls.sort(key=_length, reverse=True)
