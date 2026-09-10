@@ -98,7 +98,7 @@ IMAGE_BACKENDS = _env("IMAGE_BACKENDS", ["comfyui", "remote", "motifs"])
 # Tamano de la imagen que genera ComfyUI. Acepta "512" (cuadrada) o "512x720" (ancho x alto).
 # Conviene que la proporcion se parezca a la del papel: con papel A4 vertical (1:1.41) una imagen
 # cuadrada solo llena dos tercios de la hoja. 512x720 = 1:1.41, y SD 1.5 lo dibuja bien.
-IMAGE_SIZE = _env("IMAGE_SIZE", "512x720")
+IMAGE_SIZE = _env("IMAGE_SIZE", "720x512")
 
 
 def image_wh():
