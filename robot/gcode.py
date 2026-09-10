@@ -11,6 +11,13 @@ here, so a second drawing keeps the same paper origin and pen height.
 import config
 
 
+def _xy(x, y):
+    """Visual (x = along the top rail, y = along the left rail) -> GRBL axes."""
+    if config.SWAP_XY:
+        x, y = y, x
+    return f"X{x:.2f} Y{y:.2f}"
+
+
 def pen_up():
     if config.PEN_MODE == "servo":
         return [f"M3 S{int(config.SERVO_UP)}", "G4 P0.25"]
@@ -44,10 +51,10 @@ def from_polylines(polylines, name="story"):
         if len(pl) < 2:
             continue
         x0, y0 = pl[0]
-        lines.append(f"G0 X{x0:.2f} Y{y0:.2f}")
+        lines.append("G0 " + _xy(x0, y0))
         lines += pen_down()
         for x, y in pl[1:]:
-            lines.append(f"G1 X{x:.2f} Y{y:.2f} F{int(config.DRAW_FEED)}")
+            lines.append("G1 " + _xy(x, y) + f" F{int(config.DRAW_FEED)}")
         lines += pen_up()
     # al terminar: el lapiz queda arriba (el bucle ya lo subio) y el cabezal vuelve al origen,
     # que es donde se fijo el papel. Asi la camara ve el dibujo despejado y el siguiente

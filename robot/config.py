@@ -98,7 +98,7 @@ IMAGE_BACKENDS = _env("IMAGE_BACKENDS", ["comfyui", "remote", "motifs"])
 # Tamano de la imagen que genera ComfyUI. Acepta "512" (cuadrada) o "512x720" (ancho x alto).
 # Conviene que la proporcion se parezca a la del papel: con papel A4 vertical (1:1.41) una imagen
 # cuadrada solo llena dos tercios de la hoja. 512x720 = 1:1.41, y SD 1.5 lo dibuja bien.
-IMAGE_SIZE = _env("IMAGE_SIZE", "720x512")
+IMAGE_SIZE = _env("IMAGE_SIZE", "512x720")
 
 
 def image_wh():
@@ -148,8 +148,12 @@ MAX_STROKES = _env("MAX_STROKES", 160)           # keep the longest N strokes. M
 # --- Plotter (Arduino UNO + CNC Shield + grbl-servo, over USB) ----------------------
 SERIAL_PORT = _env("SERIAL_PORT", "/dev/ttyACM0")   # Pi: /dev/ttyACM0 or /dev/ttyUSB0; Mac: /dev/cu.usbmodem*
 BAUD_RATE = 115200
-PAPER_W_MM = _env("PAPER_W_MM", 24.0)     # limite del eje X (riel izquierdo) medido con Ignacio: 24 mm pedidos = tope
-PAPER_H_MM = _env("PAPER_H_MM", 15.0)     # limite del eje Y (riel de arriba) medido con Ignacio: 15 mm pedidos = tope
+PAPER_W_MM = _env("PAPER_W_MM", 15.0)     # ANCHO visto de frente = riel de arriba (GRBL Y): 15 mm pedidos = tope
+PAPER_H_MM = _env("PAPER_H_MM", 24.0)     # ALTO visto de frente = riel izquierdo (GRBL X): 24 mm pedidos = tope
+# On this machine GRBL's X axis is the LEFT (vertical) rail and Y is the TOP rail. Everything
+# else in the code works in "as seen from the front" coordinates (width along the top rail);
+# gcode.py swaps them when emitting, so drawings come out upright instead of rotated 90 degrees.
+SWAP_XY = _env("SWAP_XY", True)
 MARGIN_MM = _env("MARGIN_MM", 2.0)       # con 15 mm de ancho no cabe mas margen
 DRAW_FEED = _env("DRAW_FEED", 100)        # mm/min PEDIDOS: esta maquina recorre ~10-20x lo pedido (sin calibrar)
 TRAVEL_FEED = _env("TRAVEL_FEED", 150)    # mm/min pen up (pedidos)
