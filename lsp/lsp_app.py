@@ -492,11 +492,12 @@ def run():
         frame = cv2.flip(frame, 1)
         h, w = frame.shape[:2]
 
+        # the picture goes to the kiosk NOW, before the ~70 ms of hand tracking: what you see on
+        # the screen is the current frame, the recognised letter arrives a moment later
+        if robot.showing():
+            preview.update(frame, typer.text, "", typer.mode)
         if not robot.tracking():
-            # nobody is signing: skip hand tracking entirely, and only encode/send the picture
-            # while the kiosk is actually showing it (sign screen or consent screen)
-            if robot.showing():
-                preview.update(frame, typer.text, "", typer.mode)
+            # nobody is signing: skip hand tracking entirely
             if not HEADLESS:
                 cv2.imshow("ASL app - Q to quit", frame)
                 if cv2.waitKey(60) & 0xFF in (ord("q"), 27):
@@ -568,7 +569,7 @@ def run():
         if lms:
             hand_gone_since = None
 
-        preview.update(frame, typer.text, ("SEND" if both_open else (cur.upper() if len(cur) == 1 else cur)), typer.mode)
+        preview.text = (typer.text, ("SEND" if both_open else (cur.upper() if len(cur) == 1 else cur)), typer.mode)
 
         # current prediction (big), confidence, mode
         if both_open:

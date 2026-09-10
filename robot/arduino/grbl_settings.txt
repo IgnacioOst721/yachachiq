@@ -1,5 +1,5 @@
-(Yachachiq: $110/$111 velocidad max, $120/$121 aceleracion - subidas de 500/10 a 1000/100;
- el 10 mm/s2 de fabrica hacia que un dibujo de 9 min tardara 19. $130=250: el eje X util es corto)
+(Yachachiq: CALIBRADO 2026-09-10 con wincha: riel izquierdo (X) 390 mm = 24 pedidos, riel de arriba (Y)
+ 250 mm = 15 pedidos -> $100=4.923 $101=4.8 pasos por mm REAL. Velocidades reales de plotter.)
 $1=255
 $3=0
 $20=0
