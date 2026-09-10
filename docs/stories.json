@@ -5,8 +5,10 @@
    "preview.png",
    "scene_1.png"
   ],
-  "photos": [],
-  "portrait": null,
+  "photos": [
+   "scene_1_photo.png"
+  ],
+  "portrait": "storyteller_photo.jpg",
   "story": "STORY\n========================================\nAl enterrar tres hojas de coca en la falda de la montaña para agradecer la cosecha, la joven sintió como el apú despertaba en el tiento alto-andino y devolvía el saludo con el murmullo milenario de sus ancestros.\n\nSCENES\n========================================\n1. Arrodillada en la tierra, hojas de coca, las montañas, agradeciendo, la cosecha y un joven.\n\nTITLE: Al enterrar tres hojas de coca\nLANG: spanish\nIMAGE: comfyui\n"
  },
  {
