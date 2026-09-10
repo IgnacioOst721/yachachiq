@@ -321,6 +321,10 @@ class Plotter:
     def stop(self):
         """Cancel the drawing: flag first so run() exits at its next line, then the abort
         sequence in the background so the API call returns at once."""
+        if not getattr(self, "_running", False):
+            # nothing is drawing: the head is already home, there is nothing to abort. Launching
+            # the return trip here made it collide with a drawing started a moment later.
+            return
         self._stop.set()
         self._abort_thread = threading.Thread(target=self.abort, daemon=True)
         self._abort_thread.start()
@@ -338,17 +342,21 @@ class Plotter:
         """Stream lines. on_progress(sent, total). Returns True if it finished."""
         self.wait_abort()
         self._stop.clear()
-        motion = [l for l in lines if _clean(l)]
-        total = len(motion)
-        for i, line in enumerate(motion, 1):
-            if self._stop.is_set():
-                log.info("plotter run stopped at %d/%d", i, total)
-                return False
-            self.send(line)
-            if on_progress and (i % 5 == 0 or i == total):
-                on_progress(i, total)
-        self.wait_idle()
-        return True
+        self._running = True
+        try:
+            motion = [l for l in lines if _clean(l)]
+            total = len(motion)
+            for i, line in enumerate(motion, 1):
+                if self._stop.is_set():
+                    log.info("plotter run stopped at %d/%d", i, total)
+                    return False
+                self.send(line)
+                if on_progress and (i % 5 == 0 or i == total):
+                    on_progress(i, total)
+            self.wait_idle()
+            return True
+        finally:
+            self._running = False
 
     def stream_file(self, path, on_progress=None):
         with open(path) as f:
