@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Yachachiq — Archivo de Historias</title>
-<meta name="description" content="Cada historia contada al robot Yachachiq queda preservada aquí junto con el dibujo que la máquina trazó a mano.">
+<title>Yachachiq — Robot que dibuja historias</title>
+<meta name="description" content="Yachachiq es un robot del colegio FDR (Lima) para la WRO 2026: escucha historias por voz o en Lengua de Señas Peruana, las dibuja a lápiz y las guarda en este archivo.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,700;0,9..144,900;1,9..144,400;1,9..144,900&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap" rel="stylesheet">
@@ -137,11 +137,59 @@
     to   { opacity: 1; transform: none; }
   }
 
+  /* ── qué es Yachachiq ──────────────────────────────────── */
+  .que-es {
+    max-width: 1060px;
+    margin: 0 auto;
+    padding: 3.2rem 1.5rem 1rem;
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+    gap: 2.5rem 3rem;
+    align-items: start;
+  }
+  @media (max-width: 720px) { .que-es { grid-template-columns: 1fr; } }
+  .que-es h2, .titulo-simple {
+    font-family: "Fraunces", serif;
+    font-weight: 900;
+    font-size: clamp(1.7rem, 4vw, 2.5rem);
+    color: var(--rojo);
+    line-height: 1.1;
+    margin-bottom: 1rem;
+  }
+  .que-es p { margin-bottom: 1rem; max-width: 60ch; }
+  .que-es p:last-child { margin-bottom: 0; }
+  .que-es .destacado {
+    font-family: "Fraunces", serif;
+    font-style: italic;
+    font-size: 1.25rem;
+    color: var(--rojo-oscuro);
+    border-left: 4px solid var(--amarillo);
+    padding-left: 1rem;
+  }
+  .ficha {
+    background: var(--tinta);
+    color: var(--papel);
+    padding: 1.5rem 1.6rem 1.6rem;
+    box-shadow: .5rem .5rem 0 var(--amarillo);
+  }
+  .ficha h3 {
+    font-family: "Fraunces", serif;
+    font-style: italic;
+    font-weight: 900;
+    font-size: 1.15rem;
+    color: var(--amarillo);
+    margin-bottom: .9rem;
+  }
+  .ficha dl { display: grid; grid-template-columns: auto 1fr; gap: .45rem 1rem; font-size: .95rem; }
+  .ficha dt { color: var(--celeste); letter-spacing: .14em; text-transform: uppercase; font-size: .7rem; padding-top: .25rem; }
+  .ficha dd { margin: 0; }
+  .ficha a { color: var(--amarillo); }
+
   /* ── cómo funciona ─────────────────────────────────────── */
   .como {
     max-width: 1060px;
     margin: 0 auto;
-    padding: 2.6rem 1.5rem .6rem;
+    padding: 1rem 1.5rem 2.6rem;
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 1rem;
@@ -179,6 +227,7 @@
     gap: 1.1rem;
     margin: 1.4rem 0 2.4rem;
   }
+  .titulo-seccion.suelto { max-width: 1060px; margin: 2.2rem auto 0; padding: 0 1.5rem; }
   .titulo-seccion h2 {
     font-family: "Fraunces", serif;
     font-weight: 900;
@@ -253,13 +302,21 @@
     border: 1px solid var(--hilo);
     padding: .25rem .7rem;
   }
+  .titulo-historia {
+    font-family: "Fraunces", serif;
+    font-weight: 900;
+    font-size: clamp(1.4rem, 3vw, 1.9rem);
+    line-height: 1.15;
+    color: var(--tinta);
+    margin-bottom: .9rem;
+  }
   .texto {
     font-size: 1.13rem;
     line-height: 1.75;
     max-width: 58ch;
     white-space: pre-wrap;
   }
-  .texto::first-letter {
+  .texto.largo::first-letter {
     font-family: "Fraunces", serif;
     font-weight: 900;
     font-size: 3.4em;
@@ -271,6 +328,7 @@
   .galeria {
     display: flex;
     flex-wrap: wrap;
+    align-items: flex-start;
     gap: 1.4rem;
     margin-top: 1.8rem;
   }
@@ -344,23 +402,59 @@
   <div class="brocha a"></div>
   <div class="brocha b"></div>
   <div class="hero-inner">
-    <div class="kicker">Archivo vivo de tradición oral · Perú</div>
+    <div class="kicker">Colegio FDR · Lima, Perú · WRO 2026</div>
     <h1><span class="subrayado">Yachachiq</span></h1>
     <div class="lema">“Donde las historias cobran vida”</div>
-    <p class="hero-p">Un robot que escucha — por voz o en lengua de señas —,
-    imagina una ilustración y la dibuja a lápiz sobre papel. Cada historia que
-    recibe queda preservada en este archivo para siempre.</p>
-    <div class="contador"><b id="n-historias">…</b><span id="n-label">historias preservadas</span></div>
+    <p class="hero-p">Un robot que escucha una historia, contada con la voz o en lengua de señas,
+    la imagina y la dibuja a lápiz sobre papel. Cada historia que recibe queda guardada aquí,
+    con su dibujo, para que nadie la olvide.</p>
+    <div class="contador"><b id="n-historias">…</b><span id="n-label">historias guardadas</span></div>
   </div>
 </header>
 
 <div class="tocapu"></div>
 
+<section class="que-es">
+  <div>
+    <h2>¿Qué es Yachachiq?</h2>
+    <p>En quechua, <em>yachachiq</em> es la persona que enseña, la que guarda el saber y lo transmite.
+    Nuestro Yachachiq es un robot que hace algo parecido: recibe las historias que la gente le cuenta
+    y las convierte en un dibujo hecho a lápiz, trazo por trazo, sobre una hoja de papel.</p>
+    <p>Lo construimos tres estudiantes del colegio Franklin Delano Roosevelt de Lima para la
+    World Robot Olympiad 2026, en la categoría Future Innovators, cuyo tema este año es
+    <em>Robots Meet Culture</em>: robots que se encuentran con la cultura.</p>
+    <p>En el Perú muchísimas historias viven solo en la memoria de quien las cuenta. Se pasan de
+    abuelos a nietos, en castellano o en quechua, y cuando esa persona ya no está, la historia se va con
+    ella. Queríamos una máquina que invite a contar, que escuche con paciencia y que deje algo físico
+    en las manos de quien contó: un dibujo de su propia historia.</p>
+    <p class="destacado">También queríamos que pudiera contar cualquiera. Por eso Yachachiq entiende
+    la Lengua de Señas Peruana: una cámara mira las manos de quien firma y el robot va leyendo,
+    letra por letra, lo que le está diciendo.</p>
+    <p>Todo funciona sin internet. El robot escucha, transcribe, imagina el dibujo y lo traza
+    con sus propios equipos. Cuando encuentra una conexión, sube las historias nuevas a esta página.
+    Así puede viajar a una feria, a una escuela o a un pueblo alejado y seguir trabajando igual.</p>
+  </div>
+  <aside class="ficha">
+    <h3>El proyecto en corto</h3>
+    <dl>
+      <dt>Equipo</dt><dd>Joaquín Cisneros, Ignacio Osterling y Clara Verderas</dd>
+      <dt>Colegio</dt><dd>Franklin Delano Roosevelt (FDR), Lima</dd>
+      <dt>Concurso</dt><dd>World Robot Olympiad 2026 · Future Innovators · <em>Robots Meet Culture</em></dd>
+      <dt>Idiomas</dt><dd>Castellano, quechua y Lengua de Señas Peruana</dd>
+      <dt>Cerebro</dt><dd>Raspberry Pi 5, con una laptop de apoyo para imaginar los dibujos</dd>
+      <dt>Manos</dt><dd>Plotter de lápiz con Arduino y motores paso a paso</dd>
+      <dt>Código</dt><dd><a href="https://github.com/IgnacioOst721/yachachiq">github.com/IgnacioOst721/yachachiq</a></dd>
+    </dl>
+  </aside>
+</section>
+
+<div class="titulo-seccion suelto"><h2>Cómo funciona</h2></div>
+
 <section class="como">
-  <div class="paso" data-n="1"><p><b>Alguien cuenta su historia</b> hablándole al robot, o señándola frente a la cámara si no puede hablar.</p></div>
-  <div class="paso" data-n="2"><p><b>La máquina la ilustra:</b> una IA local imagina la escena y el plotter la dibuja a lápiz, trazo por trazo.</p></div>
-  <div class="paso" data-n="3"><p><b>Una cámara fotografía</b> el dibujo terminado, automáticamente, apenas el CNC se detiene.</p></div>
-  <div class="paso" data-n="4"><p><b>Todo llega aquí</b> apenas hay conexión — diseñado para funcionar desde comunidades sin internet permanente.</p></div>
+  <div class="paso" data-n="1"><p><b>Alguien cuenta su historia.</b> Aprieta el botón y habla, o se pone frente a la cámara y la cuenta en señas. El robot muestra en pantalla lo que va entendiendo.</p></div>
+  <div class="paso" data-n="2"><p><b>El robot la imagina.</b> Con lo que escuchó, arma una escena y la convierte en un dibujo de líneas, como los de un libro para colorear. Si la laptop no está, dibuja una escena andina con sus propios motivos.</p></div>
+  <div class="paso" data-n="3"><p><b>La dibuja a lápiz.</b> El plotter recorre el papel con un solo trazo continuo, sin levantar el lápiz, hasta terminar la ilustración. Toma unos minutos y se puede mirar de cerca.</p></div>
+  <div class="paso" data-n="4"><p><b>La guarda.</b> Una cámara fotografía el dibujo terminado y, si quien contó la historia está de acuerdo, todo se sube a este archivo apenas hay conexión.</p></div>
 </section>
 
 <main>
@@ -372,8 +466,9 @@
 
 <footer>
   <span class="marca">Yachachiq</span>
-  Proyecto del equipo Yachachiq · World Robot Olympiad 2026 Future Innovators ·
-  Colegio FDR, Lima · <a href="https://github.com/IgnacioOst721/yachachiq">código abierto</a>
+  Proyecto de Joaquín Cisneros, Ignacio Osterling y Clara Verderas ·
+  Colegio FDR, Lima · World Robot Olympiad 2026, Future Innovators ·
+  <a href="https://github.com/IgnacioOst721/yachachiq">código abierto</a>
 </footer>
 
 <script>
@@ -389,18 +484,25 @@ function soloHistoria(txt) {
   let t = i > 0 ? txt.slice(0, i) : txt;
   return t.replace(/^STORY\s*/, "").replace(/=+/g, "").trim();
 }
+function tituloDe(txt) {
+  const m = txt.match(/^TITLE:\s*(.+)$/m);
+  return m ? m[1].trim() : "";
+}
+function esQuechua(txt) {
+  return /^LANG:\s*quechua/mi.test(txt);
+}
 fetch("stories.json")
   .then(r => r.json())
   .then(historias => {
     const lista = document.getElementById("lista");
     document.getElementById("n-historias").textContent = historias.length;
     if (historias.length === 1)
-      document.getElementById("n-label").textContent = "historia preservada";
+      document.getElementById("n-label").textContent = "historia guardada";
     if (!historias.length) {
       lista.innerHTML = `<div class="vacio">
         <div class="glifo">Nº 001</div>
-        <p>El archivo espera su primera historia. Muy pronto, en algún lugar,
-        alguien le contará algo a Yachachiq — y aparecerá aquí, dibujado a lápiz.</p>
+        <p>El archivo todavía está vacío. Cuando alguien le cuente su primera
+        historia a Yachachiq, aparecerá aquí con su dibujo a lápiz.</p>
       </div>`;
       return;
     }
@@ -410,18 +512,22 @@ fetch("stories.json")
       art.className = "historia";
       art.style.animationDelay = (Math.min(idx, 6) * 0.08 + 0.1) + "s";
       let figs = "";
-      for (const img of h.images)
-        figs += `<figure><img src="stories/${h.id}/${img}" loading="lazy" alt="Ilustración generada por la IA"><figcaption>Ilustración imaginada</figcaption></figure>`;
+      for (const img of h.images) {
+        if (img.startsWith("preview")) continue;   // el trazo planeado no se muestra: ya está la foto
+        figs += `<figure><img src="stories/${h.id}/${img}" loading="lazy" alt="Escena que imaginó el robot"><figcaption>Lo que imaginó el robot</figcaption></figure>`;
+      }
       for (const ph of h.photos)
-        figs += `<figure><img src="stories/${h.id}/${ph}" loading="lazy" alt="Fotografía del dibujo hecho por el plotter"><figcaption>Dibujado a lápiz por el robot</figcaption></figure>`;
+        figs += `<figure><img src="stories/${h.id}/${ph}" loading="lazy" alt="Foto del dibujo a lápiz sobre el papel"><figcaption>El dibujo a lápiz, sobre el papel</figcaption></figure>`;
       const n = String(total - idx).padStart(3, "0");
       art.innerHTML = `
         <div class="meta">
           <span class="num">Historia Nº ${n}</span>
           <span class="fecha">${fechaBonita(h.id)}</span>
+          ${esQuechua(h.story || "") ? `<span class="fecha">Quechua</span>` : ""}
           ${h.portrait ? `<span class="retrato">Contada por<img src="stories/${h.id}/${h.portrait}" alt="Quien contó la historia"></span>` : ""}
         </div>
-        <div class="texto">${(soloHistoria(h.story || "") || "(sin transcripción)").replace(/</g, "&lt;")}</div>
+        ${tituloDe(h.story || "") ? `<h3 class="titulo-historia">${tituloDe(h.story).replace(/</g, "&lt;")}</h3>` : ""}
+        <div class="texto ${soloHistoria(h.story || "").length > 80 ? "largo" : ""}">${(soloHistoria(h.story || "") || "(sin transcripción)").replace(/</g, "&lt;")}</div>
         <div class="galeria">${figs}</div>`;
       lista.appendChild(art);
     });
