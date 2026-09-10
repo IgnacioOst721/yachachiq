@@ -63,7 +63,9 @@ STABLE_SECONDS = float(os.environ.get("LSP_STABLE_SECONDS", "0.30"))
 # Si la mano sale del cuadro este tiempo, se mete un espacio solo (no hace falta la
 # seña SPACE entre palabras). 0 = desactivado.
 AUTO_SPACE_SECONDS = float(os.environ.get("LSP_AUTO_SPACE", "1.2"))
-CONF_THRESH = 0.50     # minimum confidence to accept a sign
+CONF_THRESH = 0.60     # minimum confidence to accept a sign (0.60: fewer wrong letters)
+VOTE_WINDOW = 5        # frames considered for the majority vote
+VOTE_MIN = 3           # votes a letter needs to be shown/held
 SEND_HOLD_SECONDS = 2.0  # hold BOTH open palms this long to auto-send
 
 # ── ROBOT (pipeline de Yachachiq en la misma Pi) ────────────────────────
@@ -152,20 +154,34 @@ class RobotPreview:
         self.text = (text, letter, mode)
 
     def _post(self, path, data, ctype):
-        import urllib.request
-        req = urllib.request.Request(LSP_ROBOT + path, data=data, headers={"Content-Type": ctype})
-        urllib.request.urlopen(req, timeout=1.5).read()
+        # one persistent HTTP connection instead of a new TCP handshake per frame
+        import http.client
+        from urllib.parse import urlparse
+        if getattr(self, "_conn", None) is None:
+            u = urlparse(LSP_ROBOT)
+            self._conn = http.client.HTTPConnection(u.hostname, u.port or 80, timeout=1.5)
+        try:
+            self._conn.request("POST", path, body=data, headers={"Content-Type": ctype})
+            self._conn.getresponse().read()
+        except Exception:
+            try:
+                self._conn.close()
+            except Exception:
+                pass
+            self._conn = None
+            raise
 
     def _loop(self):
         import json
         fails = 0
         while True:
-            time.sleep(0.07)                      # ~12-14 fps, the same rate the tracking loop runs at on the Pi
+            time.sleep(0.04)                      # up to 25 fps; only NEW frames are sent
             try:
                 if self.frame is not None and self.seq != self._sent:
                     self._sent = self.seq
-                    small = cv2.resize(self.frame, (480, int(self.frame.shape[0] * 480 / self.frame.shape[1])))
-                    ok, jpg = cv2.imencode(".jpg", small, [cv2.IMWRITE_JPEG_QUALITY, 60])
+                    small = cv2.resize(self.frame, (400, int(self.frame.shape[0] * 400 / self.frame.shape[1])),
+                                       interpolation=cv2.INTER_AREA)
+                    ok, jpg = cv2.imencode(".jpg", small, [cv2.IMWRITE_JPEG_QUALITY, 55])
                     if ok:
                         self._post("/api/lsp/frame", jpg.tobytes(), "image/jpeg")
                 if self.text != self._last_text:
@@ -435,7 +451,7 @@ def run():
     hands = mp_hands.Hands(max_num_hands=2,
                            model_complexity=complexity,
                            min_detection_confidence=0.7,
-                           min_tracking_confidence=0.7)
+                           min_tracking_confidence=0.5)   # steadier tracking between frames, fewer dropouts
 
     cap = open_camera()
     # As a background service on the Pi (ASL_HEADLESS=1) the webcam may simply not be
@@ -455,6 +471,7 @@ def run():
     preview = RobotPreview()
     robot = RobotState()
     hand_gone_since = None     # para el espacio automatico entre palabras
+    votes = []                 # (letra, confianza) de los ultimos frames
     buf = new_motion_buffer()
     send_start = None      # time (seconds) when both palms first appeared
     sent_latch = False     # prevents re-firing until palms are lowered
@@ -520,6 +537,19 @@ def run():
                 feats = augment(np.array([extract_shape(hand) + motion_features(buf)],
                                          dtype=np.float32))
                 cur, conf = typer.predict(feats)
+                # majority vote over the last few frames: one mis-read frame no longer resets
+                # the hold timer or sneaks a wrong letter through
+                votes.append((cur, conf))
+                if len(votes) > VOTE_WINDOW:
+                    votes.pop(0)
+                if len(votes) >= 3:
+                    best = max(set(v for v, _ in votes), key=lambda L: sum(1 for v, _ in votes if v == L))
+                    n = sum(1 for v, _ in votes if v == best)
+                    if n >= VOTE_MIN:
+                        cur = best
+                        conf = sum(c for v, c in votes if v == best) / n
+                    else:
+                        cur, conf = "?", 0.0
                 committed = typer.update(cur, conf)
                 if committed and sender:
                     sender.send(committed)

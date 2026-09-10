@@ -3,6 +3,21 @@ import numpy as np
 from collections import deque
 
 
+
+def _tune_v4l2(cap, cv2):
+    """Low-latency webcam setup on the Pi.
+
+    - MJPG first: over USB a C270 in raw YUYV at 640x480 is capped around 15 fps; MJPG gives 30.
+    - BUFFERSIZE 1: V4L2 otherwise queues 3-4 frames, so what you see is ~250 ms old - that was
+      the 'lag' on the kiosk.
+    - 640x480 is plenty for hand tracking and much lighter than 1280x720."""
+    cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+    cap.set(cv2.CAP_PROP_FPS, 30)
+    cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+
+
 def open_camera():
     """Open the webcam. If it grabs your phone instead of the built-in camera,
     put ASL_CAMERA=1 (or 2) in front of the command to pick a different one.
@@ -14,18 +29,14 @@ def open_camera():
     cam = os.environ.get("ASL_CAMERA", "0")
     if cam.startswith("/dev/"):                      # ruta fija (no cambia al reiniciar)
         cap = cv2.VideoCapture(cam, cv2.CAP_V4L2)
-        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+        _tune_v4l2(cap, cv2)
         return cap
     idx = int(cam)
     if sys.platform == "darwin":
         return cv2.VideoCapture(idx, cv2.CAP_AVFOUNDATION)
     if sys.platform.startswith("linux"):
         cap = cv2.VideoCapture(idx, cv2.CAP_V4L2)
-        # SPEED (Pi): 640x480 is plenty for hand tracking and much lighter
-        # than the webcam's default 1280x720.
-        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+        _tune_v4l2(cap, cv2)
         return cap
     return cv2.VideoCapture(idx)
 
