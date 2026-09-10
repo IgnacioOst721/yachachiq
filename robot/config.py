@@ -160,7 +160,7 @@ SERVO_UP = _env("SERVO_UP", 90)           # M3 S<value> when PEN_MODE = servo
 SERVO_DOWN = _env("SERVO_DOWN", 30)
 # "Volver a casa" despues de cada dibujo: barrer hacia el tope izquierdo y el de abajo (la
 # maquina no tiene finales de carrera) y fijar ahi el origen. Ignacio: ~100 mm izquierda, ~50 abajo.
-HOME_SWEEP = _env("HOME_SWEEP", True)
+HOME_SWEEP = _env("HOME_SWEEP", False)   # apagado: sin calibrar, 26 mm pedidos son 25-50 cm reales
 HOME_SWEEP_X = _env("HOME_SWEEP_X", 26.0)   # recorrido X medido = 24 + margen
 HOME_SWEEP_Y = _env("HOME_SWEEP_Y", 16.0)   # recorrido Y medido = 15 + margen
 HOME_SWEEP_FEED = _env("HOME_SWEEP_FEED", 150)
