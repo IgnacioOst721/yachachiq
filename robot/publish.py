@@ -96,7 +96,8 @@ def _publish_once(repo, stories_dir, names):
         new += 1
     with open(os.path.join(repo, "docs", "stories.json"), "w", encoding="utf-8") as f:
         json.dump(_index(web), f, ensure_ascii=False, indent=1)
-    _git(["add", "docs"], repo, 30, check=True)
+    # -f: a stray "stories/" in .gitignore once silently kept every image out of the archive
+    _git(["add", "-f", "docs"], repo, 30, check=True)
     r = _git(["commit", "-q", "-m", f"Publicar {new} historia(s)"], repo, 30)
     if "nothing to commit" in (r.stdout + r.stderr):
         return 0

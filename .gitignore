@@ -4,6 +4,7 @@ __pycache__/
 *_TEST_backup*
 *.wav
 stories/
+!docs/stories/
 .DS_Store
 robot/output/
 robot/venv/
