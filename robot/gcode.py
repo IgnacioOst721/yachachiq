@@ -19,12 +19,16 @@ def _xy(x, y):
 
 
 def pen_up():
+    if config.PEN_MODE == "none":
+        return []
     if config.PEN_MODE == "servo":
         return [f"M3 S{int(config.SERVO_UP)}", "G4 P0.25"]
     return [f"G1 Z{config.PEN_UP_Z:.2f} F{int(config.PEN_FEED)}"]
 
 
 def pen_down():
+    if config.PEN_MODE == "none":
+        return []
     if config.PEN_MODE == "servo":
         return [f"M3 S{int(config.SERVO_DOWN)}", "G4 P0.25"]
     # a short pause once the pen lands, so the first millimetre of every stroke is not faint

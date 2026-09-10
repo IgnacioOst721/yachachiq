@@ -37,7 +37,7 @@ def _prompt(analysis):
 
 
 def _trace_with_border(png):
-    """Trace an image file to strokes and frame it with the Andean border."""
+    """Trace an image file to strokes (the Andean border is optional, off by default)."""
     pls_px, w, h = vectorize.trace_image(png)
     if len(pls_px) < 5:
         raise RuntimeError("image traced to almost nothing")
@@ -136,6 +136,12 @@ def from_comfyui(analysis):
     for i, u in enumerate(urls):
         try:
             comfyui_generate(_prompt(analysis), config.NEGATIVE_PROMPT, png, url=u)
+            try:
+                pls = _trace_with_border(png)
+            except RuntimeError:
+                log.info("comfyui picture traced to nothing (blank or inverted): one more try")
+                comfyui_generate(_prompt(analysis), config.NEGATIVE_PROMPT, png, url=u)
+                pls = _trace_with_border(png)
             if i:
                 log.info("comfyui reached at %s (the first address did not answer)", u)
             break
@@ -144,7 +150,7 @@ def from_comfyui(analysis):
             log.info("comfyui at %s: %s", u, str(e)[:90])
     else:
         raise last
-    return {"source": "comfyui", "png_path": str(png), "polylines_mm": _trace_with_border(png)}
+    return {"source": "comfyui", "png_path": str(png), "polylines_mm": pls}
 
 
 # --- diffusers server ------------------------------------------------------------------------
@@ -180,9 +186,18 @@ BACKENDS = {"comfyui": from_comfyui, "remote": from_remote, "motifs": from_motif
 
 
 def _finish(out, errors):
-    out["polylines_mm"] = vectorize.clamp(vectorize.order_strokes(out["polylines_mm"]))
+    pls = vectorize.clamp(vectorize.order_strokes(out["polylines_mm"]))
+    out["strokes"] = len(pls)
+    if config.PEN_MODE == "none" and config.CONTINUOUS_LINE:
+        # the pen never lifts: one continuous route, hops retraced over drawn ink where possible
+        route, visible = vectorize.plan_continuous(pls)
+        out["polylines_mm"] = route
+        out["visible_hops_mm"] = round(visible)
+    else:
+        out["polylines_mm"] = pls
     out["svg"] = vectorize.to_svg(out["polylines_mm"])
     out["stats"] = vectorize.stats(out["polylines_mm"])
+    out["stats"]["strokes"] = len(pls)          # what the visitor sees: strokes of the picture, not 1
     out["errors"] = errors
     return out
 

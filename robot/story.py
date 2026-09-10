@@ -172,6 +172,129 @@ LEXICON = {
 _ACENTOS = str.maketrans("áéíóúü", "aeiouu")
 
 
+# What to draw, for the subjects people ask for most: a full description beats a bare noun.
+# The model is told the pose and composition, so "un león" is a whole lion, not a face.
+PROMPT_LIBRARY = {
+    "a lion": "a friendly lion standing in profile, full body, big mane, simple outline",
+    "a lioness": "a lioness walking in profile, full body, simple outline",
+    "a llama": "a llama standing in profile, full body, fluffy, simple outline",
+    "an alpaca": "an alpaca standing in profile, full body, fluffy, simple outline",
+    "a condor": "an Andean condor with wings spread wide, seen from below, simple outline",
+    "a fox": "a fox sitting in profile with a bushy tail, full body, simple outline",
+    "a puma": "a puma walking in profile, full body, simple outline",
+    "a spectacled bear": "a bear standing on four legs in profile, simple outline",
+    "a dog": "a happy dog sitting in profile, full body, simple outline",
+    "a cat": "a cat sitting in profile with its tail curled, simple outline",
+    "a bird": "a small bird perched on a branch, in profile, simple outline",
+    "a fish": "a fish swimming in profile with a few bubbles, simple outline",
+    "a snake": "a snake curled in an S shape, simple outline",
+    "a cow": "a cow standing in profile, full body, simple outline",
+    "a horse": "a horse standing in profile, full body, simple outline",
+    "a donkey": "a donkey standing in profile, full body, simple outline",
+    "a hen": "a hen standing in profile, simple outline",
+    "a frog": "a frog sitting on a lily pad, simple outline",
+    "a butterfly": "a butterfly with open wings seen from above, symmetric, simple outline",
+    "a hummingbird": "a hummingbird hovering next to a flower, simple outline",
+    "an eagle": "an eagle with wings spread, simple outline",
+    "a jaguar": "a jaguar walking in profile, full body, spotted, simple outline",
+    "a monkey": "a monkey hanging from a branch by one arm, simple outline",
+    "a turtle": "a turtle walking in profile, simple outline",
+    "a guinea pig": "a guinea pig in profile, round and fluffy, simple outline",
+    "a duck": "a duck swimming in profile, simple outline",
+    "a tiger": "a tiger walking in profile, full body, striped, simple outline",
+    "an elephant": "an elephant standing in profile, full body, simple outline",
+    "a giraffe": "a giraffe standing in profile, full body, simple outline",
+    "a wolf": "a wolf howling at the moon, in profile, simple outline",
+    "a rabbit": "a rabbit sitting in profile with long ears, simple outline",
+    "a dolphin": "a dolphin jumping over a wave, in profile, simple outline",
+    "a whale": "a whale in profile with a water spout, simple outline",
+    "a shark": "a shark swimming in profile, simple outline",
+    "a penguin": "a penguin standing, front view, simple outline",
+    "an owl": "an owl perched on a branch, front view, simple outline",
+    "a parrot": "a parrot perched on a branch, in profile, simple outline",
+    "a dinosaur": "a friendly dinosaur standing in profile, full body, simple outline",
+    "a dragon": "a friendly dragon standing with small wings, full body, in profile, simple outline",
+    "a unicorn": "a unicorn standing in profile, full body, simple outline",
+    "a monster": "a friendly round monster with big eyes, front view, simple outline",
+    "an old man": "an old man standing, full body, front view, poncho and hat, simple outline",
+    "an old woman": "an old woman standing, full body, front view, long braids and hat, simple outline",
+    "a child": "a child standing, full body, front view, simple outline",
+    "a girl": "a girl standing, full body, front view, simple outline",
+    "a boy": "a boy standing, full body, front view, simple outline",
+    "a mother": "a mother standing with a child, full body, front view, simple outline",
+    "a father": "a father standing with a child, full body, front view, simple outline",
+    "a princess": "a princess standing in a long dress with a small crown, full body, simple outline",
+    "a prince": "a prince standing with a small crown, full body, simple outline",
+    "a king": "a king standing with a crown and cape, full body, simple outline",
+    "a queen": "a queen standing with a crown, full body, simple outline",
+    "a witch": "a witch with a pointed hat riding a broom, in profile, simple outline",
+    "a wizard": "a wizard with a pointed hat and a staff, full body, simple outline",
+    "a robot": "a friendly boxy robot standing, front view, simple outline",
+    "an astronaut": "an astronaut floating in a spacesuit, full body, simple outline",
+    "a pirate": "a pirate standing with a hat and a sword, full body, simple outline",
+    "a shepherd": "a shepherd standing with a staff and a sheep, full body, simple outline",
+    "a weaver": "a woman weaving on a backstrap loom, in profile, simple outline",
+    "Andean mountains": "three mountain peaks with a sun, simple outline",
+    "a river": "a winding river between two banks, simple outline",
+    "a lake": "a lake with a small boat and hills behind, simple outline",
+    "a tree": "a single tree with a round crown, simple outline",
+    "flowers": "three flowers with leaves, simple outline",
+    "the sun": "a sun with rays in the top corner, simple outline",
+    "the moon": "a crescent moon with a few stars, simple outline",
+    "stars": "a night sky with a few big stars, simple outline",
+    "clouds": "two fluffy clouds, simple outline",
+    "rain": "a cloud with rain drops falling, simple outline",
+    "a rainbow": "a rainbow with clouds at each end, simple outline",
+    "an adobe house": "a small house with a door, a window and a tiled roof, front view, simple outline",
+    "a hut": "a small hut with a straw roof, front view, simple outline",
+    "a castle": "a castle with two towers and a gate, front view, simple outline",
+    "a school": "a school building with a flag, front view, simple outline",
+    "a church": "a church with a bell tower, front view, simple outline",
+    "a rope bridge": "a rope bridge between two cliffs, side view, simple outline",
+    "a reed boat": "a reed boat on a lake, in profile, simple outline",
+    "a boat": "a small boat on the water, in profile, simple outline",
+    "a car": "a car in profile, simple outline",
+    "a truck": "a truck in profile, simple outline",
+    "a bus": "a bus in profile, simple outline",
+    "an airplane": "an airplane flying, in profile, simple outline",
+    "a train": "a train with two wagons, in profile, simple outline",
+    "a bicycle": "a bicycle in profile, simple outline",
+    "a rocket": "a rocket flying up with a flame, simple outline",
+    "a spaceship": "a flying saucer, in profile, simple outline",
+    "a ball": "a football, simple outline",
+    "a guitar": "an acoustic guitar, front view, simple outline",
+    "a flute": "a quena flute, simple outline",
+    "a drum": "a drum with two sticks, simple outline",
+    "a cake": "a birthday cake with candles, simple outline",
+    "an apple": "an apple with a leaf, simple outline",
+    "a gift": "a gift box with a bow, simple outline",
+    "a fire": "a campfire with logs, simple outline",
+    "a bonfire": "a campfire with logs, simple outline",
+    "a treasure chest": "an open treasure chest, simple outline",
+    "a crown": "a crown, front view, simple outline",
+    "a sword": "a sword, simple outline",
+}
+
+
+def describe(words):
+    """Turn the lexicon words into what the model should draw: the first noun that has a
+    library entry becomes the main subject (with pose and composition), the rest come after."""
+    if not words:
+        return ""
+    main = next((w for w in words if w in PROMPT_LIBRARY), None)
+    if main is None:
+        return ", ".join(words)
+    rest = [w for w in words if w != main]
+    actions = [w for w in rest if w.endswith("ing")]          # walking, sleeping...
+    things = [w for w in rest if not w.endswith("ing")]
+    out = PROMPT_LIBRARY[main]
+    if actions:
+        out += ", " + " and ".join(actions)
+    if things:
+        out += ", with " + ", ".join(things) + " in the background"
+    return out
+
+
 def _content(text, limit=4):
     """Words from the story itself, in the order they appear.
     Returns (para_el_dibujo_en_ingles, para_mostrar_en_espanol)."""
@@ -222,8 +345,9 @@ def _rules(text, lang):
     es = [SPANISH.get(e, e) for e in found]
 
     if words:
-        # at most four things: with seven the model draws a crowd and none of them clearly
-        image_prompt = ", ".join(words)
+        # at most four things: with seven the model draws a crowd and none of them clearly.
+        # The first one gets its library description (pose, composition), the rest are added.
+        image_prompt = describe(words)
         # what the screen shows: the same things that went into the drawing, in Spanish
         scene = _join_es(palabras).capitalize() + "."
     else:

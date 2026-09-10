@@ -306,6 +306,95 @@ def _segment_seconds(d, feed_mm_min, vmax_mm_min, accel):
     return 2.0 * (v / accel) + (d - 2.0 * d_acc) / v
 
 
+
+# --- pen that never lifts: one continuous route ------------------------------------------------
+
+def _nearest_on(pl, pt):
+    """(index, distance) of the point of polyline pl closest to pt."""
+    best = (0, float("inf"))
+    for k, q in enumerate(pl):
+        d = math.hypot(q[0] - pt[0], q[1] - pt[1])
+        if d < best[1]:
+            best = (k, d)
+    return best
+
+
+def plan_continuous(pls, jump_ok=None, tol=None):
+    """Route for a pen that NEVER lifts.
+
+    Skeleton strokes meet at junctions (a branch usually ends on the middle of another stroke).
+    Each connected group of strokes is drawn as one walk: draw a stroke, and for every undrawn
+    stroke touching it, retrace along the already-drawn ink to the junction, draw the child
+    (recursively), and retrace back. Retracing leaves no new mark. Only the hops between
+    groups that do not touch are visible, and those are ordered nearest-first.
+
+    Returns ([route_polyline], visible_hop_mm)."""
+    jump_ok = config.JUMP_OK_MM if jump_ok is None else jump_ok
+    tol = config.JOIN_TOL_MM if tol is None else tol
+    pls = [list(pl) for pl in pls if len(pl) >= 2]
+    n = len(pls)
+    if not n:
+        return [], 0.0
+    # junctions: endpoint of stroke a touches point k of stroke b
+    touch = [[] for _ in range(n)]                     # touch[b] = [(a, end_of_a, k_on_b)]
+    for a in range(n):
+        for end in (0, len(pls[a]) - 1):
+            pt = pls[a][end]
+            for b in range(n):
+                if a == b:
+                    continue
+                k, d = _nearest_on(pls[b], pt)
+                if d <= tol:
+                    touch[b].append((a, end, k))
+    drawn = [False] * n
+    route = []
+    visible = 0.0
+
+    def walk(i, forward):
+        """Draw stroke i (from its start if forward), visiting touching children on the way back."""
+        pl = pls[i] if forward else pls[i][::-1]
+        drawn[i] = True
+        route.extend(pl if not route or route[-1] != pl[0] else pl[1:])
+        # children hanging off this stroke, in the order we pass them walking back to the start
+        kids = []
+        for (a, end, k) in touch[i]:
+            if not drawn[a]:
+                kk = k if forward else len(pls[i]) - 1 - k
+                kids.append((kk, a, end))
+        kids.sort(key=lambda t: -t[0])                # from the far end back towards the start
+        pos = len(pl) - 1
+        for kk, a, end in kids:
+            if drawn[a]:
+                continue
+            # retrace along this stroke from pos back to the junction kk (no new ink)
+            if kk < pos:
+                route.extend(pl[kk:pos][::-1])
+            elif kk > pos:
+                route.extend(pl[pos + 1:kk + 1])
+            pos = kk
+            walk(a, forward=(end == 0))               # child starts at the end that touches us
+            route.append(pl[kk])                       # back at the junction after the child
+        # finish at the far end again is not needed: we end wherever we are
+
+    remaining = list(range(n))
+    cur = (0.0, 0.0)
+    while remaining:
+        # nearest undrawn stroke end to where the pen is
+        best = None
+        for i in remaining:
+            for fwd, pt in ((True, pls[i][0]), (False, pls[i][-1])):
+                d = math.hypot(pt[0] - cur[0], pt[1] - cur[1])
+                if best is None or d < best[0]:
+                    best = (d, i, fwd)
+        d, i, fwd = best
+        if route:
+            visible += d                               # a visible hop between groups
+        walk(i, fwd)
+        cur = route[-1]
+        remaining = [k for k in remaining if not drawn[k]]
+    return [route], visible
+
+
 def stats(pls, machine=None):
     """Stroke counts and an HONEST time estimate.
 

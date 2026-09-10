@@ -114,14 +114,18 @@ COMFYUI_CHECKPOINT = _env("COMFYUI_CHECKPOINT", "dreamshaper_8.safetensors")   #
 COMFYUI_STEPS = _env("COMFYUI_STEPS", 22)             # DreamShaper: 20-25 pasos (sd_turbo usa 4)
 COMFYUI_CFG = _env("COMFYUI_CFG", 7.0)                # DreamShaper: ~7 (sd_turbo usa 1.0)
 COMFYUI_TIMEOUT = _env("COMFYUI_TIMEOUT", 240.0)      # seconds to wait for the image
+# The pen never lifts on this machine, so the picture itself is asked for as one-line art:
+# fewer, longer strokes, and the few hops that remain look like part of the style.
+ONE_LINE_STYLE = _env("ONE_LINE_STYLE", False)  # tested: one-line art loses the subject; coloring-book keeps it
 STYLE_PROMPT = (
     # OUTLINES ONLY. Every filled area the model paints becomes dozens of plotter strokes, so the
     # prompt asks for a coloring-book page: thin clean contours, white inside, nothing shaded.
-    "(black line drawing:1.4), (coloring book style:1.3), no frame, no border, clean thin black outlines only, white background, "
+    ("(single continuous line drawing:1.4), one line art, minimalist, " if ONE_LINE_STYLE else "(coloring book style:1.3), ")
+    + "(black outline drawing on white paper:1.3), (white background:1.4), no frame, no border, clean thin outlines only, "
     "no shading, no fill, no color, no texture, very few lines, bold simple shapes, centered, one scene, "
     "Peruvian Andean folk art style"
 )
-NEGATIVE_PROMPT = ("(photograph:1.4), (photorealistic:1.4), grayscale photo, 3d render, color, colored, painting, shading, gradient, filled areas, solid black, silhouette, "
+NEGATIVE_PROMPT = ("(black background:1.6), dark background, inverted colors, vignette, circle frame, (photograph:1.4), (photorealistic:1.4), grayscale photo, 3d render, color, colored, painting, shading, gradient, filled areas, solid black, silhouette, "
                    "hatching, crosshatch, texture, pattern, decorative border, frame, photo, realistic, "
                    "3d, blurry, text, watermark, noise, busy, cluttered, many objects")
 
@@ -130,6 +134,11 @@ TRACE_MODE = _env("TRACE_MODE", "lines")   # "lines" = threshold + thinning (for
 TRACE_MAX_PX = _env("TRACE_MAX_PX", 600)   # working resolution (longest side)
 CANNY_LOW = _env("CANNY_LOW", 60)
 CANNY_HIGH = _env("CANNY_HIGH", 160)
+# Pen always down: route the jumps between strokes back over lines already drawn (invisible)
+# instead of straight across the paper; jumps shorter than this are just drawn.
+CONTINUOUS_LINE = _env("CONTINUOUS_LINE", True)
+JUMP_OK_MM = _env("JUMP_OK_MM", 3.0)
+JOIN_TOL_MM = _env("JOIN_TOL_MM", 8.0)     # a stroke ending within 8 mm of another joins it (short bridge, no crossing)
 # Filled areas in the image are drawn as ONE contour line instead of being hatched by the skeleton
 # (a black shape used to become dozens of strokes). FILL_THICK_PX: a region thicker than this is a fill.
 # Strokes that run around (almost) the whole picture are a decorative frame the model added,
@@ -158,7 +167,8 @@ MARGIN_MM = _env("MARGIN_MM", 2.0)       # con 15 mm de ancho no cabe mas margen
 DRAW_FEED = _env("DRAW_FEED", 100)        # mm/min PEDIDOS: esta maquina recorre ~10-20x lo pedido (sin calibrar)
 TRAVEL_FEED = _env("TRAVEL_FEED", 150)    # mm/min pen up (pedidos)
 PEN_FEED = _env("PEN_FEED", 300)          # mm/min Z moves
-PEN_MODE = _env("PEN_MODE", "z")          # "z" = Z stepper lift, "servo" = grbl-servo M3/M5 on D11
+PEN_MODE = _env("PEN_MODE", "none")       # "none" = the pen NEVER lifts (Ignacio's machine): drawings are planned as one
+                                          # continuous line. "z" = Z stepper lift, "servo" = grbl-servo M3/M5 on D11
 PEN_UP_Z = _env("PEN_UP_Z", 15.0)      # el Z no esta calibrado: 3-4 mm pedidos no despegaban el plumon; 15 si
 PEN_DOWN_Z = _env("PEN_DOWN_Z", 0.0)
 SERVO_UP = _env("SERVO_UP", 90)           # M3 S<value> when PEN_MODE = servo
