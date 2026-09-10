@@ -138,6 +138,7 @@ CANNY_HIGH = _env("CANNY_HIGH", 160)
 # instead of straight across the paper; jumps shorter than this are just drawn.
 CONTINUOUS_LINE = _env("CONTINUOUS_LINE", True)
 JUMP_OK_MM = _env("JUMP_OK_MM", 3.0)
+MAX_RETRACE_MM = _env("MAX_RETRACE_MM", 1500.0)  # how far the pen may go back over drawn ink to avoid a visible hop
 JOIN_TOL_MM = _env("JOIN_TOL_MM", 8.0)     # a stroke ending within 8 mm of another joins it (short bridge, no crossing)
 # Filled areas in the image are drawn as ONE contour line instead of being hatched by the skeleton
 # (a black shape used to become dozens of strokes). FILL_THICK_PX: a region thicker than this is a fill.

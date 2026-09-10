@@ -387,8 +387,24 @@ def plan_continuous(pls, jump_ok=None, tol=None):
                 if best is None or d < best[0]:
                     best = (d, i, fwd)
         d, i, fwd = best
+        if route and d > jump_ok:
+            # instead of a straight line across the picture, go BACK over the ink already drawn
+            # to the drawn point nearest the new group, and hop from there (shortest visible gap)
+            target = pls[i][0] if fwd else pls[i][-1]
+            step = max(1, len(route) // 4000)
+            bi, bd = len(route) - 1, d
+            for k in range(0, len(route), step):
+                q = route[k]
+                dk = math.hypot(q[0] - target[0], q[1] - target[1])
+                if dk < bd:
+                    bi, bd = k, dk
+            retrace = sum(math.hypot(route[k + 1][0] - route[k][0], route[k + 1][1] - route[k][1])
+                          for k in range(bi, len(route) - 1))
+            if bd < d - 2.0 and retrace <= config.MAX_RETRACE_MM:
+                route.extend(route[bi:len(route) - 1][::-1])   # walk back along the drawn route
+                d = bd
         if route:
-            visible += d                               # a visible hop between groups
+            visible += d                               # what is left is a real gap in the picture
         walk(i, fwd)
         cur = route[-1]
         remaining = [k for k in remaining if not drawn[k]]
