@@ -21,7 +21,7 @@ def pen_down():
     if config.PEN_MODE == "servo":
         return [f"M3 S{int(config.SERVO_DOWN)}", "G4 P0.25"]
     # a short pause once the pen lands, so the first millimetre of every stroke is not faint
-    return [f"G1 Z{config.PEN_DOWN_Z:.2f} F{int(config.PEN_FEED)}", "G4 P0.15"]
+    return [f"G1 Z{config.PEN_DOWN_Z:.2f} F{int(config.PEN_FEED)}", "G4 P0.05"]
 
 
 def home_sweep():

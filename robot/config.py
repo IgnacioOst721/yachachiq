@@ -118,7 +118,7 @@ STYLE_PROMPT = (
     # OUTLINES ONLY. Every filled area the model paints becomes dozens of plotter strokes, so the
     # prompt asks for a coloring-book page: thin clean contours, white inside, nothing shaded.
     "simple coloring book page, clean thin black outlines only, white background, "
-    "no shading, no fill, no color, no texture, minimal details, centered, one scene, "
+    "no shading, no fill, no color, no texture, very few lines, bold simple shapes, centered, one scene, "
     "Peruvian Andean folk art style"
 )
 NEGATIVE_PROMPT = ("color, colored, painting, shading, gradient, filled areas, solid black, silhouette, "
@@ -135,8 +135,8 @@ CANNY_HIGH = _env("CANNY_HIGH", 160)
 FILL_TO_OUTLINE = _env("FILL_TO_OUTLINE", True)
 FILL_THICK_PX = _env("FILL_THICK_PX", 4)
 SIMPLIFY_EPS_PX = _env("SIMPLIFY_EPS_PX", 0.6)   # Douglas-Peucker tolerance in pixels (0.6 = curvas mas fieles)
-MIN_STROKE_PX = _env("MIN_STROKE_PX", 20.0)      # drop strokes shorter than this (pixels)
-MAX_STROKES = _env("MAX_STROKES", 350)           # keep the longest N strokes. Measured with DreamShaper
+MIN_STROKE_PX = _env("MIN_STROKE_PX", 45.0)      # drop strokes shorter than this (pixels)
+MAX_STROKES = _env("MAX_STROKES", 70)           # keep the longest N strokes. Measured with DreamShaper
                                                 # line art: 350 ~= 9 min of plotting, 900 ~= 11 min.
                                                 # Lower it (or raise MIN_STROKE_PX) for a faster demo.
 
@@ -148,9 +148,9 @@ PAPER_H_MM = _env("PAPER_H_MM", 30.0)     # alto en Y: chico a proposito para pr
 MARGIN_MM = _env("MARGIN_MM", 2.0)       # con 15 mm de ancho no cabe mas margen
 DRAW_FEED = _env("DRAW_FEED", 600)        # mm/min pen down (600: lineas mas limpias en esta maquina)
 TRAVEL_FEED = _env("TRAVEL_FEED", 1500)   # mm/min pen up
-PEN_FEED = _env("PEN_FEED", 300)          # mm/min Z moves
+PEN_FEED = _env("PEN_FEED", 600)          # mm/min Z moves
 PEN_MODE = _env("PEN_MODE", "z")          # "z" = Z stepper lift, "servo" = grbl-servo M3/M5 on D11
-PEN_UP_Z = _env("PEN_UP_Z", 5.0)
+PEN_UP_Z = _env("PEN_UP_Z", 2.0)
 PEN_DOWN_Z = _env("PEN_DOWN_Z", 0.0)
 SERVO_UP = _env("SERVO_UP", 90)           # M3 S<value> when PEN_MODE = servo
 SERVO_DOWN = _env("SERVO_DOWN", 30)
@@ -158,7 +158,7 @@ SERVO_DOWN = _env("SERVO_DOWN", 30)
 # maquina no tiene finales de carrera) y fijar ahi el origen. Ignacio: ~100 mm izquierda, ~50 abajo.
 HOME_SWEEP = _env("HOME_SWEEP", True)
 HOME_SWEEP_X = _env("HOME_SWEEP_X", 100.0)
-HOME_SWEEP_Y = _env("HOME_SWEEP_Y", 25.0)
+HOME_SWEEP_Y = _env("HOME_SWEEP_Y", 10.0)
 HOME_SWEEP_FEED = _env("HOME_SWEEP_FEED", 400)
 MOCK_LINE_DELAY = _env("MOCK_LINE_DELAY", 0.004)   # seconds per G-code line in mock plotter (UI animation)
 
