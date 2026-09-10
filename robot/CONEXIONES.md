@@ -222,8 +222,10 @@ Todo arranca solo. El orden que evita sorpresas:
    encenderla: el robot lo detecta solo y el chip de arriba pasa de `plotter: mock` a `real`).
 3. **Pi**: cámaras y micrófono en los USB, pantalla táctil, corriente. En ~40 s aparece la pantalla
    de bienvenida.
-4. **Origen del papel**: con el lápiz en la esquina del papel, en la pantalla → ⚙ → *fijar origen*
-   (manda `G92`). Solo una vez por sesión, mientras no se apague el Arduino.
+4. **Origen del papel**: lleva el lápiz a mano a la esquina inferior izquierda del papel. Cada
+   dibujo toma como 0,0 el punto donde está el lápiz al empezar (`G10 L20`, sobrevive apagar el
+   Arduino) y al terminar vuelve a ese punto. ⚙ → *fijar origen* solo hace falta si moviste el
+   lápiz con las flechas de la pantalla.
 5. **Prueba de humo**: ⚙ → *Dibujo de prueba (casa)*. Si dibuja, todo el camino funciona.
 
 Comprobaciones rápidas desde la Mac (por el cable, `ssh admin@192.168.7.2`; por wifi,

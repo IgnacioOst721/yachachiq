@@ -158,16 +158,19 @@ MAX_STROKES = _env("MAX_STROKES", 160)           # keep the longest N strokes. M
 # --- Plotter (Arduino UNO + CNC Shield + grbl-servo, over USB) ----------------------
 SERIAL_PORT = _env("SERIAL_PORT", "/dev/ttyACM0")   # Pi: /dev/ttyACM0 or /dev/ttyUSB0; Mac: /dev/cu.usbmodem*
 BAUD_RATE = 115200
-PAPER_W_MM = _env("PAPER_W_MM", 15.0)     # ANCHO visto de frente = riel de arriba (GRBL Y): 15 mm pedidos = tope
-PAPER_H_MM = _env("PAPER_H_MM", 24.0)     # ALTO visto de frente = riel izquierdo (GRBL X): 24 mm pedidos = tope
+# Paper as seen from the front. The rails were calibrated with a tape measure on 2026-09-10
+# (arduino/grbl_settings.txt: $100=4.923, $101=4.8 steps/mm), so these are REAL millimetres:
+# 250 mm of travel on the top rail (GRBL Y) and 390 mm on the left rail (GRBL X).
+PAPER_W_MM = _env("PAPER_W_MM", 234.0)    # ANCHO visto de frente = riel de arriba (GRBL Y), 250 mm de recorrido
+PAPER_H_MM = _env("PAPER_H_MM", 374.0)    # ALTO visto de frente = riel izquierdo (GRBL X), 390 mm de recorrido
 # On this machine GRBL's X axis is the LEFT (vertical) rail and Y is the TOP rail. Everything
 # else in the code works in "as seen from the front" coordinates (width along the top rail);
 # gcode.py swaps them when emitting, so drawings come out upright instead of rotated 90 degrees.
 SWAP_XY = _env("SWAP_XY", True)
-MARGIN_MM = _env("MARGIN_MM", 2.0)       # con 15 mm de ancho no cabe mas margen
-DRAW_FEED = _env("DRAW_FEED", 100)        # mm/min PEDIDOS: esta maquina recorre ~10-20x lo pedido (sin calibrar)
-TRAVEL_FEED = _env("TRAVEL_FEED", 150)    # mm/min pen up (pedidos)
-PEN_FEED = _env("PEN_FEED", 300)          # mm/min Z moves
+MARGIN_MM = _env("MARGIN_MM", 8.0)       # keeps the pen 8 mm away from the stops on every side
+DRAW_FEED = _env("DRAW_FEED", 1200)       # mm/min while drawing (the board caps at $110/$111 = 2000)
+TRAVEL_FEED = _env("TRAVEL_FEED", 2500)   # mm/min for the (rare) visible hops; GRBL clamps it to its max
+PEN_FEED = _env("PEN_FEED", 600)          # mm/min Z moves (unused with PEN_MODE = none)
 PEN_MODE = _env("PEN_MODE", "none")       # "none" = the pen NEVER lifts (Ignacio's machine): drawings are planned as one
                                           # continuous line. "z" = Z stepper lift, "servo" = grbl-servo M3/M5 on D11
 PEN_UP_Z = _env("PEN_UP_Z", 15.0)      # el Z no esta calibrado: 3-4 mm pedidos no despegaban el plumon; 15 si

@@ -26,7 +26,9 @@ def open_camera():
     Raspberry Pi / Linux, so the same code runs on both."""
     import cv2
     import sys
-    cam = os.environ.get("ASL_CAMERA", "0")
+    # ASL_CAMERA is this app's own name; YACHACHIQ_LSP_CAMERA is what the robot config calls
+    # the same camera, so one setting in the service drop-in is enough for both programs.
+    cam = os.environ.get("ASL_CAMERA") or os.environ.get("YACHACHIQ_LSP_CAMERA") or "0"
     if cam.startswith("/dev/"):                      # ruta fija (no cambia al reiniciar)
         cap = cv2.VideoCapture(cam, cv2.CAP_V4L2)
         _tune_v4l2(cap, cv2)

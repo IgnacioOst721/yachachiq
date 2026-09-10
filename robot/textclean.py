@@ -119,13 +119,20 @@ def llm(text, lang="spanish"):
         try:
             if backend == "remote":
                 import requests
-                r = requests.post(f"{config.AI_SERVER_URL.rstrip('/')}/correct",
-                                  json={"text": text, "lang": lang}, timeout=(3, 45))
+                import laptop
+                u = laptop.url(8600)
+                if not u:
+                    raise RuntimeError("ai_server no está corriendo en la laptop")
+                r = requests.post(f"{u}/correct", json={"text": text, "lang": lang}, timeout=(3, 45))
                 r.raise_for_status()
                 out = (r.json() or {}).get("text", "")
             elif backend == "ollama":
                 import requests
-                r = requests.post(f"{config.OLLAMA_URL.rstrip('/')}/api/generate",
+                import laptop
+                u = laptop.url(11434)
+                if not u:
+                    raise RuntimeError("Ollama no está corriendo en la laptop")
+                r = requests.post(f"{u}/api/generate",
                                   json={"model": config.OLLAMA_MODEL, "prompt": prompt, "stream": False},
                                   timeout=(3, 60))
                 r.raise_for_status()

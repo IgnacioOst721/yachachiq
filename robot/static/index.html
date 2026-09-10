@@ -86,6 +86,11 @@
   #signStage .frase{position:absolute;left:0;right:0;bottom:0;padding:.6rem .9rem;background:rgba(36,27,26,.82);
     color:var(--papel);font-size:1.35rem;letter-spacing:.08em;min-height:2.6rem;text-align:left}
   #signStage .frase i{opacity:.55;font-style:normal;animation:parpadea 1s steps(2) infinite}
+  #signStage .camoff{position:absolute;inset:0;display:none;place-items:center;text-align:center;padding:1.2rem;
+    background:rgba(17,17,17,.88);color:var(--papel);font-size:1.25rem;line-height:1.4}
+  #signStage .camoff.on{display:grid}
+  .hint.err{color:var(--rojo);font-weight:700;font-style:normal;font-size:1.15rem;max-width:40rem}
+  #photoBox img{max-width:100%;border:1px solid var(--hilo);margin-top:.4rem}
   @keyframes parpadea{50%{opacity:0}}
   #signStage .aviso{display:flex;gap:.7rem;align-items:center;justify-content:center;flex-wrap:wrap;
     font-size:.95rem;color:#6b5a4a;text-align:center}
@@ -184,7 +189,7 @@
     </div>
 
     <div id="signStage">
-      <div class="marco"><img id="sImg" alt="cámara de señas"><div class="letra" id="sLetra">·</div><div class="frase" id="sFrase"><i>▌</i></div></div>
+      <div class="marco"><img id="sImg" alt="cámara de señas"><div class="letra" id="sLetra">·</div><div class="frase" id="sFrase"><i>▌</i></div><div class="camoff" id="sOff"></div></div>
       <div class="aviso"><span>Seña letra por letra</span>·<span>baja la mano para separar palabras</span>·<span><b>dos palmas abiertas 2 s = enviar</b></span></div>
       <button class="btn" id="sVolver">← elegir otra forma</button>
     </div>
@@ -248,6 +253,9 @@
       <h4>Cámaras</h4>
       <div class="small" id="cams">…</div>
       <div class="row"><button class="btn" id="photoTest">Probar foto del dibujo</button></div>
+      <div id="photoBox"></div>
+      <h4>Laptop (dibujos con IA)</h4>
+      <div class="small" id="laptopTxt">…</div>
       <h4>Estado</h4>
       <div class="small" id="modesTxt"></div>
     </div>
@@ -289,8 +297,10 @@ const LABELS={
   publishing:["Guardando en el archivo…",""],
   narrating:["Contando la historia…",""],
   done:["¡Listo!","cuando quieras, cuenta otra"],
+  returning:["Volviendo al inicio…","el lápiz regresa a su punto de partida"],
   error:["Ups, algo falló","habla de nuevo para reintentar"],
 };
+let escena="";
 let state="idle", ws, lspTimer, lspLast=0, listenT0=null;
 function toast(m){$("toast").textContent=m;$("toast").classList.add("on");setTimeout(()=>$("toast").classList.remove("on"),2200)}
 function showStage(){
@@ -301,11 +311,11 @@ function showStage(){
   document.body.classList.toggle("modo-senas", signs);
   // stream continuo mientras se seña; al salir se corta la conexión
   const img=$("sImg"); if(signs){ if(!img.dataset.live){ img.src="/api/lsp/stream"; img.dataset.live="1"; } }
-  else if(img.dataset.live){ img.removeAttribute("src"); delete img.dataset.live; }
+  else if(img.dataset.live){ img.removeAttribute("src"); delete img.dataset.live; $("sOff").classList.remove("on"); }
   $("ring").style.display = (idle||signs) ? "none" : "grid";
   $("bar").style.display  = (idle||signs) ? "none" : "block";
   // salida siempre visible mientras el robot trabaja: nadie se queda atrapado en una pantalla
-  const ocupado = !idle && !signs && state !== "consent";
+  const ocupado = !idle && !signs && state !== "consent" && state !== "returning";
   $("volver").classList.toggle("on", ocupado);
   if(!ocupado) resetVolver();
   if(ocupado) $("volver").textContent = (state === "drawing") ? "Detener el dibujo" : "← Empezar de nuevo";
@@ -337,9 +347,12 @@ function setState(s,extra){
     publishing:"Subiendo tu historia al archivo…",
     narrating:"Escucha tu historia contada de vuelta.",
     done:"Tu historia y tu dibujo quedaron guardados. Cuando quieras contar otra, solo empieza a hablar.",
+    returning:"Un momento: el lápiz vuelve al punto de inicio antes de la próxima historia.",
   };
-  if(s==="error"&&extra&&extra.error){$("hint").textContent=extra.error}
-  else if(HINTS[s]){$("hint").textContent=HINTS[s]}
+  if(s==="listening"||s==="waiting_signs") escena="";
+  $("hint").classList.toggle("err", s==="error");
+  if(s==="error"&&extra&&extra.error){$("hint").textContent="⚠ "+extra.error+" — Elige cómo contar tu historia para intentarlo otra vez."}
+  else if(HINTS[s]){$("hint").textContent=HINTS[s]+(((s==="imagining"||s==="drawing")&&escena)?" · Dibujo: "+escena:"")}
 }
 function chips(m){
   const box=$("chips"); box.innerHTML="";
@@ -368,13 +381,16 @@ function handle(ev,d){
   if(ev==="modes"){ chips(d||{}); return; }
   if(ev==="cleaned"){ const n=$("corregido");
     if(n){ n.style.display="block"; n.innerHTML="✎ texto corregido — "+d.notes.join(" · "); } return; }
-  if(ev==="analysis"){ $("hint").textContent=(d.title?`«${d.title}» · `:"")+(d.scene||""); return; }
-  if(ev==="image"){ $("svgbox").innerHTML=d.svg; stats(d.stats,d.source); return; }
+  if(ev==="analysis"){ escena=(d.title?`«${d.title}» · `:"")+(d.scene||""); $("hint").textContent=escena; return; }
+  if(ev==="image"){ $("svgbox").innerHTML=d.svg; stats(d.stats,d.source);
+    if(d.source==="motifs"&&d.errors&&d.errors.length){ toast("La laptop no respondió: dibujo con motivos andinos"); $("hint").textContent="La laptop con la IA no respondió, así que el dibujo sale con motivos andinos. "+(escena||""); }
+    return; }
   if(ev==="progress"){ $("barI").style.width=d.pct+"%"; $("bigS").textContent=`${d.pct}% · ${d.sent}/${d.total} líneas`; return; }
   if(ev==="narration"){ return; }   // la tarjeta se quitó; el texto sigue en los datos para el parlante
   if(ev==="backend"){ if(d.stage==="image") $("bigS").textContent="imagen: "+d.backend; return; }
   if(ev==="photo"){ toast(d.ok?"Foto del dibujo guardada":"No se pudo tomar la foto"); return; }
-  if(ev==="published"){ const s=d.status; toast(s==="published"?`Publicado en la web (${d.new})`:s==="offline"?"Sin internet: guardado, se subirá después":s==="mock"?"Publicación simulada":"Archivo: "+s); return; }
+  if(ev==="published"){ const s=d.status;
+    toast(s==="published"?`Publicado en la web (${d.new})`:(s==="offline"||s==="queued")?"Guardada: se publica en la web apenas haya internet":s==="mock"?"Publicación simulada":s==="error"?"No se pudo publicar ahora; se reintenta luego":s==="nothing"?"Archivo al día":"Archivo: "+s); return; }
   if(ev==="consent_start"){ cOpen(d.seconds); return; }
   if(ev==="consent_tick"){ cTick(d); return; }
   if(ev==="consent_result"){ cResult(d); return; }
@@ -422,10 +438,16 @@ $("volver").onclick=()=>{
 $("sVolver").onclick=()=>post("/api/mode",{mode:null});
 $("big").onclick=()=>{ if(state==="idle"||state==="done"||state==="error") send("start"); else if(state==="listening") send("stop"); };
 document.addEventListener("keydown",e=>{ if(e.code==="Space"&&!$("menu").classList.contains("on")){e.preventDefault();$("big").click();} if(e.key==="Escape"){ send("cancel"); $("menu").classList.remove("on"); } });
-$("gear").onclick=()=>{ $("menu").classList.add("on"); fetch("/api/cameras").then(r=>r.json()).then(c=>{ $("cams").innerHTML=(c.cameras&&c.cameras.length?c.cameras.map(x=>`<code>${x}</code>`).join("<br>"):"(sin cámaras por id; en Mac se usan índices)")+`<br>foto: <code>${c.photo||"primera"}</code> · señas: <code>${c.lsp||"primera"}</code>`; }).catch(()=>{}); };
+$("gear").onclick=()=>{ $("menu").classList.add("on");
+  $("laptopTxt").textContent="buscando la laptop en la red…";
+  fetch("/api/laptop").then(r=>r.json()).then(l=>{ $("laptopTxt").innerHTML = l.host
+    ? `Laptop encontrada en <code>${l.host}</code> (${l.how}) · ComfyUI ✓${l.ai_server?" · ai_server ✓":""}`
+    : `<b style="color:#8a3a1a">Laptop no encontrada</b> (${l.how}): los dibujos saldrán con motivos andinos, sin IA. Revisa que la Mac esté en la misma red con ComfyUI abierto.`; }).catch(()=>{ $("laptopTxt").textContent="no pude consultar"; });
+  fetch("/api/cameras").then(r=>r.json()).then(c=>{ $("cams").innerHTML=(c.cameras&&c.cameras.length?c.cameras.map(x=>`<code>${x}</code>`).join("<br>"):"(sin cámaras por id; en Mac se usan índices)")+`<br>foto: <code>${c.photo||"primera"}</code> · señas: <code>${c.lsp||"primera"}</code>`; }).catch(()=>{}); };
 $("closeMenu").onclick=()=>$("menu").classList.remove("on");
-$("sendTxt").onclick=()=>{ const t=$("txt").value.trim(); if(!t)return; send("story",{text:t}); $("menu").classList.remove("on"); };
-$("redraw").onclick=()=>{ send("redraw"); $("menu").classList.remove("on"); };
+$("sendTxt").onclick=()=>{ const t=$("txt").value.trim(); if(!t)return;
+  post("/api/story",{text:t}).then(r=>{ if(r&&!r.ok) toast("El robot está ocupado: espera a que termine"); else if(r) $("menu").classList.remove("on"); }); };
+$("redraw").onclick=()=>post("/api/redraw").then(r=>{ if(r&&!r.ok) toast("No hay un dibujo anterior, o el robot está ocupado"); else if(r) $("menu").classList.remove("on"); });
 $("cancel").onclick=()=>{ send("cancel"); toast("Cancelado"); };
 document.querySelectorAll(".jog [data-j]").forEach(b=>b.onclick=()=>{ const [x,y,z]=b.dataset.j.split(",").map(Number); const s=Number($("step").value); post("/api/jog",{dx:x*s,dy:y*s,dz:z*(z?Math.min(s,5):0)}); });
 $("penUp").onclick=()=>post("/api/pen",{up:true}); $("penDown").onclick=()=>post("/api/pen",{up:false});
@@ -444,8 +466,17 @@ $("calAplicar").onclick=()=>{ const eje=$("calEje").value, m=Number($("calMedido
     else toast("No se aplicó: "+(r.error||"error")); }); };
 fetch("/api/plotter/steps").then(r=>r.json()).then(d=>{ if(d&&d.X) $("calInfo").textContent=`X ${d.X} · Y ${d.Y} pasos/mm`; }).catch(()=>{});
 $("settings").onclick=()=>post("/api/plotter/settings").then(r=>r&&toast("Settings GRBL cargados"));
-$("testDraw").onclick=()=>post("/api/plotter/test").then(r=>{ if(r){toast("Dibujando la casa de prueba"); $("menu").classList.remove("on");} });
-$("photoTest").onclick=()=>{ window.open("/api/photo/test","_blank"); };
+$("testDraw").onclick=()=>post("/api/plotter/test").then(r=>{ if(r&&r.ok){toast("Dibujando la casa de prueba"); $("menu").classList.remove("on");} else if(r) toast("No pude empezar: el robot está ocupado"); });
+$("photoTest").onclick=()=>{ $("photoBox").innerHTML='<span class="small">tomando la foto…</span>'; const im=new Image(); im.alt="foto de prueba";
+  im.onload=()=>{ $("photoBox").innerHTML=""; $("photoBox").appendChild(im); }; im.onerror=()=>{ $("photoBox").innerHTML='<span class="small" style="color:#8a3a1a">No se pudo tomar la foto: revisa la cámara del dibujo.</span>'; };
+  im.src="/api/photo/test?t="+Date.now(); };
+// sign camera liveness: the MJPEG stream never "ends" when the camera app dies, so ask the server
+// every 2 s whether fresh frames are arriving and say so instead of showing a frozen or black box
+setInterval(()=>{ if(state!=="waiting_signs") return;
+  fetch("/api/lsp/frame.jpg",{cache:"no-store"}).then(r=>{ const off=r.status!==200; const img=$("sImg");
+    $("sOff").classList.toggle("on",off);
+    if(off){ $("sOff").textContent="No llega imagen de la cámara de señas. Revisa que esté conectada; se reconecta sola."; if(img.dataset.live){ img.removeAttribute("src"); delete img.dataset.live; } }
+    else if(!img.dataset.live){ img.src="/api/lsp/stream"; img.dataset.live="1"; } }).catch(()=>{}); },2000);
 let cTimer=null;
 function cOpen(sec){ $("cres").className="cres"; $("cres").textContent=""; $("ccount").textContent=sec; $("cst").className="st"; $("cst").textContent="Mirando la cámara…"; $("consent").classList.add("on");
   clearInterval(cTimer); cTimer=setInterval(()=>{ $("cimg").src="/api/lsp/frame.jpg?t="+Date.now(); },300); }

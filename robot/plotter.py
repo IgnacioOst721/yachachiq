@@ -56,6 +56,7 @@ class Plotter:
         self._lock = threading.Lock()
         self.last_status = ""
         self.missing = False               # True when we are mock only because no board was found
+        self.last_error = None             # why the last run() returned False (GRBL error/alarm)
 
     # --- connection ------------------------------------------------------------------------------
     def connect(self):
@@ -245,8 +246,13 @@ class Plotter:
         while time.time() - t0 < timeout:
             if self._stop.is_set():          # the drawing was cancelled: nothing to wait for
                 return False
-            if self.status() == "Idle":
+            st = self.status()
+            if st == "Idle":
                 return True
+            if st == "Alarm":
+                # it will never go Idle by itself: say so now instead of after ten minutes
+                log.warning("plotter: board in ALARM while waiting for idle (%s)", self.last_status)
+                return False
             time.sleep(0.3)
         log.warning("plotter: still not idle after %ss", timeout)
         return False
@@ -345,6 +351,7 @@ class Plotter:
         self.wait_abort()
         self._stop.clear()
         self._running = True
+        self.last_error = None
         try:
             motion = [l for l in lines if _clean(l)]
             total = len(motion)
@@ -352,10 +359,27 @@ class Plotter:
                 if self._stop.is_set():
                     log.info("plotter run stopped at %d/%d", i, total)
                     return False
-                self.send(line)
+                r = self.send(line)
+                low = str(r).lower()
+                if low.startswith("error") or low.startswith("alarm") or low == "timeout":
+                    # the board refused or lost a line: stop here. Streaming the rest of the
+                    # picture into a board in alarm "finished" a drawing with nothing on paper.
+                    self.last_error = f"GRBL {r} en «{line.strip()}» (línea {i} de {total})"
+                    log.error("plotter: %s", self.last_error)
+                    self._stop.set()
+                    self._abort_thread = threading.Thread(target=self.abort, daemon=True)
+                    self._abort_thread.start()
+                    return False
                 if on_progress and (i % 5 == 0 or i == total):
                     on_progress(i, total)
-            self.wait_idle()
+            if not self.wait_idle():
+                if self._stop.is_set():
+                    return False                   # cancelled while finishing: not an error
+                self.last_error = "la máquina no terminó de moverse (%s)" % (self.last_status or "sin estado")
+                self._stop.set()
+                self._abort_thread = threading.Thread(target=self.abort, daemon=True)
+                self._abort_thread.start()
+                return False
             return True
         finally:
             self._running = False

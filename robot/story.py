@@ -386,7 +386,11 @@ def _validate(d, text, lang):
 
 def _remote(text, lang):
     import requests
-    r = requests.post(f"{config.AI_SERVER_URL.rstrip('/')}/analyze", json={"text": text, "lang": lang},
+    import laptop
+    u = laptop.url(8600)
+    if not u:
+        raise RuntimeError("ai_server no está corriendo en la laptop")
+    r = requests.post(f"{u}/analyze", json={"text": text, "lang": lang},
                       timeout=(3, config.AI_SERVER_TIMEOUT))
     r.raise_for_status()
     return _validate(r.json(), text, lang)
@@ -401,8 +405,12 @@ def _extract_json(s):
 
 def _ollama(text, lang):
     import requests
+    import laptop
+    u = laptop.url(11434)
+    if not u:
+        raise RuntimeError("Ollama no está corriendo en la laptop")
     prompt = f"{_JSON_INSTRUCTIONS}\n\nStory ({lang}):\n{text}"
-    r = requests.post(f"{config.OLLAMA_URL.rstrip('/')}/api/generate",
+    r = requests.post(f"{u}/api/generate",
                       json={"model": config.OLLAMA_MODEL, "prompt": prompt, "stream": False, "format": "json"},
                       timeout=(3, config.AI_SERVER_TIMEOUT))
     r.raise_for_status()

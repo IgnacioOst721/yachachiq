@@ -17,6 +17,7 @@ import uuid
 from pathlib import Path
 
 import config
+import laptop
 import motifs
 import vectorize
 
@@ -89,7 +90,11 @@ def patch_workflow(workflow, positive, negative, size=None, seed=None, checkpoin
     return wf
 
 
-def comfyui_generate(positive, negative, out_path, url=None, workflow_path=None, size=None, timeout=None):
+class Cancelled(Exception):
+    """The visitor pressed 'empezar de nuevo' while the picture was being made."""
+
+
+def comfyui_generate(positive, negative, out_path, url=None, workflow_path=None, size=None, timeout=None, cancelled=None):
     """Run the workflow on ComfyUI and save the first output image to out_path."""
     import requests
     url = (url or config.COMFYUI_URL).rstrip("/")
@@ -111,6 +116,12 @@ def comfyui_generate(positive, negative, out_path, url=None, workflow_path=None,
 
     t0 = time.time()
     while time.time() - t0 < timeout:
+        if cancelled and cancelled():
+            try:                                   # do not let the Mac finish a picture nobody wants
+                requests.post(f"{url}/interrupt", timeout=2)
+            except Exception:
+                pass
+            raise Cancelled("dibujo cancelado")
         h = requests.get(f"{url}/history/{prompt_id}", timeout=(3, 30)).json()
         entry = h.get(prompt_id)
         if entry:
@@ -129,35 +140,29 @@ def comfyui_generate(positive, negative, out_path, url=None, workflow_path=None,
     raise TimeoutError(f"ComfyUI took longer than {timeout:.0f}s")
 
 
-def from_comfyui(analysis):
+def from_comfyui(analysis, cancelled=None):
     png = _out_dir() / f"comfy_{int(time.time())}.png"
-    urls = [config.COMFYUI_URL] + [u for u in config.laptop_urls(8188) if u != config.COMFYUI_URL]
-    last = None
-    for i, u in enumerate(urls):
-        try:
-            comfyui_generate(_prompt(analysis), config.NEGATIVE_PROMPT, png, url=u)
-            try:
-                pls = _trace_with_border(png)
-            except RuntimeError:
-                log.info("comfyui picture traced to nothing (blank or inverted): one more try")
-                comfyui_generate(_prompt(analysis), config.NEGATIVE_PROMPT, png, url=u)
-                pls = _trace_with_border(png)
-            if i:
-                log.info("comfyui reached at %s (the first address did not answer)", u)
-            break
-        except Exception as e:
-            last = e
-            log.info("comfyui at %s: %s", u, str(e)[:90])
-    else:
-        raise last
+    u = laptop.url(8188)
+    if not u:
+        raise RuntimeError("laptop (ComfyUI) no encontrada en la red")
+    comfyui_generate(_prompt(analysis), config.NEGATIVE_PROMPT, png, url=u, cancelled=cancelled)
+    try:
+        pls = _trace_with_border(png)
+    except RuntimeError:
+        log.info("comfyui picture traced to nothing (blank or inverted): one more try")
+        comfyui_generate(_prompt(analysis), config.NEGATIVE_PROMPT, png, url=u, cancelled=cancelled)
+        pls = _trace_with_border(png)
     return {"source": "comfyui", "png_path": str(png), "polylines_mm": pls}
 
 
 # --- diffusers server ------------------------------------------------------------------------
 
-def from_remote(analysis):
+def from_remote(analysis, cancelled=None):
     import requests
-    r = requests.post(f"{config.AI_SERVER_URL.rstrip('/')}/generate",
+    u = laptop.url(8600)
+    if not u:
+        raise RuntimeError("ai_server no está corriendo en la laptop")
+    r = requests.post(f"{u}/generate",
                       json={"prompt": _prompt(analysis), "negative_prompt": config.NEGATIVE_PROMPT, "size": list(config.image_wh())},
                       timeout=(3, config.AI_SERVER_TIMEOUT))
     r.raise_for_status()
@@ -170,7 +175,7 @@ def from_remote(analysis):
 
 # --- offline motifs ------------------------------------------------------------------------------
 
-def from_motifs(analysis):
+def from_motifs(analysis, cancelled=None):
     elements = analysis.get("elements") or []
     pls = motifs.compose(elements, config.PAPER_W_MM, config.PAPER_H_MM, seed=hash(analysis.get("title", "")) & 0xFFFF)
     png = _out_dir() / f"motifs_{int(time.time())}.png"
@@ -202,7 +207,8 @@ def _finish(out, errors):
     return out
 
 
-def generate(analysis, backends=None, on_status=None):
+def generate(analysis, backends=None, on_status=None, cancelled=None):
+    """cancelled: callable -> True when the story was abandoned (the wait for ComfyUI stops)."""
     errors = []
     for name in (backends or config.IMAGE_BACKENDS):
         fn = BACKENDS.get(name)
@@ -211,7 +217,9 @@ def generate(analysis, backends=None, on_status=None):
         try:
             if on_status:
                 on_status(name)
-            return _finish(fn(analysis), errors)
+            return _finish(fn(analysis, cancelled=cancelled), errors)
+        except Cancelled:
+            raise
         except Exception as e:
             log.warning("image backend '%s' failed: %s", name, e)
             errors.append(f"{name}: {e}")

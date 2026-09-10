@@ -1,19 +1,28 @@
 """Store-and-forward publishing of stories to the web gallery (GitHub Pages).
 
-Every story lives in config.STORIES_DIR/<timestamp>/ (story.txt, scene_1.png,
-scene_1_photo.png). sync() copies the new ones into <repo>/docs/stories/,
-rebuilds docs/stories.json and pushes. No internet -> nothing happens, the
-stories wait on the SD card and go up next time. Never raises.
+Every story lives in config.STORIES_DIR/<timestamp>/ (story.txt, scene_1.png, scene_1_photo.png,
+storyteller_photo.jpg). sync() copies the new ones into <archive>/docs/stories/, rebuilds
+docs/stories.json, commits and pushes to `main` (GitHub Pages serves main:/docs).
+
+No internet -> nothing happens: the stories wait on the SD card and go up the next time sync()
+runs (after every story, every few minutes, and after boot). The SD card is the source of truth:
+the archive clone is reset to origin/main before every publish, so a push that failed halfway can
+never wedge publishing for good. A story that made it to the web gets a `.published` marker; one
+the storyteller kept private has `.private`. Never raises.
 """
 import json
 import logging
 import os
 import shutil
 import subprocess
+import threading
+import time
 
 import config
 
 log = logging.getLogger("publish")
+_lock = threading.Lock()
+_again = {"flag": False}
 
 
 def mode():
@@ -24,13 +33,32 @@ def mode():
     return "git"
 
 
-def have_internet(timeout=4):
+def _git(args, cwd, timeout, check=False):
+    return subprocess.run(["git"] + args, cwd=cwd, capture_output=True, text=True, timeout=timeout, check=check)
+
+
+def have_internet(timeout=6):
     try:
-        subprocess.run(["git", "ls-remote", "--exit-code", "-h", "origin"], cwd=str(config.PUBLISH_REPO_DIR),
-                       capture_output=True, timeout=timeout, check=True)
+        _git(["ls-remote", "--exit-code", "-h", "origin", "main"], str(config.PUBLISH_REPO_DIR), timeout, check=True)
         return True
     except Exception:
         return False
+
+
+def _story_dirs(stories_dir):
+    if not os.path.isdir(stories_dir):
+        return []
+    return sorted(d for d in os.listdir(stories_dir)
+                  if os.path.isdir(os.path.join(stories_dir, d))
+                  and os.path.exists(os.path.join(stories_dir, d, "story.txt")))
+
+
+def pending(stories_dir=None):
+    """Stories that said yes to the archive and are not on the web yet."""
+    stories_dir = str(stories_dir or config.STORIES_DIR)
+    return [d for d in _story_dirs(stories_dir)
+            if not os.path.exists(os.path.join(stories_dir, d, ".private"))
+            and not os.path.exists(os.path.join(stories_dir, d, ".published"))]
 
 
 def _index(web_dir):
@@ -52,39 +80,89 @@ def _index(web_dir):
     return out
 
 
+def _publish_once(repo, stories_dir, names):
+    """Reset the archive to the web, add the stories, push. Returns the number pushed."""
+    web = os.path.join(repo, "docs", "stories")
+    _git(["fetch", "-q", "origin", "main"], repo, 90, check=True)
+    _git(["reset", "-q", "--hard", "origin/main"], repo, 30, check=True)
+    _git(["clean", "-fdq", "docs"], repo, 30)
+    os.makedirs(web, exist_ok=True)
+    new = 0
+    for name in names:
+        src, dst = os.path.join(stories_dir, name), os.path.join(web, name)
+        if os.path.exists(dst):
+            shutil.rmtree(dst)
+        shutil.copytree(src, dst, ignore=shutil.ignore_patterns("*.gcode", "*.wav", "*.json", ".private", ".published"))
+        new += 1
+    with open(os.path.join(repo, "docs", "stories.json"), "w", encoding="utf-8") as f:
+        json.dump(_index(web), f, ensure_ascii=False, indent=1)
+    _git(["add", "docs"], repo, 30, check=True)
+    r = _git(["commit", "-q", "-m", f"Publicar {new} historia(s)"], repo, 30)
+    if "nothing to commit" in (r.stdout + r.stderr):
+        return 0
+    _git(["push", "-q", "origin", "HEAD:main"], repo, 180, check=True)
+    return new
+
+
 def sync(stories_dir=None):
-    """Returns dict(status, new). status: off | mock | offline | nothing | published | error."""
+    """Returns dict(status, new). status: off | mock | nothing | offline | published | error."""
     if mode() == "off":
         return {"status": "off", "new": 0}
     stories_dir = str(stories_dir or config.STORIES_DIR)
+    names = pending(stories_dir)
     if mode() == "mock":
-        return {"status": "mock", "new": len(os.listdir(stories_dir)) if os.path.isdir(stories_dir) else 0}
+        return {"status": "mock", "new": len(names)}
+    if not names:
+        return {"status": "nothing", "new": 0}
     repo = str(config.PUBLISH_REPO_DIR)
-    web = os.path.join(repo, "docs", "stories")
+    if not os.path.isdir(os.path.join(repo, ".git")):
+        return {"status": "error", "new": 0, "error": "no hay archivo web (yachachiq-archivo)"}
+    if not have_internet():
+        return {"status": "offline", "new": len(names)}
     try:
-        if not os.path.isdir(stories_dir) or not os.path.isdir(os.path.join(repo, ".git")):
-            return {"status": "error", "new": 0, "error": "no stories dir or repo"}
-        if not have_internet():
-            return {"status": "offline", "new": 0}
-        os.makedirs(web, exist_ok=True)
-        subprocess.run(["git", "pull", "--rebase", "-q"], cwd=repo, capture_output=True, timeout=60)
-        new = 0
-        for name in sorted(os.listdir(stories_dir)):
-            src, dst = os.path.join(stories_dir, name), os.path.join(web, name)
-            if os.path.exists(os.path.join(src, ".private")):
-                continue                                   # the storyteller said no: stays on the robot
-            if os.path.isdir(src) and not os.path.exists(dst) and os.path.exists(os.path.join(src, "story.txt")):
-                shutil.copytree(src, dst, ignore=shutil.ignore_patterns("*.gcode", "*.wav", "*.json", ".private"))
-                new += 1
-        with open(os.path.join(repo, "docs", "stories.json"), "w", encoding="utf-8") as f:
-            json.dump(_index(web), f, ensure_ascii=False, indent=1)
-        subprocess.run(["git", "add", "docs"], cwd=repo, check=True, capture_output=True)
-        r = subprocess.run(["git", "commit", "-q", "-m", f"Publicar {new} historia(s)"], cwd=repo, capture_output=True, text=True)
-        if "nothing to commit" in (r.stdout + r.stderr):
-            return {"status": "nothing", "new": 0}
-        subprocess.run(["git", "push", "-q"], cwd=repo, check=True, capture_output=True, timeout=120)
+        try:
+            new = _publish_once(repo, stories_dir, names)
+        except subprocess.CalledProcessError as e:
+            # somebody else pushed in between (or a stale clone): start over once from the web
+            log.info("publish: retrying after git error: %s", (e.stderr or "")[:200])
+            new = _publish_once(repo, stories_dir, names)
+        for name in names:
+            with open(os.path.join(stories_dir, name, ".published"), "w", encoding="utf-8") as f:
+                f.write(time.strftime("%Y-%m-%d %H:%M:%S"))
         log.info("published %d new stories", new)
         return {"status": "published", "new": new}
     except Exception as e:
-        log.warning("publish failed: %s", e)
-        return {"status": "error", "new": 0, "error": str(e)}
+        err = getattr(e, "stderr", "") or str(e)
+        log.warning("publish failed: %s", str(err)[:300])
+        return {"status": "error", "new": len(names), "error": str(err)[:200]}
+
+
+def sync_later(on_done=None):
+    """Publish in a background thread; returns at once with what is queued.
+    on_done(result) is called from that thread when it finishes."""
+    n = len(pending()) if mode() != "off" else 0
+    if mode() in ("off", "mock") or not n:
+        return sync()
+
+    def work():
+        while True:
+            _again["flag"] = False
+            res = sync()
+            if on_done:
+                try:
+                    on_done(res)
+                except Exception:
+                    pass
+            if not _again["flag"]:
+                break
+
+    if _lock.acquire(blocking=False):
+        def run():
+            try:
+                work()
+            finally:
+                _lock.release()
+        threading.Thread(target=run, daemon=True).start()
+    else:
+        _again["flag"] = True                  # a sync is running: it will go round once more
+    return {"status": "queued", "new": n}

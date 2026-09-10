@@ -24,6 +24,7 @@ from fastapi.responses import StreamingResponse, FileResponse, HTMLResponse, JSO
 from fastapi.staticfiles import StaticFiles
 
 import config
+import laptop
 import photo
 from pipeline import Pipeline
 
@@ -126,7 +127,7 @@ def consent_provider(seconds):
     broadcast("consent_start", {"seconds": seconds})
     t0 = time.time()
     looks, best, best_score = [], b"", -1.0
-    while time.time() - t0 < seconds and not pipe._cancel.is_set():
+    while time.time() - t0 < seconds and not pipe._stale():
         if consent["vote"] is not None:
             break
         frame = _grab_portrait_frame()
@@ -222,7 +223,7 @@ async def ws_endpoint(ws: WebSocket):
                 cmd = json.loads(raw)
             except Exception:
                 continue
-            _command(cmd.get("cmd"), cmd)
+            await run_in_threadpool(_command, cmd.get("cmd"), cmd)
     except WebSocketDisconnect:
         pass
     finally:
@@ -312,7 +313,7 @@ async def api_jog(req: Request):
     b = await req.json()
     if not _free():
         return JSONResponse({"ok": False, "error": "ocupado"}, status_code=409)
-    pipe.plotter.jog(float(b.get("dx", 0)), float(b.get("dy", 0)), float(b.get("dz", 0)))
+    await run_in_threadpool(pipe.plotter.jog, float(b.get("dx", 0)), float(b.get("dy", 0)), float(b.get("dz", 0)))
     return {"ok": True}
 
 
@@ -321,7 +322,7 @@ async def api_pen(req: Request):
     b = await req.json()
     if not _free():
         return JSONResponse({"ok": False}, status_code=409)
-    (pipe.plotter.pen_up if b.get("up", True) else pipe.plotter.pen_down)()
+    await run_in_threadpool(pipe.plotter.pen_up if b.get("up", True) else pipe.plotter.pen_down)
     return {"ok": True}
 
 
@@ -329,7 +330,7 @@ async def api_pen(req: Request):
 async def api_origin():
     if not _free():
         return JSONResponse({"ok": False}, status_code=409)
-    pipe.plotter.set_origin()
+    await run_in_threadpool(pipe.plotter.set_origin)
     return {"ok": True}
 
 
@@ -337,13 +338,13 @@ async def api_origin():
 async def api_home():
     if not _free():
         return JSONResponse({"ok": False}, status_code=409)
-    pipe.plotter.home_xy()
+    await run_in_threadpool(pipe.plotter.home_xy)
     return {"ok": True}
 
 
 @app.post("/api/unlock")
 async def api_unlock():
-    pipe.plotter.unlock()
+    await run_in_threadpool(pipe.plotter.unlock)
     return {"ok": True}
 
 
@@ -351,7 +352,7 @@ async def api_unlock():
 async def api_settings():
     if not _free():
         return JSONResponse({"ok": False}, status_code=409)
-    pipe.plotter.load_settings(os.path.join(str(config.BASE_DIR), "arduino", "grbl_settings.txt"))
+    await run_in_threadpool(pipe.plotter.load_settings, os.path.join(str(config.BASE_DIR), "arduino", "grbl_settings.txt"))
     return {"ok": True}
 
 
@@ -380,20 +381,34 @@ async def api_test_drawing():
     if not _free():
         return JSONResponse({"ok": False}, status_code=409)
     path = os.path.join(str(config.BASE_DIR), "gcode", "test_drawing.gcode")
-    threading.Thread(target=pipe._draw_file, args=(path,), daemon=True).start()
-    return {"ok": True}
+    return {"ok": pipe.draw_file(path)}
 
 
 @app.get("/api/cameras")
 async def api_cameras():
-    return {"cameras": photo.list_cameras(), "photo": config.PHOTO_CAMERA, "lsp": config.LSP_CAMERA}
+    cams = await run_in_threadpool(photo.list_cameras)
+    return {"cameras": cams, "photo": config.PHOTO_CAMERA, "lsp": config.LSP_CAMERA}
 
 
 @app.get("/api/photo/test")
 async def api_photo_test():
     out = os.path.join(str(config.OUTPUT_DIR), "photo_test.png")
-    ok = photo.capture(out)
-    return FileResponse(out) if ok else JSONResponse({"ok": False, "error": "sin camara"}, status_code=500)
+    ok = await run_in_threadpool(photo.capture, out)
+    return FileResponse(out, headers={"Cache-Control": "no-store"}) if ok else JSONResponse({"ok": False, "error": "sin camara"}, status_code=500)
+
+
+@app.get("/api/laptop")
+async def api_laptop():
+    """Where the laptop (ComfyUI) was found on the network, for the gear menu."""
+    return await run_in_threadpool(laptop.status)
+
+
+@app.post("/api/notice")
+async def api_notice(req: Request):
+    """A message for the visitor from another process (the sign camera app)."""
+    b = await req.json()
+    broadcast("notice", {"text": str(b.get("text", ""))[:300]})
+    return {"ok": True}
 
 
 @app.post("/api/clean")

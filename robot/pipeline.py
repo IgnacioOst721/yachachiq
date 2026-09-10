@@ -55,9 +55,16 @@ class Pipeline:
         threading.Timer(10.0, self._watch_plotter).start()
         self._thread = None
         self._cancel = threading.Event()
+        # Every start and every cancel bumps this. A story thread remembers the value it was
+        # started with; if it differs, the thread is stale (cancelled or replaced by a newer story)
+        # and must not touch the state or the machine. A shared flag was not enough: the next
+        # story cleared it and the cancelled one woke up and drew over the new one.
+        self._gen = 0
+        self._lock = threading.Lock()
         os.makedirs(str(config.OUTPUT_DIR), exist_ok=True)
         os.makedirs(str(config.STORIES_DIR), exist_ok=True)
         self._arm_trigger()
+        threading.Timer(90.0, self._publish_pending).start()
 
     # --- helpers ---------------------------------------------------------------------------------
     def emit(self, event, data=None):
@@ -66,7 +73,15 @@ class Pipeline:
         except Exception as e:      # never let the UI kill the robot
             log.warning("on_event failed: %s", e)
 
+    def _stale(self):
+        """True inside a story thread that was cancelled or superseded by a newer story."""
+        g = getattr(threading.current_thread(), "gen", None)
+        return g is not None and g != self._gen
+
     def _set_state(self, s, **extra):
+        if self._stale():
+            log.info("stale story thread wanted state '%s': ignored", s)
+            return
         self.state = s
         self.emit("state", {"state": s, **extra})
         if s in ("idle", "done", "error"):
@@ -80,9 +95,27 @@ class Pipeline:
         t = getattr(self, "_reset_timer", None)
         if t:
             t.cancel()
-        self._reset_timer = threading.Timer(float(config.IDLE_RESET_SECONDS), self.reset)
+        self._reset_timer = threading.Timer(float(config.IDLE_RESET_SECONDS), self._idle_reset)
         self._reset_timer.daemon = True
         self._reset_timer.start()
+
+    def _idle_reset(self):
+        # only clear a FINISHED story: the timer used to fire while the next visitor was already
+        # signing or had just chosen how to tell theirs, and threw them back to the welcome screen
+        if self.state in ("done", "error"):
+            self.reset()
+
+    def _publish_pending(self):
+        """Every few minutes, push stories that are still waiting for internet (never blocks a visitor)."""
+        try:
+            if publish.pending():
+                publish.sync_later(on_done=lambda r: self.emit("published", r))
+        except Exception as e:
+            log.warning("publish retry failed: %s", e)
+        finally:
+            t = threading.Timer(300.0, self._publish_pending)
+            t.daemon = True
+            t.start()
 
     def reset(self):
         """Back to the welcome screen: forget the last story, drawing and error."""
@@ -180,17 +213,30 @@ class Pipeline:
                                          "o conecta un micrófono."})
             return False
         self._cancel.clear()
+        self._gen += 1
         self.trigger.stop()
         self._set_state("listening")
         def on_level(v):
             self.level = v
             self.emit("level", {"level": v})
-        self.recorder.start(on_level=on_level, on_auto_stop=self.stop_listening)
+        try:
+            self.recorder.start(on_level=on_level, on_auto_stop=self.stop_listening)
+        except Exception as e:
+            log.warning("recorder failed to start: %s", e)
+            self.input_mode = None
+            self._set_state("idle")
+            self.emit("mode", {"mode": None})
+            self.emit("notice", {"text": str(e)})
+            return False
         return True
 
     def stop_listening(self):
-        if self.state != "listening":
-            return False
+        with self._lock:
+            # the silence auto-stop and the visitor's tap can arrive together: only one may
+            # take the recording, or two transcriptions (and two drawings) start at once
+            if self.state != "listening":
+                return False
+            self.state = "transcribing"
         audio = self.recorder.stop()
         if getattr(self.recorder, "no_speech", False):
             # nobody said anything: back to the welcome screen instead of transcribing silence
@@ -208,7 +254,6 @@ class Pipeline:
         text = (text or "").strip()
         if self.busy() or not text:
             return False
-        self._cancel.clear()
         self._start(self._run, text)
         return True
 
@@ -216,21 +261,48 @@ class Pipeline:
         path = os.path.join(str(config.OUTPUT_DIR), "last.gcode")
         if self.busy() or not os.path.exists(path):
             return False
-        self._cancel.clear()
+        self._start(self._draw_file, path)
+        return True
+
+    def draw_file(self, path):
+        """Draw a ready G-code file (the test house), as a proper cancellable story."""
+        if self.busy() or not os.path.exists(path):
+            return False
         self._start(self._draw_file, path)
         return True
 
     def cancel(self):
+        self._gen += 1                     # whatever story thread is running is stale from now on
         self._cancel.set()
+        was_drawing = bool(getattr(self.plotter, "_running", False))
         if self.state == "listening":
             self.recorder.stop()
         self.plotter.stop()
         self.tts.stop()
-        self._set_state("idle")
+        if was_drawing and self.plotter.mode == "real":
+            # the head is travelling back to the origin (~15 s): say so on the screen instead of
+            # showing the welcome chooser while the machine is still moving
+            self._set_state("returning")
+
+            def back():
+                self.plotter.wait_abort()
+                if self.state == "returning":
+                    self.state = "idle"
+                    self.reset()
+            threading.Thread(target=back, daemon=True).start()
+        else:
+            self._set_state("idle")
         return True
 
     def _start(self, fn, *args):
-        self._thread = threading.Thread(target=fn, args=args, daemon=True)
+        self._cancel.clear()
+        self._gen += 1
+        gen = self._gen
+
+        def go():
+            threading.current_thread().gen = gen
+            fn(*args)
+        self._thread = threading.Thread(target=go, daemon=True)
         self._thread.start()
 
     # --- stages -----------------------------------------------------------------------------------
@@ -263,19 +335,26 @@ class Pipeline:
             lang, words = detect_language(text)
             self.emit("language", {"lang": lang, "words": words})
 
+            if self._stale():
+                return
             self._set_state("thinking")
             analysis = story.analyze(text, lang, on_status=lambda b: self.emit("backend", {"stage": "story", "backend": b}))
             self.emit("analysis", analysis)
-            if self._cancel.is_set():
+            if self._stale():
                 return
 
             self._set_state("imagining")
-            img = imagegen.generate(analysis, on_status=lambda b: self.emit("backend", {"stage": "image", "backend": b}))
-            stats = img["stats"]
-            self.last_image = {"svg": img["svg"], "stats": stats, "source": img["source"], "png_path": img.get("png_path")}
-            self.emit("image", self.last_image)
-            if self._cancel.is_set():
+            try:
+                img = imagegen.generate(analysis, on_status=lambda b: self.emit("backend", {"stage": "image", "backend": b}),
+                                        cancelled=self._stale)
+            except imagegen.Cancelled:
                 return
+            if self._stale():
+                return
+            stats = img["stats"]
+            self.last_image = {"svg": img["svg"], "stats": stats, "source": img["source"], "png_path": img.get("png_path"),
+                               "errors": img.get("errors") or []}
+            self.emit("image", self.last_image)
 
             lines = gcode_mod.from_polylines(img["polylines_mm"], analysis.get("title", "historia"))
             gcode_path = os.path.join(str(config.OUTPUT_DIR), "last.gcode")
@@ -313,9 +392,10 @@ class Pipeline:
         if self.plotter.mode != "mock":
             self.plotter.unlock()
         ok = self.plotter.run(lines, on_progress=on_progress)
-        if not ok or self._cancel.is_set():
-            self._set_state("idle")
-            return False
+        if self._stale():
+            return False                       # cancelled: cancel() already put the screen back
+        if not ok:
+            raise RuntimeError("La máquina se detuvo: " + (getattr(self.plotter, "last_error", None) or "dibujo interrumpido"))
         return True
 
     def _draw_file(self, path):
@@ -333,16 +413,24 @@ class Pipeline:
             out = os.path.join(self.story_dir, "scene_1_photo.png")
             ok = photo.capture(out, fallback_png=os.path.join(self.story_dir, "preview.png"))
             self.emit("photo", {"ok": ok, "path": out if ok else None})
+        if self._stale():
+            return
         decision = self._ask_consent()
+        if self._stale():
+            return
         if config.PUBLISH_ENABLED and decision["publish"]:
             self._set_state("publishing")
-            res = publish.sync()
+            # in the background: pushing to the web took up to minutes and froze the visitor's
+            # screen; now the story is queued and goes up whenever there is internet
+            res = publish.sync_later(on_done=lambda r: self.emit("published", r))
             self.emit("published", res)
         elif config.PUBLISH_ENABLED:
             self.emit("published", {"status": "private", "new": 0, "reason": decision["reason"]})
         if not config.SPEAK_WHILE_DRAWING:
             self._set_state("narrating")
             self.tts.speak(analysis.get("narration", ""), blocking=True)
+        if self._stale():
+            return
         self._set_state("done")
 
     def _ask_consent(self):
@@ -360,7 +448,7 @@ class Pipeline:
             except Exception as e:
                 log.warning("consent provider failed: %s", e)
                 d = {"publish": False, "reason": f"error: {e}", "portrait": None}
-        if self._cancel.is_set():
+        if self._stale():
             d = {"publish": False, "reason": "cancelado", "portrait": None}
         if self.story_dir:
             if d.get("portrait") and config.PORTRAIT_ENABLED and d["publish"]:
@@ -396,6 +484,9 @@ class Pipeline:
         return d
 
     def _fail(self, e):
+        if self._stale():
+            log.info("cancelled story ended with: %s", e)
+            return
         log.exception("pipeline error")
         self.last_error = str(e)
         self._set_state("error", error=str(e))

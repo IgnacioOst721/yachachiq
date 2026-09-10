@@ -99,6 +99,20 @@ def robot_send_story(text):
         return False
 
 
+def robot_notice(text):
+    """Show a sentence to the visitor on the kiosk (best effort, never raises)."""
+    if not LSP_ROBOT:
+        return
+    try:
+        import json as _json
+        import urllib.request
+        req = urllib.request.Request(LSP_ROBOT + "/api/notice", data=_json.dumps({"text": text}).encode(),
+                                     headers={"Content-Type": "application/json"})
+        urllib.request.urlopen(req, timeout=2).read()
+    except Exception:
+        pass
+
+
 class RobotState:
     """Follows the robot's state so hand tracking only runs when somebody is actually signing.
 
@@ -146,12 +160,15 @@ class RobotPreview:
         if self.enabled:
             threading.Thread(target=self._loop, daemon=True).start()
 
-    def update(self, frame, text, letter, mode):
+    def update(self, frame, text=None, letter=None, mode=None):
         # copy now: the main loop draws its debug HUD onto `frame` right after this call, and the
-        # kiosk (and the consent portrait) must get the clean picture
+        # kiosk (and the consent portrait) must get the clean picture. The text is only replaced
+        # when given: sending letter="" with every frame made the kiosk flicker between the
+        # recognised letter and a dot.
         self.frame = frame.copy()
         self.seq += 1
-        self.text = (text, letter, mode)
+        if text is not None:
+            self.text = (text, letter or "", mode or "letter")
 
     def _post(self, path, data, ctype):
         # one persistent HTTP connection instead of a new TCP handshake per frame
@@ -485,18 +502,45 @@ def run():
     print("Keyboard:  SPACE=space  DELETE=backspace  C=clear  Q=quit")
     print("           ENTER = send the finished story to the plotter pipeline")
 
+    was_tracking = False
+    read_fails = 0
     while True:
         ok, frame = cap.read()
         if not ok or frame is None:
+            # USB camera dropout: this used to spin at 100% CPU forever with a frozen picture.
+            # Now: wait a little, re-open the camera every ~5 s, and after a minute let systemd
+            # restart the whole app (Restart=always).
+            read_fails += 1
+            if read_fails == 1:
+                print("[LSP] la camara no entrega imagen; reintentando", flush=True)
+            time.sleep(0.05)
+            if read_fails % 100 == 0:
+                cap.release()
+                cap = open_camera()
+            if read_fails > 1200:
+                print("[LSP] la camara no volvio en un minuto: saliendo para que el servicio reinicie", flush=True)
+                raise SystemExit(3)
             continue
+        read_fails = 0
         frame = cv2.flip(frame, 1)
         h, w = frame.shape[:2]
 
         # the picture goes to the kiosk NOW, before the ~70 ms of hand tracking: what you see on
         # the screen is the current frame, the recognised letter arrives a moment later
         if robot.showing():
-            preview.update(frame, typer.text, "", typer.mode)
-        if not robot.tracking():
+            preview.update(frame)
+        tracking = robot.tracking()
+        if was_tracking and not tracking:
+            # the visitor left sign mode (story sent, or chose another way): forget the half-typed
+            # text so it is not glued to the front of the next person's story
+            typer.key_clear()
+            typer.reset()
+            votes.clear()
+            buf.clear()
+            send_start, sent_latch, hand_gone_since = None, False, None
+            preview.text = ("", "", typer.mode)
+        was_tracking = tracking
+        if not tracking:
             # nobody is signing: skip hand tracking entirely
             if not HEADLESS:
                 cv2.imshow("ASL app - Q to quit", frame)
@@ -514,8 +558,9 @@ def run():
         both_open = len(lms) >= 2 and all(is_open_palm(hd) for hd in lms[:2])
         cur, conf = "?", 0.0
         if both_open:
-            for hnd in lms[:2]:
-                mp_draw.draw_landmarks(frame, hnd, mp_hands.HAND_CONNECTIONS)
+            if not HEADLESS:
+                for hnd in lms[:2]:
+                    mp_draw.draw_landmarks(frame, hnd, mp_hands.HAND_CONNECTIONS)
             buf.clear()
             typer.reset()
             cur, conf = "SEND", 1.0
@@ -524,16 +569,24 @@ def run():
             if (time.time() - send_start) >= SEND_HOLD_SECONDS and not sent_latch:
                 if sender:
                     sender.send("ENTER")
-                robot_send_story(typer.text)
-                print("AUTO-SEND - story sent:", repr(typer.text))
-                typer.key_clear()
                 sent_latch = True
+                if not typer.text.strip():
+                    robot_notice("Todavía no hay letras. Seña tu historia letra por letra y luego muestra las dos palmas.")
+                elif robot_send_story(typer.text):
+                    print("AUTO-SEND - story sent:", repr(typer.text))
+                    typer.key_clear()
+                else:
+                    # the robot was busy or unreachable: KEEP the text (it used to be wiped and the
+                    # signed story was silently lost) and tell the visitor what to do
+                    robot_notice("El robot no pudo recibir tu historia todavía. Espera a que termine "
+                                 "y muestra las dos palmas otra vez; tu texto sigue aquí.")
         else:
             send_start = None
             sent_latch = False
             if lms:
                 hand = lms[0]
-                mp_draw.draw_landmarks(frame, hand, mp_hands.HAND_CONNECTIONS)
+                if not HEADLESS:
+                    mp_draw.draw_landmarks(frame, hand, mp_hands.HAND_CONNECTIONS)
                 buf.append(fingertip_xy(hand))
                 feats = augment(np.array([extract_shape(hand) + motion_features(buf)],
                                          dtype=np.float32))
@@ -570,6 +623,11 @@ def run():
             hand_gone_since = None
 
         preview.text = (typer.text, ("SEND" if both_open else (cur.upper() if len(cur) == 1 else cur)), typer.mode)
+
+        if HEADLESS:
+            # No screen and no keyboard on the Pi: the HUD below would be drawn for nobody
+            # (and with an Ñ on screen it cost a full-frame PIL round trip per frame).
+            continue
 
         # current prediction (big), confidence, mode
         if both_open:

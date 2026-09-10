@@ -133,12 +133,12 @@ class Recorder:
             if self._rate != config.SAMPLE_RATE:
                 log.info("microphone at %d Hz, resampling to %d for Whisper", self._rate, config.SAMPLE_RATE)
         except Exception as e:
-            # No microphone plugged in (or busy): keep working instead of crashing.
-            # The UI chip already says "micrófono: mock"; typed text and sign
-            # language still drive the whole pipeline.
-            log.warning("no microphone (%s) -> mock recorder for this session", e)
-            self._stream = None
-            return self._start_fake(on_level, gen)
+            # No microphone (unplugged, busy, wrong device): say so. Pretending to record
+            # 6 s of silence only produced a confusing "habla más cerca del micrófono".
+            log.warning("no microphone: %s", e)
+            self._stream, self.recording = None, False
+            raise RuntimeError("No pude abrir el micrófono. Revisa que esté conectado, "
+                               "o cuenta tu historia en lengua de señas.")
         return True
 
     def _start_fake(self, on_level, gen):
