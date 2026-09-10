@@ -561,6 +561,11 @@ def run():
             if not HEADLESS:
                 for hnd in lms[:2]:
                     mp_draw.draw_landmarks(frame, hnd, mp_hands.HAND_CONNECTIONS)
+            elif robot.showing():
+                dotted = frame.copy()
+                for hnd in lms[:2]:
+                    mp_draw.draw_landmarks(dotted, hnd, mp_hands.HAND_CONNECTIONS)
+                preview.update(dotted)
             buf.clear()
             typer.reset()
             cur, conf = "SEND", 1.0
@@ -587,6 +592,12 @@ def run():
                 hand = lms[0]
                 if not HEADLESS:
                     mp_draw.draw_landmarks(frame, hand, mp_hands.HAND_CONNECTIONS)
+                elif robot.showing():
+                    # the visitor sees the dots on their own hand: without them there is no way to
+                    # tell "the robot does not see my hand" from "it sees it and does not know the sign"
+                    dotted = frame.copy()
+                    mp_draw.draw_landmarks(dotted, hand, mp_hands.HAND_CONNECTIONS)
+                    preview.update(dotted)
                 buf.append(fingertip_xy(hand))
                 feats = augment(np.array([extract_shape(hand) + motion_features(buf)],
                                          dtype=np.float32))
