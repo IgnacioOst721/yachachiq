@@ -116,6 +116,15 @@ LEXICON = {
     "vela": ("a candle", "una vela"), "libro": ("a book", "un libro"),
     "maiz": ("corn plants", "maíz"), "quinua": ("quinoa", "quinua"),
     "trigo": ("wheat", "trigo"), "coca": ("coca leaves", "hojas de coca"),
+    "semilla": ("seeds", "semillas"),
+    # lo sagrado y la tierra (historias de la sierra)
+    "apu": ("a sacred mountain", "el Apu"), "pachamama": ("the earth", "la Pachamama"),
+    "tierra": ("the earth", "la tierra"), "ofrenda": ("an offering", "una ofrenda"),
+    "pago": ("an offering", "un pago a la tierra"), "ancestro": ("ancestors", "los ancestros"),
+    "antepasado": ("ancestors", "los antepasados"), "abuelos": ("grandparents", "los abuelos"),
+    "altiplano": ("the high plateau", "el altiplano"), "altoandin": ("the high plateau", "lo altoandino"),
+    "puna": ("the high plateau", "la puna"), "cosecha_": ("a harvest", "la cosecha"),
+    "espiritu": ("a spirit", "un espíritu"), "inca": ("an Inca", "un inca"),
     "templo": ("an Inca temple", "un templo"), "iglesia": ("a church", "una iglesia"),
     "escuela": ("a school", "una escuela"), "mercado": ("a market", "un mercado"),
     # mas animales, gente, cosas y lugares que aparecen en las historias
@@ -163,13 +172,19 @@ LEXICON = {
     "vola": ("flying", "volando"), "nada": ("swimming", "nadando"),
     "duerme": ("sleeping", "durmiendo"), "dormia": ("sleeping", "durmiendo"),
     "canta": ("singing", "cantando"), "baila": ("dancing", "bailando"),
-    "siembra": ("planting", "sembrando"), "cosecha": ("harvesting", "cosechando"),
+    "siembra": ("planting", "sembrando"), "cosechando": ("harvesting", "cosechando"),
+    "entierra": ("kneeling on the ground", "arrodillada en la tierra"),
+    "enterrar": ("kneeling on the ground", "arrodillada en la tierra"),
+    "despierta": ("waking up", "despertando"), "despertaba": ("waking up", "despertando"),
+    "saluda": ("waving", "saludando"), "reza": ("praying", "rezando"), "agradece": ("giving thanks", "agradeciendo"),
     "pasta": ("grazing", "pastando"), "cocina": ("cooking", "cocinando"),
     "llora": ("crying", "llorando"), "rie": ("laughing", "riendo"),
     "sube": ("climbing", "subiendo"), "baja": ("going down", "bajando"),
     "pesca": ("fishing", "pescando"), "monta": ("riding", "montando"),
 }
-_ACENTOS = str.maketrans("áéíóúü", "aeiouu")
+# ñ -> n too: the lexicon keys are written without it, and \b[a-zn]+ used to split "montaña" into
+# "monta" + "a", which then matched "monta" = riding instead of the mountain.
+_ACENTOS = str.maketrans("áéíóúüñ", "aeiouun")
 
 
 # What to draw, for the subjects people ask for most: a full description beats a bare noun.
@@ -273,7 +288,27 @@ PROMPT_LIBRARY = {
     "a treasure chest": "an open treasure chest, simple outline",
     "a crown": "a crown, front view, simple outline",
     "a sword": "a sword, simple outline",
+    "a young person": "a young woman standing in a poncho and hat, full body, front view, simple outline",
+    "a sacred mountain": "a tall snow-capped mountain with a gentle face in the peak, simple outline",
+    "coca leaves": "three coca leaves, simple outline",
+    "an offering": "a woven cloth on the ground with leaves and corn on it, simple outline",
+    "ancestors": "an old man and an old woman in ponchos standing side by side, full body, simple outline",
+    "the high plateau": "a wide open plain with mountains far away, simple outline",
+    "a harvest": "a basket full of corn and potatoes, simple outline",
+    "wind": "curved wind lines in the sky, simple outline",
+    "a spirit": "a gentle glowing figure with a simple face, simple outline",
+    "an Inca": "an Inca standing with a feathered headdress, full body, front view, simple outline",
 }
+
+
+_POSES = ("standing", "sitting", "walking", "perched", "swimming", "curled", "hanging", "howling",
+          "hovering", "jumping", "floating", "riding a broom", "weaving", "wings spread", "round monster")
+
+
+def _is_creature(w):
+    """People and animals: their library description says how they pose."""
+    d = PROMPT_LIBRARY.get(w, "")
+    return any(p in d for p in _POSES)
 
 
 def describe(words):
@@ -281,12 +316,15 @@ def describe(words):
     library entry becomes the main subject (with pose and composition), the rest come after."""
     if not words:
         return ""
-    main = next((w for w in words if w in PROMPT_LIBRARY), None)
+    # a person or an animal is the main subject when there is one ("la joven ... el Apu" is a
+    # drawing of the young woman, not of the mountain), otherwise the first known thing
+    main = next((w for w in words if w in PROMPT_LIBRARY and _is_creature(w)), None) \
+        or next((w for w in words if w in PROMPT_LIBRARY), None)
     if main is None:
-        return ", ".join(words)
-    rest = [w for w in words if w != main]
-    actions = [w for w in rest if w.endswith("ing")]          # walking, sleeping...
-    things = [w for w in rest if not w.endswith("ing")]
+        return ", ".join(words[:4])
+    rest = [w for w in words if w != main][:3]     # main + three: with more the model draws a crowd
+    actions = [w for w in rest if w.split()[0].endswith("ing")]      # walking, kneeling on the ground...
+    things = [w for w in rest if not w.split()[0].endswith("ing")]
     out = PROMPT_LIBRARY[main]
     if actions:
         out += ", " + " and ".join(actions)
@@ -340,13 +378,13 @@ def _rules(text, lang):
     """Offline analysis. Builds the picture from what the story actually says; only falls back
     to a generic Andean scene when no known word appears at all."""
     found = find_elements(text)
-    words, palabras = _content(text)
+    words, palabras = _content(text, limit=6)
     elements = found or ["mountain"]
     es = [SPANISH.get(e, e) for e in found]
 
     if words:
-        # at most four things: with seven the model draws a crowd and none of them clearly.
-        # The first one gets its library description (pose, composition), the rest are added.
+        # the main subject gets its library description (pose, composition), the rest are added;
+        # describe() keeps at most four things: with seven the model draws a crowd.
         image_prompt = describe(words)
         # what the screen shows: the same things that went into the drawing, in Spanish
         scene = _join_es(palabras).capitalize() + "."
