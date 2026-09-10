@@ -150,9 +150,9 @@ BAUD_RATE = 115200
 PAPER_W_MM = _env("PAPER_W_MM", 24.0)     # limite del eje X (riel izquierdo) medido con Ignacio: 24 mm pedidos = tope
 PAPER_H_MM = _env("PAPER_H_MM", 15.0)     # limite del eje Y (riel de arriba) medido con Ignacio: 15 mm pedidos = tope
 MARGIN_MM = _env("MARGIN_MM", 2.0)       # con 15 mm de ancho no cabe mas margen
-DRAW_FEED = _env("DRAW_FEED", 600)        # mm/min pen down (600: lineas mas limpias en esta maquina)
-TRAVEL_FEED = _env("TRAVEL_FEED", 1500)   # mm/min pen up
-PEN_FEED = _env("PEN_FEED", 600)          # mm/min Z moves
+DRAW_FEED = _env("DRAW_FEED", 100)        # mm/min PEDIDOS: esta maquina recorre ~10-20x lo pedido (sin calibrar)
+TRAVEL_FEED = _env("TRAVEL_FEED", 150)    # mm/min pen up (pedidos)
+PEN_FEED = _env("PEN_FEED", 300)          # mm/min Z moves
 PEN_MODE = _env("PEN_MODE", "z")          # "z" = Z stepper lift, "servo" = grbl-servo M3/M5 on D11
 PEN_UP_Z = _env("PEN_UP_Z", 4.0)
 PEN_DOWN_Z = _env("PEN_DOWN_Z", 0.0)
