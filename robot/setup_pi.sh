@@ -54,6 +54,18 @@ printf '{\n  "TranslateEnabled": false,\n  "DefaultBrowserSettingEnabled": false
   | sudo tee /etc/chromium/policies/managed/yachachiq-kiosk.json >/dev/null
 # the Touch Display 2 is portrait (720x1280); show the kiosk landscape (rotation set by the user's labwc/kanshi config)
 mkdir -p ~/.config/autostart
+# icono en el escritorio para volver al kiosko despues de "Salir a la pantalla de inicio" (menu ⚙, clave)
+mkdir -p ~/Desktop
+cat > ~/Desktop/Yachachiq.desktop <<DESK
+[Desktop Entry]
+Type=Application
+Name=Yachachiq (volver al kiosko)
+Comment=Abre la pantalla de presentación del robot
+Exec=bash $ROBOT/kiosk.sh
+Icon=chromium
+Terminal=false
+DESK
+chmod +x ~/Desktop/Yachachiq.desktop; gio set ~/Desktop/Yachachiq.desktop metadata::trusted true 2>/dev/null
 cat > ~/.config/autostart/yachachiq-kiosk.desktop <<DESK
 [Desktop Entry]
 Type=Application
