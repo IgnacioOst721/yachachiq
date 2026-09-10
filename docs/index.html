@@ -348,6 +348,8 @@
     box-shadow: 0 14px 30px rgba(36,27,26,.2);
   }
   .galeria img { width: 100%; display: block; background: #fff; }
+  .galeria figure.quien { border-color: var(--amarillo); }
+  .galeria figure.quien img { aspect-ratio: 4 / 3; object-fit: cover; }
   .galeria figcaption {
     font-size: .74rem;
     letter-spacing: .14em;
@@ -518,6 +520,8 @@ fetch("stories.json")
       }
       for (const ph of h.photos)
         figs += `<figure><img src="stories/${h.id}/${ph}" loading="lazy" alt="Foto del dibujo a lápiz sobre el papel"><figcaption>El dibujo a lápiz, sobre el papel</figcaption></figure>`;
+      if (h.portrait)
+        figs += `<figure class="quien"><img src="stories/${h.id}/${h.portrait}" loading="lazy" alt="Quien contó la historia"><figcaption>Quien la contó</figcaption></figure>`;
       const n = String(total - idx).padStart(3, "0");
       art.innerHTML = `
         <div class="meta">
