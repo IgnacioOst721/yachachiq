@@ -209,7 +209,8 @@ LSP_CAMERA = _env("LSP_CAMERA", "")                  # sign-language camera for 
 # --- Consent before publishing + storyteller portrait --------------------------------
 CONSENT_REQUIRED = _env("CONSENT_REQUIRED", True)      # ask on screen before a story goes to the web
 CONSENT_SECONDS = _env("CONSENT_SECONDS", 10)          # countdown while the portrait camera looks
-PORTRAIT_ENABLED = _env("PORTRAIT_ENABLED", True)      # keep the storyteller's photo with the story
+PORTRAIT_ENABLED = _env("PORTRAIT_ENABLED", True)
+KIOSK_EXIT_PASSWORD = _env("KIOSK_EXIT_PASSWORD", "ostra")   # "Salir a la pantalla de inicio" en el menú ⚙ (cierra el navegador en pantalla completa)      # keep the storyteller's photo with the story
 COVERED_BRIGHTNESS = _env("COVERED_BRIGHTNESS", 40.0)  # mean gray level below this = camera covered = "no"
 
 # --- Hands-free start (no button, no touch, no keyboard) ----------------------------

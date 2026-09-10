@@ -258,6 +258,8 @@
       <div class="small" id="laptopTxt">…</div>
       <h4>Estado</h4>
       <div class="small" id="modesTxt"></div>
+      <h4>Emergencia</h4>
+      <div class="row"><input id="exitPw" type="password" placeholder="clave" style="font:inherit;padding:.5rem .7rem;border:1px solid #ccc;border-radius:.5rem;width:9rem"><button class="btn w" id="exitKiosk">Salir a la pantalla de inicio</button></div>
     </div>
     <div>
       <h4>Mover el lápiz (antes de dibujar)</h4>
@@ -445,6 +447,9 @@ $("gear").onclick=()=>{ $("menu").classList.add("on");
     : `<b style="color:#8a3a1a">Laptop no encontrada</b> (${l.how}): los dibujos saldrán con motivos andinos, sin IA. Revisa que la Mac esté en la misma red con ComfyUI abierto.`; }).catch(()=>{ $("laptopTxt").textContent="no pude consultar"; });
   fetch("/api/cameras").then(r=>r.json()).then(c=>{ $("cams").innerHTML=(c.cameras&&c.cameras.length?c.cameras.map(x=>`<code>${x}</code>`).join("<br>"):"(sin cámaras por id; en Mac se usan índices)")+`<br>foto: <code>${c.photo||"primera"}</code> · señas: <code>${c.lsp||"primera"}</code>`; }).catch(()=>{}); };
 $("closeMenu").onclick=()=>$("menu").classList.remove("on");
+$("exitKiosk").onclick=async()=>{ const pw=$("exitPw").value; if(!pw){toast("Escribe la clave");return;}
+  const r=await fetch("/api/kiosk/exit",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({password:pw})}).catch(()=>null);
+  if(!r){toast("sin conexión");return;} if(r.status===403){toast("Clave incorrecta");$("exitPw").value="";return;} toast("Cerrando la pantalla de presentación…"); };
 $("sendTxt").onclick=()=>{ const t=$("txt").value.trim(); if(!t)return;
   post("/api/story",{text:t}).then(r=>{ if(r&&!r.ok) toast("El robot está ocupado: espera a que termine"); else if(r) $("menu").classList.remove("on"); }); };
 $("redraw").onclick=()=>post("/api/redraw").then(r=>{ if(r&&!r.ok) toast("No hay un dibujo anterior, o el robot está ocupado"); else if(r) $("menu").classList.remove("on"); });

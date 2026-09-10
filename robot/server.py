@@ -256,6 +256,19 @@ async def api_state():
     return pipe.snapshot()
 
 
+@app.post("/api/kiosk/exit")
+async def api_kiosk_exit(req: Request):
+    """Emergency exit from the full-screen kiosk to the Pi's desktop. Needs the password."""
+    body = await req.json()
+    if str(body.get("password", "")) != str(config.KIOSK_EXIT_PASSWORD):
+        return JSONResponse({"ok": False, "error": "clave incorrecta"}, status_code=403)
+    import subprocess
+    # the kiosk browser runs as this same user (autostart); killing it leaves the desktop on screen
+    r = subprocess.run(["pkill", "-f", "chromium.*--kiosk"], capture_output=True)
+    log.info("kiosk exit requested from the screen (pkill rc=%s)", r.returncode)
+    return {"ok": True, "closed": r.returncode == 0}
+
+
 @app.post("/api/story")
 async def api_story(req: Request):
     body = await req.json()
