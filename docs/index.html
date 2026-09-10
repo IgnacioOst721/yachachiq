@@ -350,6 +350,9 @@
   .galeria img { width: 100%; display: block; background: #fff; }
   .galeria figure.quien { border-color: var(--amarillo); }
   .galeria figure.quien img { aspect-ratio: 4 / 3; object-fit: cover; }
+  .galeria figure.split { flex: 1 1 100%; max-width: 100%; --giro: 0deg; }
+  .galeria .mitades { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; background: var(--rojo); }
+  .galeria .mitades img { aspect-ratio: 3 / 4; object-fit: cover; }
   .galeria figcaption {
     font-size: .74rem;
     letter-spacing: .14em;
@@ -514,14 +517,19 @@ fetch("stories.json")
       art.className = "historia";
       art.style.animationDelay = (Math.min(idx, 6) * 0.08 + 0.1) + "s";
       let figs = "";
-      for (const img of h.images) {
-        if (img.startsWith("preview")) continue;   // el trazo planeado no se muestra: ya está la foto
-        figs += `<figure><img src="stories/${h.id}/${img}" loading="lazy" alt="Escena que imaginó el robot"><figcaption>Lo que imaginó el robot</figcaption></figure>`;
-      }
-      for (const ph of h.photos)
-        figs += `<figure><img src="stories/${h.id}/${ph}" loading="lazy" alt="Foto del dibujo a lápiz sobre el papel"><figcaption>El dibujo a lápiz, sobre el papel</figcaption></figure>`;
+      const img = h.images.find(x => !x.startsWith("preview"));
+      const ph = h.photos[0];
       if (h.portrait)
-        figs += `<figure class="quien"><img src="stories/${h.id}/${h.portrait}" loading="lazy" alt="Quien contó la historia"><figcaption>Quien la contó</figcaption></figure>`;
+        figs += `<figure class="quien"><img src="stories/${h.id}/${h.portrait}" loading="lazy" alt="Quien contó la historia, sonriendo"><figcaption>Quien la contó</figcaption></figure>`;
+      if (ph)
+        figs += `<figure><img src="stories/${h.id}/${ph}" loading="lazy" alt="Foto del dibujo a lápiz sobre el papel"><figcaption>El dibujo a lápiz, sobre el papel</figcaption></figure>`;
+      if (img && ph)
+        figs += `<figure class="split"><div class="mitades">
+            <img src="stories/${h.id}/${img}" loading="lazy" alt="Lo que imaginó el robot">
+            <img src="stories/${h.id}/${ph}" loading="lazy" alt="Lo que dibujó el robot">
+          </div><figcaption>Imaginado · Dibujado</figcaption></figure>`;
+      else if (img)
+        figs += `<figure><img src="stories/${h.id}/${img}" loading="lazy" alt="Lo que imaginó el robot"><figcaption>Lo que imaginó el robot</figcaption></figure>`;
       const n = String(total - idx).padStart(3, "0");
       art.innerHTML = `
         <div class="meta">
