@@ -372,9 +372,12 @@ def plan_continuous(pls, jump_ok=None, tol=None):
             elif kk > pos:
                 route.extend(pl[pos + 1:kk + 1])
             pos = kk
-            walk(a, forward=(end == 0))               # child starts at the end that touches us
-            route.append(pl[kk])                       # back at the junction after the child
-        # finish at the far end again is not needed: we end wherever we are
+            cpl, cpos = walk(a, forward=(end == 0))   # child starts at the end that touches us
+            # come back along the child's own ink to the junction (its grandchildren already
+            # returned to the child's line the same way), never with a straight line
+            route.extend(cpl[:cpos][::-1])
+            route.append(pl[kk])
+        return pl, pos                                # where on this stroke the pen ended
 
     remaining = list(range(n))
     cur = (0.0, 0.0)
