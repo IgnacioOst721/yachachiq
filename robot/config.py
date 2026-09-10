@@ -126,7 +126,7 @@ TRACE_MODE = _env("TRACE_MODE", "lines")   # "lines" = threshold + thinning (for
 TRACE_MAX_PX = _env("TRACE_MAX_PX", 600)   # working resolution (longest side)
 CANNY_LOW = _env("CANNY_LOW", 60)
 CANNY_HIGH = _env("CANNY_HIGH", 160)
-SIMPLIFY_EPS_PX = _env("SIMPLIFY_EPS_PX", 1.2)   # Douglas-Peucker tolerance in pixels
+SIMPLIFY_EPS_PX = _env("SIMPLIFY_EPS_PX", 0.6)   # Douglas-Peucker tolerance in pixels (0.6 = curvas mas fieles)
 MIN_STROKE_PX = _env("MIN_STROKE_PX", 20.0)      # drop strokes shorter than this (pixels)
 MAX_STROKES = _env("MAX_STROKES", 350)           # keep the longest N strokes. Measured with DreamShaper
                                                 # line art: 350 ~= 9 min of plotting, 900 ~= 11 min.
@@ -138,7 +138,7 @@ BAUD_RATE = 115200
 PAPER_W_MM = _env("PAPER_W_MM", 15.0)     # ancho en X que pidio Ignacio para esta maquina (eje X muy corto)
 PAPER_H_MM = _env("PAPER_H_MM", 30.0)     # alto en Y: chico a proposito para probar el CNC (subir cuando dibuje bien)
 MARGIN_MM = _env("MARGIN_MM", 2.0)       # con 15 mm de ancho no cabe mas margen
-DRAW_FEED = _env("DRAW_FEED", 800)        # mm/min pen down
+DRAW_FEED = _env("DRAW_FEED", 600)        # mm/min pen down (600: lineas mas limpias en esta maquina)
 TRAVEL_FEED = _env("TRAVEL_FEED", 1500)   # mm/min pen up
 PEN_FEED = _env("PEN_FEED", 300)          # mm/min Z moves
 PEN_MODE = _env("PEN_MODE", "z")          # "z" = Z stepper lift, "servo" = grbl-servo M3/M5 on D11
@@ -150,7 +150,7 @@ SERVO_DOWN = _env("SERVO_DOWN", 30)
 # maquina no tiene finales de carrera) y fijar ahi el origen. Ignacio: ~100 mm izquierda, ~50 abajo.
 HOME_SWEEP = _env("HOME_SWEEP", True)
 HOME_SWEEP_X = _env("HOME_SWEEP_X", 100.0)
-HOME_SWEEP_Y = _env("HOME_SWEEP_Y", 50.0)
+HOME_SWEEP_Y = _env("HOME_SWEEP_Y", 25.0)
 HOME_SWEEP_FEED = _env("HOME_SWEEP_FEED", 400)
 MOCK_LINE_DELAY = _env("MOCK_LINE_DELAY", 0.004)   # seconds per G-code line in mock plotter (UI animation)
 
