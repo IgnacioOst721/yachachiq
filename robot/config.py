@@ -136,7 +136,7 @@ MAX_STROKES = _env("MAX_STROKES", 350)           # keep the longest N strokes. M
 SERIAL_PORT = _env("SERIAL_PORT", "/dev/ttyACM0")   # Pi: /dev/ttyACM0 or /dev/ttyUSB0; Mac: /dev/cu.usbmodem*
 BAUD_RATE = 115200
 PAPER_W_MM = _env("PAPER_W_MM", 15.0)     # ancho en X que pidio Ignacio para esta maquina (eje X muy corto)
-PAPER_H_MM = _env("PAPER_H_MM", 297.0)    # ...y 297 mm de alto (eje Y). Maquina: 500 x 400 mm
+PAPER_H_MM = _env("PAPER_H_MM", 30.0)     # alto en Y: chico a proposito para probar el CNC (subir cuando dibuje bien)
 MARGIN_MM = _env("MARGIN_MM", 2.0)       # con 15 mm de ancho no cabe mas margen
 DRAW_FEED = _env("DRAW_FEED", 800)        # mm/min pen down
 TRAVEL_FEED = _env("TRAVEL_FEED", 1500)   # mm/min pen up
@@ -146,6 +146,12 @@ PEN_UP_Z = _env("PEN_UP_Z", 5.0)
 PEN_DOWN_Z = _env("PEN_DOWN_Z", 0.0)
 SERVO_UP = _env("SERVO_UP", 90)           # M3 S<value> when PEN_MODE = servo
 SERVO_DOWN = _env("SERVO_DOWN", 30)
+# "Volver a casa" despues de cada dibujo: barrer hacia el tope izquierdo y el de abajo (la
+# maquina no tiene finales de carrera) y fijar ahi el origen. Ignacio: ~100 mm izquierda, ~50 abajo.
+HOME_SWEEP = _env("HOME_SWEEP", True)
+HOME_SWEEP_X = _env("HOME_SWEEP_X", 100.0)
+HOME_SWEEP_Y = _env("HOME_SWEEP_Y", 50.0)
+HOME_SWEEP_FEED = _env("HOME_SWEEP_FEED", 400)
 MOCK_LINE_DELAY = _env("MOCK_LINE_DELAY", 0.004)   # seconds per G-code line in mock plotter (UI animation)
 
 # --- Text to speech (Piper, runs on the Pi) ---------------------------------------

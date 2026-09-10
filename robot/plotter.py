@@ -299,6 +299,8 @@ class Plotter:
             self.unlock()
             self.pen_up()
             self.send("G0 X0 Y0")
+            for l in gcode_mod.home_sweep():
+                self.send(l)
             self.wait_idle(timeout=120)
             log.info("plotter: aborted and back at the origin")
         except Exception as e:

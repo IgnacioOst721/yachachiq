@@ -23,6 +23,15 @@ def pen_down():
     return [f"G1 Z{config.PEN_DOWN_Z:.2f} F{int(config.PEN_FEED)}"]
 
 
+def home_sweep():
+    """Back to the physical corner (left + bottom stops) and make that the origin again.
+    No limit switches on this machine, so the corner is found by driving into the stops."""
+    if not config.HOME_SWEEP:
+        return []
+    return ["G91", f"G1 X{-abs(config.HOME_SWEEP_X):.1f} Y{-abs(config.HOME_SWEEP_Y):.1f} F{int(config.HOME_SWEEP_FEED)}",
+            "G90", "G10 L20 P1 X0 Y0", "G54"]
+
+
 def from_polylines(polylines, name="story"):
     lines = [f"(Yachachiq - {name} - {len(polylines)} strokes)", "G21", "G90"]
     lines += pen_up()
@@ -39,6 +48,7 @@ def from_polylines(polylines, name="story"):
     # que es donde se fijo el papel. Asi la camara ve el dibujo despejado y el siguiente
     # dibujo empieza siempre desde el mismo punto conocido.
     lines.append("G0 X0 Y0")
+    lines += home_sweep()
     return lines
 
 
