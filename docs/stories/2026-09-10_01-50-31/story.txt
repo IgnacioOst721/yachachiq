@@ -1,0 +1,11 @@
+STORY
+========================================
+Al enterrar tres hojas de coca en la falda de la montaña para agradecer la cosecha, la joven sintió como el apú despertaba en el tiento alto-andino y devolvía el saludo con el murmullo milenario de sus ancestros.
+
+SCENES
+========================================
+1. Arrodillada en la tierra, hojas de coca, las montañas, agradeciendo, la cosecha y un joven.
+
+TITLE: Al enterrar tres hojas de coca
+LANG: spanish
+IMAGE: comfyui
