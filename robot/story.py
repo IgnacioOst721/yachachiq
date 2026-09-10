@@ -118,6 +118,45 @@ LEXICON = {
     "trigo": ("wheat", "trigo"), "coca": ("coca leaves", "hojas de coca"),
     "templo": ("an Inca temple", "un templo"), "iglesia": ("a church", "una iglesia"),
     "escuela": ("a school", "una escuela"), "mercado": ("a market", "un mercado"),
+    # mas animales, gente, cosas y lugares que aparecen en las historias
+    "leon": ("a lion", "un león"), "leona": ("a lioness", "una leona"), "tigre": ("a tiger", "un tigre"),
+    "elefante": ("an elephant", "un elefante"), "jirafa": ("a giraffe", "una jirafa"), "mono": ("a monkey", "un mono"),
+    "lobo": ("a wolf", "un lobo"), "conejo": ("a rabbit", "un conejo"), "raton": ("a mouse", "un ratón"),
+    "delfin": ("a dolphin", "un delfín"), "ballena": ("a whale", "una ballena"), "tiburon": ("a shark", "un tiburón"),
+    "pinguino": ("a penguin", "un pingüino"), "buho": ("an owl", "un búho"), "loro": ("a parrot", "un loro"),
+    "paloma": ("a dove", "una paloma"), "gallo": ("a rooster", "un gallo"), "cerdo": ("a pig", "un cerdo"),
+    "cabra": ("a goat", "una cabra"), "dinosaurio": ("a dinosaur", "un dinosaurio"), "dragon": ("a dragon", "un dragón"),
+    "unicornio": ("a unicorn", "un unicornio"), "monstruo": ("a monster", "un monstruo"),
+    "princesa": ("a princess", "una princesa"), "principe": ("a prince", "un príncipe"), "rey": ("a king", "un rey"),
+    "reina": ("a queen", "una reina"), "bruja": ("a witch", "una bruja"), "mago": ("a wizard", "un mago"),
+    "robot": ("a robot", "un robot"), "astronauta": ("an astronaut", "un astronauta"), "pirata": ("a pirate", "un pirata"),
+    "soldado": ("a soldier", "un soldado"), "doctor": ("a doctor", "un doctor"), "maestra": ("a teacher", "una maestra"),
+    "profesor": ("a teacher", "un profesor"), "bebe": ("a baby", "un bebé"), "chico": ("a boy", "un chico"),
+    "chica": ("a girl", "una chica"), "joven": ("a young person", "un joven"), "anciano": ("an old man", "un anciano"),
+    "anciana": ("an old woman", "una anciana"), "tio": ("an uncle", "un tío"), "tia": ("an aunt", "una tía"),
+    "primo": ("a cousin", "un primo"), "vecino": ("a neighbour", "un vecino"), "gente": ("people", "gente"),
+    "carro": ("a car", "un carro"), "auto": ("a car", "un auto"), "camion": ("a truck", "un camión"),
+    "bus": ("a bus", "un bus"), "avion": ("an airplane", "un avión"), "tren": ("a train", "un tren"),
+    "bicicleta": ("a bicycle", "una bicicleta"), "moto": ("a motorcycle", "una moto"), "cohete": ("a rocket", "un cohete"),
+    "pelota": ("a ball", "una pelota"), "juguete": ("a toy", "un juguete"), "muneca": ("a doll", "una muñeca"),
+    "guitarra": ("a guitar", "una guitarra"), "piano": ("a piano", "un piano"), "computadora": ("a computer", "una computadora"),
+    "telefono": ("a phone", "un teléfono"), "reloj": ("a clock", "un reloj"), "llave": ("a key", "una llave"),
+    "espada": ("a sword", "una espada"), "corona": ("a crown", "una corona"), "tesoro": ("a treasure chest", "un tesoro"),
+    "torta": ("a cake", "una torta"), "pastel": ("a cake", "un pastel"), "helado": ("an ice cream", "un helado"),
+    "manzana": ("an apple", "una manzana"), "platano": ("a banana", "un plátano"), "fruta": ("fruit", "fruta"),
+    "comida": ("food", "comida"), "mesa": ("a table", "una mesa"), "silla": ("a chair", "una silla"),
+    "cama": ("a bed", "una cama"), "cocina": ("a kitchen", "una cocina"), "jardin": ("a garden", "un jardín"),
+    "parque": ("a park", "un parque"), "calle": ("a street", "una calle"), "colegio": ("a school", "un colegio"),
+    "hospital": ("a hospital", "un hospital"), "tienda": ("a shop", "una tienda"), "castillo": ("a castle", "un castillo"),
+    "isla": ("an island", "una isla"), "volcan": ("a volcano", "un volcán"), "cascada": ("a waterfall", "una cascada"),
+    "planeta": ("a planet", "un planeta"), "cometa": ("a comet", "un cometa"), "nave": ("a spaceship", "una nave"),
+    "futbol": ("a football", "fútbol"), "partido": ("a football match", "un partido"),
+    "fiesta": ("a party", "una fiesta"), "cumpleanos": ("a birthday", "un cumpleaños"), "regalo": ("a gift", "un regalo"),
+    "sonrisa": ("smiling", "sonriendo"), "abrazo": ("a hug", "un abrazo"), "beso": ("a kiss", "un beso"),
+    "juega": ("playing", "jugando"), "jugaba": ("playing", "jugando"), "salta": ("jumping", "saltando"),
+    "come": ("eating", "comiendo"), "comia": ("eating", "comiendo"), "lee": ("reading", "leyendo"),
+    "escribe": ("writing", "escribiendo"), "dibuja": ("drawing", "dibujando"), "pinta": ("painting", "pintando"),
+    "grita": ("shouting", "gritando"), "pelea": ("fighting", "peleando"), "abraza": ("hugging", "abrazando"),
     # acciones
     "tejer": ("weaving", "tejiendo"), "tejia": ("weaving", "tejiendo"),
     "camina": ("walking", "caminando"), "corr": ("running", "corriendo"),
@@ -179,7 +218,7 @@ def _rules(text, lang):
     to a generic Andean scene when no known word appears at all."""
     found = find_elements(text)
     words, palabras = _content(text)
-    elements = found or ["mountain", "sun", "person"]
+    elements = found or ["mountain"]
     es = [SPANISH.get(e, e) for e in found]
 
     if words:
@@ -188,8 +227,11 @@ def _rules(text, lang):
         # what the screen shows: the same things that went into the drawing, in Spanish
         scene = _join_es(palabras).capitalize() + "."
     else:
-        image_prompt = f"{_join_en([ENGLISH.get(e, e) for e in elements])}, in the Andes"
-        scene = f"Una escena andina con {_join_es([SPANISH.get(e, e) for e in elements])}."
+        # nothing in the vocabulary: hand the model the story's own words rather than a made-up
+        # default scene ("un león" used to become "a child in a poncho under the sun")
+        crudo = " ".join(re.findall(r"[\wáéíóúüñ]+", text.lower()))
+        image_prompt = crudo[:80] if crudo else "an Andean landscape"
+        scene = "Lo que contaste: " + (text.strip()[:70] or "un paisaje andino") + "."
 
     short = text.strip()
     if len(short) > 220:

@@ -117,11 +117,11 @@ COMFYUI_TIMEOUT = _env("COMFYUI_TIMEOUT", 240.0)      # seconds to wait for the 
 STYLE_PROMPT = (
     # OUTLINES ONLY. Every filled area the model paints becomes dozens of plotter strokes, so the
     # prompt asks for a coloring-book page: thin clean contours, white inside, nothing shaded.
-    "simple coloring book drawing, no frame, no border, clean thin black outlines only, white background, "
+    "(black line drawing:1.4), (coloring book style:1.3), no frame, no border, clean thin black outlines only, white background, "
     "no shading, no fill, no color, no texture, very few lines, bold simple shapes, centered, one scene, "
     "Peruvian Andean folk art style"
 )
-NEGATIVE_PROMPT = ("color, colored, painting, shading, gradient, filled areas, solid black, silhouette, "
+NEGATIVE_PROMPT = ("(photograph:1.4), (photorealistic:1.4), grayscale photo, 3d render, color, colored, painting, shading, gradient, filled areas, solid black, silhouette, "
                    "hatching, crosshatch, texture, pattern, decorative border, frame, photo, realistic, "
                    "3d, blurry, text, watermark, noise, busy, cluttered, many objects")
 
