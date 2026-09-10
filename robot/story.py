@@ -133,7 +133,7 @@ LEXICON = {
 _ACENTOS = str.maketrans("áéíóúü", "aeiouu")
 
 
-def _content(text, limit=7):
+def _content(text, limit=4):
     """Words from the story itself, in the order they appear.
     Returns (para_el_dibujo_en_ingles, para_mostrar_en_espanol)."""
     plain = text.lower().translate(_ACENTOS)
@@ -183,7 +183,8 @@ def _rules(text, lang):
     es = [SPANISH.get(e, e) for e in found]
 
     if words:
-        image_prompt = ", ".join(words) + ", in the Andes"
+        # at most four things: with seven the model draws a crowd and none of them clearly
+        image_prompt = ", ".join(words)
         # what the screen shows: the same things that went into the drawing, in Spanish
         scene = _join_es(palabras).capitalize() + "."
     else:

@@ -70,6 +70,32 @@ def _skeleton(mask):
     return skel
 
 
+def _fills_to_outlines(mask, thick_px=None):
+    """Split the ink into thin strokes (to skeletonize) and thick/filled regions (to outline).
+
+    Skeletonizing a filled area produces a thicket of little branches - dozens of strokes for
+    one black shape. A pen plotter should draw the shape's CONTOUR instead: one line around it.
+    Returns (thin_mask, outline_polylines).
+    """
+    thick_px = thick_px or config.FILL_THICK_PX
+    dist = cv2.distanceTransform(mask, cv2.DIST_L2, 5)
+    core = (dist > thick_px).astype(np.uint8) * 255          # pixels deep inside a fat region
+    if cv2.countNonZero(core) == 0:
+        return mask, []
+    k = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * thick_px + 1, 2 * thick_px + 1))
+    thick = cv2.dilate(core, k)                                # grow the core back to the region
+    thick = cv2.bitwise_and(thick, mask)
+    contours, _ = cv2.findContours(thick, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_NONE)
+    outlines = []
+    for c in contours:
+        if len(c) >= 8:
+            pts = [(float(p[0][0]), float(p[0][1])) for p in c]
+            pts.append(pts[0])                                 # close the loop
+            outlines.append(pts)
+    thin = cv2.bitwise_and(mask, cv2.bitwise_not(cv2.dilate(thick, np.ones((3, 3), np.uint8))))
+    return thin, outlines
+
+
 _N8 = [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]
 
 
@@ -191,7 +217,14 @@ def trace_image(path, mode=None):
         contours, _ = cv2.findContours(edges, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
         pls = [[(float(p[0][0]), float(p[0][1])) for p in c] for c in contours if len(c) >= 2]
     else:
-        pls = _trace_skeleton(_skeleton(_ink_mask(gray)))
+        mask = _ink_mask(gray)
+        pls = _trace_skeleton(_skeleton(mask))
+        if config.FILL_TO_OUTLINE:
+            # try the fill->contour version too and keep whichever the pen draws faster
+            thin, outlines = _fills_to_outlines(mask)
+            alt = _trace_skeleton(_skeleton(thin)) + outlines
+            if sum(_length(pl) for pl in alt) < sum(_length(pl) for pl in pls):
+                pls = alt
     pls = _simplify(pls, config.SIMPLIFY_EPS_PX)
     pls = [pl for pl in pls if _length(pl) >= config.MIN_STROKE_PX]
     pls.sort(key=_length, reverse=True)

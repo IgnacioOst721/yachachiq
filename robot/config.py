@@ -115,17 +115,25 @@ COMFYUI_STEPS = _env("COMFYUI_STEPS", 22)             # DreamShaper: 20-25 pasos
 COMFYUI_CFG = _env("COMFYUI_CFG", 7.0)                # DreamShaper: ~7 (sd_turbo usa 1.0)
 COMFYUI_TIMEOUT = _env("COMFYUI_TIMEOUT", 240.0)      # seconds to wait for the image
 STYLE_PROMPT = (
-    "black ink line drawing, Peruvian folk art, Sarhua tabla style, Ayacucho retablo, "
-    "thick clean outlines, flat 2D, decorative Andean geometric border, white background, "
-    "no shading, no color, single continuous lines, simple shapes"
+    # OUTLINES ONLY. Every filled area the model paints becomes dozens of plotter strokes, so the
+    # prompt asks for a coloring-book page: thin clean contours, white inside, nothing shaded.
+    "simple coloring book page, clean thin black outlines only, white background, "
+    "no shading, no fill, no color, no texture, minimal details, centered, one scene, "
+    "Peruvian Andean folk art style"
 )
-NEGATIVE_PROMPT = "color, shading, gradient, photo, realistic, blurry, text, watermark, noise"
+NEGATIVE_PROMPT = ("color, colored, painting, shading, gradient, filled areas, solid black, silhouette, "
+                   "hatching, crosshatch, texture, pattern, decorative border, frame, photo, realistic, "
+                   "3d, blurry, text, watermark, noise, busy, cluttered, many objects")
 
 # --- Image to lines (vectorize.py) ------------------------------------------------
 TRACE_MODE = _env("TRACE_MODE", "lines")   # "lines" = threshold + thinning (for ink drawings); "edges" = Canny
 TRACE_MAX_PX = _env("TRACE_MAX_PX", 600)   # working resolution (longest side)
 CANNY_LOW = _env("CANNY_LOW", 60)
 CANNY_HIGH = _env("CANNY_HIGH", 160)
+# Filled areas in the image are drawn as ONE contour line instead of being hatched by the skeleton
+# (a black shape used to become dozens of strokes). FILL_THICK_PX: a region thicker than this is a fill.
+FILL_TO_OUTLINE = _env("FILL_TO_OUTLINE", True)
+FILL_THICK_PX = _env("FILL_THICK_PX", 4)
 SIMPLIFY_EPS_PX = _env("SIMPLIFY_EPS_PX", 0.6)   # Douglas-Peucker tolerance in pixels (0.6 = curvas mas fieles)
 MIN_STROKE_PX = _env("MIN_STROKE_PX", 20.0)      # drop strokes shorter than this (pixels)
 MAX_STROKES = _env("MAX_STROKES", 350)           # keep the longest N strokes. Measured with DreamShaper

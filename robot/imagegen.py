@@ -30,7 +30,10 @@ def _out_dir():
 
 
 def _prompt(analysis):
-    return f"{config.STYLE_PROMPT}, {analysis.get('image_prompt') or analysis.get('scene')}"
+    # the SUBJECT goes first: Stable Diffusion weighs the first tokens most, and with the style
+    # words in front it drew "Andean folk art" and forgot the story
+    subject = analysis.get("image_prompt") or analysis.get("scene") or "an Andean landscape"
+    return f"a simple line drawing of {subject}, {config.STYLE_PROMPT}"
 
 
 def _trace_with_border(png):
