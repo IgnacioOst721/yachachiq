@@ -35,6 +35,10 @@ def home_sweep():
 
 def from_polylines(polylines, name="story"):
     lines = [f"(Yachachiq - {name} - {len(polylines)} strokes)", "G21", "G90"]
+    # The drawing starts WHERE THE HEAD IS: that point becomes 0,0 (X/Y only; the pen height is
+    # kept). Ignacio places the head at the paper corner by hand (steppers release when idle), so
+    # a stale origin somewhere else made every drawing run off to a stop first.
+    lines += ["G10 L20 P1 X0 Y0", "G54"]
     lines += pen_up()
     for pl in polylines:
         if len(pl) < 2:
