@@ -496,7 +496,7 @@ function tituloDe(txt) {
 function esQuechua(txt) {
   return /^LANG:\s*quechua/mi.test(txt);
 }
-fetch("stories.json")
+fetch("stories.json?t=" + Date.now(), {cache: "no-store"})
   .then(r => r.json())
   .then(historias => {
     const lista = document.getElementById("lista");
