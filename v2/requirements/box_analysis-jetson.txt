@@ -1,0 +1,7 @@
+# BOX-ANALYSIS on the Jetson (light analyses: weight, volume, RTI, UV, thermography, 3D model).
+# Identification runs on the Mac; torch is NOT needed here unless you copy the catalog to the Jetson
+# (then install NVIDIA's JetPack 6 torch wheel and transformers>=4.49 as documented in docs/box_analysis.md).
+scipy>=1.8
+scikit-image>=0.19
+trimesh>=4.0
+fast-simplification>=0.1
