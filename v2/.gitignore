@@ -1,0 +1,9 @@
+.venv/
+.venvs/
+__pycache__/
+*.pyc
+.pytest_cache/
+firmware/**/.pio/
+training/**/data/
+training/**/runs/
+*.onnx.tmp

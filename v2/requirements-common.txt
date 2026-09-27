@@ -1,0 +1,10 @@
+# Needed on every machine (Jetson, Mac, dev). Python 3.10+.
+fastapi>=0.110
+uvicorn[standard]>=0.29
+python-multipart>=0.0.9
+requests>=2.31
+numpy>=1.24,<2.3
+pillow>=10
+opencv-contrib-python-headless>=4.9
+pytest>=8
+httpx>=0.27
