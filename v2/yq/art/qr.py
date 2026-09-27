@@ -35,14 +35,16 @@ def story_url(story_id: str, published: bool = True) -> str:
 def matrix(data: str) -> np.ndarray:
     try:
         import segno
-        q = segno.make_qr(data, error="h", boost_error=False)
+        q = segno.make_qr(data, error=str(settings.QR_ERROR).lower(), boost_error=False)
         m = np.array([[bool(v) for v in row] for row in q.matrix], dtype=bool)
         return m
     except ImportError:
         pass
     import cv2
     p = cv2.QRCodeEncoder_Params()
-    p.correction_level = cv2.QRCodeEncoder_CORRECT_LEVEL_H
+    p.correction_level = {"l": cv2.QRCodeEncoder_CORRECT_LEVEL_L, "m": cv2.QRCodeEncoder_CORRECT_LEVEL_M,
+                          "q": cv2.QRCodeEncoder_CORRECT_LEVEL_Q,
+                          "h": cv2.QRCodeEncoder_CORRECT_LEVEL_H}[str(settings.QR_ERROR).lower()]
     enc = cv2.QRCodeEncoder.create(p)
     img = enc.encode(data)                         # uint8, 0 = dark, includes a quiet zone
     dark = img < 128

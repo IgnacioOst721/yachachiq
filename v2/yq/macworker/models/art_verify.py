@@ -24,6 +24,7 @@ Items that must be visible:
 {items}
 
 For EACH item answer true only if it is clearly drawn and recognisable (a vague shape is false).
+When an item has a description after the colon, it is true ONLY if the drawing matches that description.
 Then judge the style: the goal is clean black ink line art on a plain white background.
 Reply with JSON exactly like:
 {{"elements": {{{example}}},
@@ -77,7 +78,7 @@ def problems_from(m: dict, v: dict = None) -> List[str]:
     return p
 
 
-def verify(image, elements: List[str], use_vlm: bool = True) -> dict:
+def verify(image, elements: List[str], use_vlm: bool = True, culture: str = "") -> dict:
     """VLM check + pixel metrics. Returns {"verified", "line_art", "text", "frame", "note",
     "metrics", "problems", "missing", "score"}."""
     m = metrics(image)
@@ -85,7 +86,9 @@ def verify(image, elements: List[str], use_vlm: bool = True) -> dict:
     v = {"elements": {e: True for e in elements}, "line_art": 10, "text": False, "frame": False, "note": ""}
     if use_vlm and not config.mock("vlm"):
         from . import vlm
-        items = "\n".join("- %s" % e for e in elements)
+        from .art_glossary import verify_hint
+        items = "\n".join("- %s%s" % (e, (": " + verify_hint(e, culture)) if verify_hint(e, culture) else "")
+                          for e in elements)
         example = ", ".join('"%s": true' % e.replace('"', "'") for e in elements)
         try:
             d = vlm.ask_json([image], VERIFY_PROMPT.format(items=items, example=example),

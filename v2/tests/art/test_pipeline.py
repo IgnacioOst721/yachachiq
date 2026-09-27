@@ -226,3 +226,34 @@ def test_plan_salvages_almost_json(monkeypatch):
     p, es, en = art_plan.plan("El cóndor vuela sobre el Apu.", "spa_Latn")
     assert p.elements == ["condor", "snowy mountain"] and p.prompt.startswith("A condor with a white ruff")
     assert es == "El cóndor vuela sobre el Apu."
+
+
+def test_image_job_escalates_to_the_accurate_generator(monkeypatch, tmp_path):
+    """Attempt 1 with the fast default; when the check fails, retries use ESCALATE_BACKEND."""
+    from yq.macworker import routes_art
+    from yq.macworker.jobs import JobManager
+    from yq.macworker.models import art_image, art_verify
+    calls, checks = [], iter([False, True])
+
+    def fake_generate(prompt, w, h, seed=None, backend=None, negative="", steps=None, **kw):
+        calls.append(backend)
+        return art_image.mock_image(prompt, w, h, seed or 1)
+
+    def fake_verify(img, elements, use_vlm=True, culture=""):
+        ok = next(checks)
+        v = {"verified": {e: ok for e in elements}, "line_art": 9, "text": False, "frame": False, "note": "",
+             "metrics": {}, "problems": [], "missing": [] if ok else list(elements)}
+        v["score"] = 1.0 if ok else 0.4
+        return v
+
+    monkeypatch.setattr(art_image, "generate", fake_generate)
+    monkeypatch.setattr(art_verify, "verify", fake_verify)
+    monkeypatch.setattr(routes_art, "ESCALATE_BACKEND", "z-image-turbo")
+    jm = JobManager(root=tmp_path)
+    jm.register("image", routes_art.image_job)
+    plan = {"title": "t", "title_es": "t", "summary_es": "", "subject": "condor", "elements": ["condor"],
+            "cultural_notes": ["culture: andean"], "prompt": "A condor over mountains. style", "negative": ""}
+    job = jm.run_inline("image", {"plan": plan, "width": 256, "height": 352, "max_attempts": 3})
+    assert job.status == "done", job.error
+    assert calls == [art_image.BACKEND, "z-image-turbo"]          # stopped as soon as the check passed
+    assert job.result["backend"] == "z-image-turbo" and job.result["attempts"] == 2

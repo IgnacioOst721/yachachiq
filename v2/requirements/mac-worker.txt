@@ -1,0 +1,29 @@
+# ONE environment for the Mac worker (python -m yq.macworker.app): art + box analysis + voice.
+# Omnilingual ASR is NOT here: it needs torch 2.8 / fairseq2 0.6, so the worker runs it in a child
+# process with .venvs/voice (yq/voice/settings.py voice_python(), env YQ_VOICE_PYTHON).
+#   uv venv --python 3.10 .venvs/mac
+#   uv pip install --python .venvs/mac/bin/python -r requirements-common.txt -r requirements/mac-worker.txt --excludes requirements/art-mac-excludes.txt
+# art
+mlx-lm==0.31.3
+mlx-vlm==0.7.3
+mflux==0.20.0
+torchvision==0.29.0
+segno>=1.6
+# box analysis
+scipy>=1.11
+scikit-image>=0.22
+trimesh>=4.0
+fast-simplification>=0.1
+torch==2.14.0
+transformers==5.17.0
+safetensors>=0.4
+huggingface_hub>=0.34
+# voice (Mac side, except Omnilingual)
+mlx==0.32.2
+mlx-whisper==0.4.3
+ctranslate2==4.8.2
+sentencepiece==0.2.2
+soundfile==0.14.0
+psutil>=5.9
+uroman==1.3.1.1
+babel==2.18.0

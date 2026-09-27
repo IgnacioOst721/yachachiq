@@ -52,11 +52,12 @@ def scene_of(prompt: str, backend: str = None) -> str:
     return p.split(". " + _FLOW_STYLE[:30])[0]
 
 
-def emphasize(scene: str, missing: list, problems: list, attempt: int) -> str:
+def emphasize(scene: str, missing: list, problems: list, attempt: int, hints: dict = None) -> str:
     """Retry prompt: missing elements first and explicit, plus fixes for the style problems."""
     s = " ".join((scene or "").split()).rstrip(".")
     if missing:
-        s = "Clearly showing %s. %s" % (" and ".join(missing), s)
+        shown = ["%s (%s)" % (m, hints[m]) if hints and hints.get(m) else m for m in missing]
+        s = "Clearly showing %s. %s" % (" and ".join(shown), s)
     fixes = []
     if "not_line_art" in problems or "too_dark" in problems:
         fixes.append("only thin black outlines on white, large empty white areas")

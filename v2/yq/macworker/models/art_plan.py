@@ -12,7 +12,7 @@ import re
 from yq.common import config
 from yq.common.contracts import ScenePlan
 
-from . import art_style
+from . import art_glossary, art_style
 
 log = logging.getLogger("yq.art.plan")
 
@@ -133,6 +133,51 @@ def _salvage(text: str) -> dict:
     return d
 
 
+TITLE_SYSTEM = ("Escribe un título corto (de 2 a 6 palabras) en español para esta historia contada a un robot. "
+                "Nombra al protagonista o lo que pasa. Responde solo con el título, sin comillas ni punto final.")
+
+
+def good_title(t: str, story: str = "") -> bool:
+    """2..10 words, or one word that is not just the story's last word copied (the LLM's classic slip)."""
+    words = re.findall(r"[\w'’]+", t or "")
+    if not words or len(words) > 10 or len(" ".join(words)) > 70:
+        return False
+    if len(words) == 1:
+        story_words = re.findall(r"[\w'’]+", (story or "").lower())
+        if story_words and words[0].lower() == story_words[-1]:
+            return False
+    return True
+
+
+def _spanish_title(text_es: str) -> str:
+    from yq.art import offline
+    from . import llm
+    if text_es.strip():
+        try:
+            t = llm.chat([{"role": "system", "content": TITLE_SYSTEM}, {"role": "user", "content": text_es.strip()}],
+                         max_tokens=30, temperature=0.2)
+            t = " ".join(t.strip().strip('"«»“”.').split())
+            if good_title(t, text_es):
+                return t[:1].upper() + t[1:]
+        except Exception as e:                            # the title must never stop the drawing
+            log.info("spanish title failed: %s", e)
+    return offline.title_from(text_es) if text_es.strip() else "Una historia"
+
+
+def fix_titles(title: str, title_es: str, text: str, lang: str, text_es: str) -> tuple:
+    """(title in the story's language, title in Spanish), both checked."""
+    title, title_es = " ".join((title or "").split()), " ".join((title_es or "").split())
+    if lang.startswith("spa"):
+        t = title if good_title(title, text) else (title_es if good_title(title_es, text) else _spanish_title(text))
+        return t, t
+    untranslated = title_es and title and title_es.lower() == title.lower()
+    if untranslated or not good_title(title_es, text_es or text):
+        title_es = _spanish_title(text_es or text)
+    if not good_title(title, text):
+        title = _translate(title_es, "spa_Latn", lang) or title_es
+    return title, title_es
+
+
 def plan(text: str, lang: str = "spa_Latn", text_es: str = "", text_en: str = "", backend: str = None):
     """Returns (ScenePlan, text_es, text_en)."""
     from yq.art import offline
@@ -155,7 +200,8 @@ def plan(text: str, lang: str = "spa_Latn", text_es: str = "", text_en: str = ""
         if not d.get("scene") or not d.get("elements"):
             raise
         log.warning("plan JSON salvaged field by field")
-    elements = _clean_list(d.get("elements"), 5) or [str(d.get("subject") or "landscape")]
+    elements = art_glossary.drawable_elements(_clean_list(d.get("elements"), 5) or
+                                              [str(d.get("subject") or "landscape")])
     scene = " ".join(str(d.get("scene") or d.get("subject") or "").split())
     out_es = text_es or (text if lang.startswith("spa") else str(d.get("text_es") or ""))
     out_en = text_en or (text if lang.startswith("eng") else str(d.get("text_en") or ""))
@@ -163,8 +209,11 @@ def plan(text: str, lang: str = "spa_Latn", text_es: str = "", text_en: str = ""
     culture = str(d.get("culture") or "").strip()
     if culture and culture.lower() != "none":
         notes = ["culture: " + culture] + notes
-    p = ScenePlan(title=str(d.get("title") or offline.title_from(text)).strip(),
-                  title_es=str(d.get("title_es") or d.get("title") or "").strip(),
+    # exact looks the generator gets wrong (condor = vulture with bald head, Andean adobe houses...)
+    scene = art_glossary.enrich_scene(scene, elements, culture)
+    title, title_es = fix_titles(str(d.get("title") or ""), str(d.get("title_es") or ""), text, lang, out_es)
+    p = ScenePlan(title=title or offline.title_from(text),
+                  title_es=title_es or title or offline.title_from(out_es or text),
                   summary_es=str(d.get("summary_es") or "").strip(),
                   subject=str(d.get("subject") or elements[0]).strip(),
                   elements=elements, setting=str(d.get("setting") or "").strip(),

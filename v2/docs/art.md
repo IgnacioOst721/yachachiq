@@ -198,3 +198,30 @@ cargaría un modelo menos en cada dibujo.
 Presupuesto del gestor de modelos: 10,5 GB entre todos los dominios. Un dibujo usa, uno después de otro:
 LLM 5,2 GB → generador 5,4 GB → VLM 6,6 GB (→ generador otra vez si hay reintento). El gestor
 descarga el menos usado cuando hace falta, así que cada cambio cuesta unos segundos de carga desde el SSD.
+
+## Resultados reales con la guía andina (27 de septiembre, M4 cargada con otros procesos)
+
+Primera prueba real (sin guía): el cóndor salía con cabeza de **águila**, casas europeas, pinos, y la
+historia en quechua recibía de título su última palabra ("Qhawaspa"). Arreglos:
+
+1. **Guía visual andina** (`yq/macworker/models/art_glossary.py`): añade al pedido de imagen el aspecto
+   exacto de lo que los generadores confunden (cóndor = buitre de cabeza pelada con collar blanco, no
+   águila; llama/alpaca/vicuña; casas de adobe con techo de ichu y sin pinos; apus con nieve…) y la
+   revisión con Qwen3-VL exige esos rasgos ("un águila con cabeza emplumada NO cuenta").
+2. **Elementos abstractos fuera** ("cielo", "cielo de mañana", "paisaje"): no se pueden comprobar mirando.
+3. **Títulos revisados**: se rechaza un título que es solo la última palabra copiada; el título en
+   castellano se pide aparte y el de la lengua original se traduce con NLLB.
+4. **Escalar de generador**: el 1.er intento usa FLUX.2 klein (rápido, ~50 s); si la revisión falla,
+   los reintentos usan **Z-Image-Turbo** (más lento, ~170-260 s, pero dibuja el cóndor correcto).
+   `YQ_ART_IMAGE_ESCALATE=""` lo apaga.
+5. **QR con corrección M** (antes H): símbolo más pequeño, módulos más grandes, menos trazos.
+
+| Historia | Generador | Elementos verificados | Intentos | Trazos (frente) |
+|---|---|---|---|---|
+| Cóndor y Apus (castellano) | FLUX.2 klein | 1 de 3 (solo el pueblo) | 3 | 562 |
+| Cóndor y Apus (castellano) | **Z-Image** | **3 de 3** (cóndor de cabeza pelada, montaña nevada, pueblo) | 1 | 638 |
+| Kuntur y llamas (quechua) | FLUX.2 klein | 3 de 3 | 1 | 363 |
+| Kuntur y llamas (quechua) | **Z-Image** | **3 de 3** (llamas en caravana con carga) | 2 | 396 |
+
+Muestras: `docs/art_samples/*_zimage_*.png`. Ojo: con más detalle hay más trazos, así que el frente tarda
+más en dibujarse (estimado 10-14 min con las velocidades supuestas; depende de la impresora de Joaquín).

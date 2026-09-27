@@ -57,6 +57,8 @@ FRONT_TITLE = _e("FRONT_TITLE", False)      # also write the title under the dra
 
 # --- Back page -----------------------------------------------------------------------
 QR_SIZE_MM = _e("QR_SIZE_MM", 36.0)         # QR symbol side without the quiet zone (>= 30)
+QR_ERROR = _e("QR_ERROR", "m")              # l / m / q / h. M (15 %) is plenty for a clean pen drawing and
+                                            # gives a smaller symbol (bigger modules, fewer strokes) than H
 QR_URL_FORMAT = _e("QR_URL_FORMAT", "{base}{story_id}/")  # base = config.PUBLIC_BASE_URL (publish writes <id>/index.html)
 TEXT_FONT = _e("TEXT_FONT", "futural")      # single-stroke Hershey font for the story text
 TITLE_FONT = _e("TITLE_FONT", "scripts")

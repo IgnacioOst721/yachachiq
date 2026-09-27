@@ -26,6 +26,8 @@ log = logging.getLogger("yq.art.routes")
 router = APIRouter()
 
 FALLBACK_BACKENDS = env("ART_IMAGE_FALLBACKS", ["comfyui"])
+# attempt 1 uses the fast generator; if the check fails, retries use this more accurate one ("" = off)
+ESCALATE_BACKEND = env("ART_IMAGE_ESCALATE", "z-image-turbo")
 
 
 @router.post("/story/clean")
@@ -83,6 +85,10 @@ def image_job(ctx) -> dict:
     do_verify = bool(prm.get("verify", True))
     seed0 = int(prm["seed"]) if prm.get("seed") is not None else random.randint(0, 2 ** 31 - 1000)
     scene = art_style.scene_of(plan.prompt, backend) or plan.subject
+    culture = next((n.split(":", 1)[1].strip() for n in plan.cultural_notes or []
+                    if str(n).lower().startswith("culture:")), "")
+    from yq.macworker.models.art_glossary import verify_hint
+    hints = {e: verify_hint(e, culture) for e in plan.elements}
     prompt = plan.prompt or art_style.compose_prompt(scene, backend)
     tried, best, used, last_v = [], None, backend, {}
     for k in range(max_attempts):
@@ -92,8 +98,12 @@ def image_job(ctx) -> dict:
         step = 0.9 / max_attempts
         ctx.progress(base, "Dibujando tu historia..." if k == 0 else "Mejorando el dibujo (intento %d)..." % (k + 1))
         if k > 0:
+            # escalate: the fast generator failed the check, so retries use the more accurate one
+            # (FLUX.2 klein draws a condor with an eagle's head; Z-Image draws the bald head and ruff)
+            if ESCALATE_BACKEND and ESCALATE_BACKEND != backend and not prm.get("backend"):
+                backend = ESCALATE_BACKEND
             prompt = art_style.compose_prompt(art_style.emphasize(scene, last_v.get("missing", []),
-                                                                  last_v.get("problems", []), k), used)
+                                                                  last_v.get("problems", []), k, hints), backend)
         t0 = time.time()
         img, used = _generate_any(prompt, plan.negative, w, h, seed0 + 1000 * k, backend,
                                   progress=lambda f, b=base, s=step: ctx.progress(b + s * 0.7 * f),
@@ -103,7 +113,7 @@ def image_job(ctx) -> dict:
         img.save(ctx.out_dir / name)
         ctx.progress(base + step * 0.7, "Revisando que el dibujo cuente tu historia...")
         t0 = time.time()
-        v = art_verify.verify(img, plan.elements, use_vlm=do_verify)
+        v = art_verify.verify(img, plan.elements, use_vlm=do_verify, culture=culture)
         rec = {"file": name, "seed": seed0 + 1000 * k, "backend": used, "prompt": prompt,
                "gen_s": round(t_gen, 1), "verify_s": round(time.time() - t0, 1), **v}
         tried.append(rec)
