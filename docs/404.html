@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Yachachiq</title>
+<script>
+// GitHub Pages serves this page for any missing address under /yachachiq/.
+// The QR the robot prints points to /yachachiq/<story-YYYYMMDD-HHMMSS-xxxx>/, which only exists once the
+// story is published (at the competition there is no internet, so that can be hours later). Send the
+// phone to the gallery anchored at that story: the gallery shows it, or says it is still uploading.
+(function () {
+  var p = location.pathname;
+  var m = p.match(/^(.*?\/)[a-z]+-(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})-(\w+)\/?(index\.html)?$/);
+  if (m) {
+    // same format as v2/yq/publish/gallery.py web_id(): 2026-09-27_17-13-51_2fdc
+    var id = m[2] + "-" + m[3] + "-" + m[4] + "_" + m[5] + "-" + m[6] + "-" + m[7] + "_" + m[8];
+    location.replace(m[1] + "#" + id);
+  } else {
+    location.replace(p.indexOf("/yachachiq/") === 0 ? "/yachachiq/" : "/");
+  }
+})();
+</script>
+</head>
+<body style="font-family: Georgia, serif; background: #F7F0E3; color: #241B1A; padding: 2rem;">
+  <p>Buscando tu historia… <a href="/yachachiq/">Ir al archivo de Yachachiq</a></p>
+</body>
+</html>

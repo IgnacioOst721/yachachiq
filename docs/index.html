@@ -147,7 +147,7 @@
     gap: 2.5rem 3rem;
     align-items: start;
   }
-  @media (max-width: 720px) { .que-es { grid-template-columns: 1fr; } }
+  @media (max-width: 720px) { .que-es { grid-template-columns: minmax(0, 1fr); } }
   .que-es h2, .titulo-simple {
     font-family: "Fraunces", serif;
     font-weight: 900;
@@ -182,7 +182,7 @@
   }
   .ficha dl { display: grid; grid-template-columns: auto 1fr; gap: .45rem 1rem; font-size: .95rem; }
   .ficha dt { color: var(--celeste); letter-spacing: .14em; text-transform: uppercase; font-size: .7rem; padding-top: .25rem; }
-  .ficha dd { margin: 0; }
+  .ficha dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
   .ficha a { color: var(--amarillo); }
 
   /* ── cómo funciona ─────────────────────────────────────── */
@@ -396,6 +396,40 @@
   }
   footer a { color: var(--amarillo); text-decoration-thickness: 1px; text-underline-offset: 3px; }
 
+  /* The visitor's own story, reached from the QR on the paper: docs/<story>/index.html sends the
+     phone to ../#<id>, and the page highlights that story and scrolls to it. */
+  .historia { scroll-margin-top: 1.2rem; }
+  .historia.destacada {
+    border-color: var(--amarillo);
+    box-shadow: 0 0 0 4px var(--amarillo), .8rem .8rem 0 rgba(128,37,46,.18);
+    animation: sube .6s backwards, brilla 1.6s ease-in-out .6s 3;
+  }
+  @keyframes brilla {
+    50% { box-shadow: 0 0 0 10px rgba(232,185,59,.55), .8rem .8rem 0 rgba(128,37,46,.18); }
+  }
+  .tuya {
+    display: none;
+    background: var(--amarillo);
+    color: var(--tinta);
+    font-weight: 800;
+    font-size: .76rem;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    padding: .35rem .75rem;
+    border-radius: 999px;
+  }
+  .historia.destacada .tuya { display: inline-block; }
+  .aviso-subiendo {
+    scroll-margin-top: 1.2rem;
+    background: var(--amarillo);
+    color: var(--tinta);
+    border: 2px solid var(--tinta);
+    padding: 1.1rem 1.4rem;
+    margin-bottom: 2rem;
+    font-size: 1.05rem;
+    line-height: 1.5;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     * { animation: none !important; transition: none !important; }
   }
@@ -496,6 +530,54 @@ function tituloDe(txt) {
 function esQuechua(txt) {
   return /^LANG:\s*quechua/mi.test(txt);
 }
+function sinHtml(t) {
+  return String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;");
+}
+// v2 entries carry the language and the sign language; v1 entries only say "LANG: quechua"
+function etiquetasIdioma(h) {
+  const tags = [];
+  if (h.lang_name && !/^spa/.test(h.lang || "")) tags.push(h.lang_name);
+  else if (!h.lang_name && esQuechua(h.story || "")) tags.push("Quechua");
+  if (h.sign_lang_name) tags.push(h.sign_lang_name);
+  return tags.map(t => `<span class="fecha">${sinHtml(t)}</span>`).join("");
+}
+// Jump straight to it: the page's CSS "scroll-behavior: smooth" would animate a 3000 px scroll, slow on
+// phones and frozen while the tab is in the background. The yellow glow is what draws the eye.
+function saltarA(el) {
+  const raiz = document.documentElement;
+  const antes = raiz.style.scrollBehavior;
+  raiz.style.scrollBehavior = "auto";
+  el.scrollIntoView({block: "start"});
+  raiz.style.scrollBehavior = antes;
+}
+// #<id> in the address (from the QR on the paper): highlight that story, or explain it's still uploading
+function irADestino() {
+  document.querySelectorAll(".historia.destacada").forEach(e => e.classList.remove("destacada"));
+  const viejo = document.getElementById("aviso-subiendo");
+  if (viejo) viejo.remove();
+  let id = (location.hash || "").slice(1);
+  try { id = decodeURIComponent(id); } catch (e) { /* malformed %-escape: use it as it is */ }
+  // only story addresses (2026-09-27_17-13-51_2fdc): other anchors are not "your story"
+  if (!/^\d{4}-\d{2}-\d{2}_\d{2}-\d{2}/.test(id)) return;
+  const el = document.getElementById(id);
+  if (el && el.classList.contains("historia")) {
+    el.classList.add("destacada");
+    saltarA(el);
+    // the lazy images above it can push it down while they load: settle once more
+    setTimeout(() => saltarA(el), 1200);
+  } else {
+    const aviso = document.createElement("div");
+    aviso.id = "aviso-subiendo";
+    aviso.className = "aviso-subiendo";
+    aviso.setAttribute("role", "status");
+    aviso.textContent = "Tu historia todavía se está subiendo: el robot la guarda y la publica apenas " +
+                        "tiene internet. Vuelve a escanear el código en un rato.";
+    const lista = document.getElementById("lista");
+    lista.parentNode.insertBefore(aviso, lista);
+    saltarA(aviso);
+  }
+}
+window.addEventListener("hashchange", irADestino);
 fetch("stories.json?t=" + Date.now(), {cache: "no-store"})
   .then(r => r.json())
   .then(historias => {
@@ -509,12 +591,14 @@ fetch("stories.json?t=" + Date.now(), {cache: "no-store"})
         <p>El archivo todavía está vacío. Cuando alguien le cuente su primera
         historia a Yachachiq, aparecerá aquí con su dibujo a lápiz.</p>
       </div>`;
+      irADestino();
       return;
     }
     const total = historias.length;
     historias.forEach((h, idx) => {
       const art = document.createElement("article");
       art.className = "historia";
+      art.id = h.id;
       art.style.animationDelay = (Math.min(idx, 6) * 0.08 + 0.1) + "s";
       let figs = "";
       const img = h.images.find(x => !x.startsWith("preview"));
@@ -535,7 +619,8 @@ fetch("stories.json?t=" + Date.now(), {cache: "no-store"})
         <div class="meta">
           <span class="num">Historia Nº ${n}</span>
           <span class="fecha">${fechaBonita(h.id)}</span>
-          ${esQuechua(h.story || "") ? `<span class="fecha">Quechua</span>` : ""}
+          ${etiquetasIdioma(h)}
+          <span class="tuya">Tu historia</span>
           ${h.portrait ? `<span class="retrato">Contada por<img src="stories/${h.id}/${h.portrait}" alt="Quien contó la historia"></span>` : ""}
         </div>
         ${tituloDe(h.story || "") ? `<h3 class="titulo-historia">${tituloDe(h.story).replace(/</g, "&lt;")}</h3>` : ""}
@@ -543,6 +628,7 @@ fetch("stories.json?t=" + Date.now(), {cache: "no-store"})
         <div class="galeria">${figs}</div>`;
       lista.appendChild(art);
     });
+    irADestino();
   })
   .catch(() => {
     document.getElementById("lista").innerHTML =
