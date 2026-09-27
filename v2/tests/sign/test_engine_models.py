@@ -244,3 +244,19 @@ def test_replay_source_feeds_engine(tmp_path):
             break
         eng.process_keypoints(*g)
     assert eng.state()["buffer"] == "sol"
+
+
+@pytest.mark.parametrize("lang", ["ase", "ils", "prl"])
+def test_tapping_a_chip_commits_that_chip(lang):
+    """accept(i) must commit exactly state()['candidates'][i] (it used to re-rank with final=True:
+    tapping 'help' committed 'hell')."""
+    eng = SignEngine(lang)
+    shapes = {k: np.asarray(v, np.float32) for k, v in eng.speller.clf.prototypes.items()}
+    for t, xy, cf in synth.letter_sequence(list("hel" if lang != "prl" else "mon"), shapes,
+                                           rng=np.random.default_rng(1)):
+        eng.process_keypoints(t, xy, cf)
+    shown = [c["text"] for c in eng.state()["candidates"]]
+    assert len(shown) >= 2, shown
+    i = len(shown) - 1                                        # the last chip, the one most likely to differ
+    assert eng.accept(i) == shown[i]
+    assert eng.text().split()[-1] == shown[i]

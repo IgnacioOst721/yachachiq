@@ -44,9 +44,18 @@ class StoryMakeMixin:
         self.holo_status: dict = {"status": "none"}
         self.published: dict = {}
         self.skip = threading.Event()
+        self.printed = False          # a paper with this story's QR went to the printer
+        self.finalized = False        # consent marker (.ready / .private) written
 
     def cleanup_make(self) -> None:
         self.k.pump.stop()
+        # Cancelled (home, shutdown) after the paper went to the printer: its QR points to this story,
+        # so keep the visitor's choice and publish anyway, or that QR would be a 404 forever.
+        if self.printed and not self.finalized and self.consent:
+            try:
+                self._finalize()
+            except Exception:
+                log.exception("finalize after cancel failed")
 
     def _vote(self, p: dict) -> None:
         self.vote = bool(p.get("publish"))
@@ -193,6 +202,7 @@ class StoryMakeMixin:
             else:
                 job = self.call(pr.submit_drawing, self.drawing, self.qr_url, timeout=40)
                 self.print_status = {"status": "sent", "id": job.get("id")}
+                self.printed = True
                 threading.Thread(target=self._poll_printer, args=(job.get("id"),), name="printer-poll",
                                  daemon=True).start()
         except Cancelled:
@@ -263,6 +273,7 @@ class StoryMakeMixin:
             self.source, self.sign_lang), encoding="utf-8")
 
     def _finalize(self) -> None:
+        self.finalized = True
         self._save_meta()
         marker = ".ready" if self.consent.get("publish") else ".private"
         (self.dir / marker).write_text(self.consent.get("reason", ""), encoding="utf-8")

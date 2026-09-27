@@ -45,6 +45,7 @@ class SignEngine:
         self._error = ""
         self._words: list = []             # confirmed story words (display strings)
         self._word_cands: list = []        # words mode: alternatives of the last sign
+        self._shown_spelled: list = []     # letters mode: the completion chips the screen last got
         self._pending_letter = None
         self.speller: Optional[Speller] = None
         self.word_rec = None
@@ -127,7 +128,9 @@ class SignEngine:
                 sp = self.speller
                 st["buffer"] = sp.buffer()
                 if sp.letters:
-                    st["candidates"] = [{"text": w, "prob": round(p, 3), "kind": "word"} for w, p in sp.candidates()]
+                    cands = sp.candidates()
+                    self._shown_spelled = [w for w, _p in cands]
+                    st["candidates"] = [{"text": w, "prob": round(p, 3), "kind": "word"} for w, p in cands]
                 else:       # alternatives for the word just closed (accept(i) swaps it)
                     st["candidates"] = [{k: v for k, v in c.items() if not k.startswith("_")} for c in self._word_cands]
                 st["letter"] = {"current": sp.current[0], "conf": round(sp.current[1], 3),
@@ -142,13 +145,16 @@ class SignEngine:
         Words mode: replace the last recognised sign with alternative `index`."""
         with self._lock:
             if self.mode == "letters" and self.speller and self.speller.letters:
-                cands = self.speller.candidates(final=True)
-                if not cands:
+                # index into the SAME list the visitor sees (state() ranks with final=False; re-ranking
+                # here with final=True made tapping "help" commit "hell", 2026-09-27 review)
+                words = self._shown_spelled or [w for w, _p in self.speller.candidates()]
+                if not words:
                     return None
-                word = cands[min(index, len(cands) - 1)][0]
+                word = words[min(index, len(words) - 1)]
                 self._words.append(word)
                 self.speller.clear()
                 self._word_cands = []
+                self._shown_spelled = []
                 self._emit_word(word, word, 1.0, [])
                 return word
             if self._word_cands:          # swap the last word for one of its alternatives
@@ -171,7 +177,7 @@ class SignEngine:
 
     def clear(self) -> None:
         with self._lock:
-            self._words, self._word_cands = [], []
+            self._words, self._word_cands, self._shown_spelled = [], [], []
             if self.speller:
                 self.speller.clear()
             if self.spotter:
@@ -222,6 +228,7 @@ class SignEngine:
         word = cands[0][0]
         self._words.append(word)
         self.speller.clear()
+        self._shown_spelled = []          # the chips of the next word come from the next state()
         self._word_cands = [{"text": w, "prob": round(p, 3), "kind": "word", "replace": True} for w, p in cands]
         self._word_cands[0]["_appended"] = True
         self._emit_word(word, word, cands[0][1], [[w, p] for w, p in cands[1:]])

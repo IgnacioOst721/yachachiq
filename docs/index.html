@@ -147,7 +147,7 @@
     gap: 2.5rem 3rem;
     align-items: start;
   }
-  @media (max-width: 720px) { .que-es { grid-template-columns: 1fr; } }
+  @media (max-width: 720px) { .que-es { grid-template-columns: minmax(0, 1fr); } }
   .que-es h2, .titulo-simple {
     font-family: "Fraunces", serif;
     font-weight: 900;
@@ -182,7 +182,7 @@
   }
   .ficha dl { display: grid; grid-template-columns: auto 1fr; gap: .45rem 1rem; font-size: .95rem; }
   .ficha dt { color: var(--celeste); letter-spacing: .14em; text-transform: uppercase; font-size: .7rem; padding-top: .25rem; }
-  .ficha dd { margin: 0; }
+  .ficha dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
   .ficha a { color: var(--amarillo); }
 
   /* ── cómo funciona ─────────────────────────────────────── */
@@ -420,6 +420,7 @@
   }
   .historia.destacada .tuya { display: inline-block; }
   .aviso-subiendo {
+    scroll-margin-top: 1.2rem;
     background: var(--amarillo);
     color: var(--tinta);
     border: 2px solid var(--tinta);
@@ -573,6 +574,7 @@ function irADestino() {
                         "tiene internet. Vuelve a escanear el código en un rato.";
     const lista = document.getElementById("lista");
     lista.parentNode.insertBefore(aviso, lista);
+    saltarA(aviso);
   }
 }
 window.addEventListener("hashchange", irADestino);

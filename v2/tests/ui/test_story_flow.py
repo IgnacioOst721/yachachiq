@@ -146,3 +146,26 @@ def test_second_flow_is_refused_while_busy(client, events):
     events.screen("method")
     r = client.post("/api/start", json={"flow": "scan"})
     assert r.status_code == 409 and r.json()["error"] == "ocupado"
+
+
+def test_home_during_narration_still_publishes_the_printed_story(client, events, monkeypatch):
+    """The paper (with this story's QR) went to the printer, then the visitor pressed home during the
+    narration: the story must still be published, or its QR is a 404 forever (2026-09-27 review)."""
+    from yq.server import settings as S
+    monkeypatch.setattr(S, "PAUSE_SCALE", 1.0)          # a real-length narration, so there is time to cancel
+    client.kiosk.sub.camera.covered = False
+    _start(client, method="text")
+    events.screen("typing")
+    events.act("submit_text", text="Había una vez un cóndor que cuidaba a las llamas del pueblo.", lang="spa_Latn")
+    events.screen("confirm")
+    events.act("confirm")
+    events.screen("consent")
+    events.act("consent", publish=True)
+    events.screen("showtime", timeout=20)
+    events.until(lambda m: m["type"] == "printer", what="paper sent to the printer")
+    assert client.kiosk.flow is not None and client.kiosk.flow.printed and not client.kiosk.flow.finalized
+    assert client.post("/api/cancel").json()["ok"] is True
+    events.screen("home")
+    wait_for(lambda: client.kiosk.flow is None)
+    d = _story_dir()
+    assert (d / ".ready").exists() and not (d / ".private").exists()

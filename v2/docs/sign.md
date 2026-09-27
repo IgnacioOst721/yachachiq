@@ -222,7 +222,9 @@ En el Mac, la Terminal necesita permiso de cámara (Ajustes → Privacidad → C
   intérprete de LSP la revise**.
 - J, Z y Ñ: detector por reglas, **sin medir con personas reales**.
 - Palabras: hay que grabarlas (LSP, SI) o bajar Kaggle (ASL).
-- Señas Internacionales: no hay modelo de letras (no hay datos verificados); solo palabras
+- Señas Internacionales: **letras con el modelo de ASL** (decisión del 27 de septiembre: el alfabeto
+  manual internacional de una mano es prácticamente el de ASL; J y Z por movimiento). Si algún día se
+  entrena `letters_ils.npz` con `--lang ils`, ese modelo reemplaza al de ASL solo. Faltan las palabras,
   cuando se graben.
 - El quechua del diccionario (`story_words.tsv`) lo escribió el equipo: que lo revise un hablante.
 
@@ -236,5 +238,5 @@ En el Mac, la Terminal necesita permiso de cámara (Ajustes → Privacidad → C
 | 4 | Medir letras con visitantes reales (RTMW, cuerpo entero) y sumar esas tomas al entrenamiento | ≥ 5 personas | `... -m yq.sign.record --lang prl --mode letters --signer NOMBRE --reps 3` y luego `training/sign/train_letters.py --lang prl --aslhg training/sign/data/aslhg_hands.npz` |
 | 5 | Palabras LSP (60 palabras de `yq/sign/vocab_prl.txt`) | ≥ 5 personas × 5 repeticiones (~2 h) | `... -m yq.sign.record --lang prl --mode words --signer NOMBRE --reps 5` y `... -m yq.common.heavylock .venvs/sign/bin/python training/sign/train_words.py --lang prl` |
 | 6 | Palabras ASL (250 señas de Kaggle asl-signs) | cuenta de Kaggle (`~/.kaggle/kaggle.json`) + ~1 h de entrenamiento | pasos en `training/sign/README.md`, sección 2 |
-| 7 | Señas Internacionales: palabras (y letras, si se decide usar el alfabeto internacional) | grabaciones propias | igual que 5 con `--lang ils` |
+| 7 | Señas Internacionales: palabras (las letras ya usan el modelo de ASL) | grabaciones propias | igual que 5 con `--lang ils` |
 | 8 | Revisión de un intérprete de LSP (letras de ASL-HG usadas para LSP; vocabulario) y de un hablante de quechua (`yq/sign/models/story_words.tsv`) | intérprete / hablante | — |
