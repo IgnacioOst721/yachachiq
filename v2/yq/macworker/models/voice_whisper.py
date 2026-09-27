@@ -49,10 +49,14 @@ class WhisperMLX:
     # -- language identification ------------------------------------------------------------
     def detect_language(self, audio: np.ndarray) -> list:
         """[[whisper_code, prob], ...] sorted, from the first 30 s."""
+        from yq.macworker.mlx_thread import on_mlx_thread, run
+        if not on_mlx_thread():
+            return run(self.detect_language, audio)
         import mlx.core as mx
         from mlx_whisper.audio import N_SAMPLES, log_mel_spectrogram, pad_or_trim
         from mlx_whisper.decoding import detect_language
-        x = pad_or_trim(np.asarray(audio, dtype=np.float32), N_SAMPLES)
+        # mlx_whisper.pad_or_trim pads with mx.pad, which only accepts MLX arrays (numpy -> TypeError)
+        x = pad_or_trim(mx.array(np.asarray(audio, dtype=np.float32)), N_SAMPLES)
         mel = log_mel_spectrogram(x, n_mels=self.model.dims.n_mels)
         mel = mel[None].astype(mx.float16)
         _, probs = detect_language(self.model, mel)
@@ -62,6 +66,9 @@ class WhisperMLX:
     # -- transcription ---------------------------------------------------------------------
     def transcribe(self, audio: np.ndarray, language: Optional[str] = None, prompt: str = "") -> dict:
         """{"text","language","segments":[{start,end,text,confidence}], "confidence"}."""
+        from yq.macworker.mlx_thread import on_mlx_thread, run
+        if not on_mlx_thread():
+            return run(self.transcribe, audio, language, prompt)
         import mlx_whisper
         from mlx_whisper.transcribe import ModelHolder
         import mlx.core as mx

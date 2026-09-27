@@ -22,6 +22,7 @@ from dataclasses import dataclass, field
 from typing import Any, Callable, Optional
 
 from yq.common import config
+from yq.macworker import mlx_thread
 
 log = logging.getLogger("yq.models")
 
@@ -82,6 +83,8 @@ class ModelManager:
             return sum(e.size_gb for e in self._entries.values() if e.obj is not None)
 
     def get(self, name: str) -> Any:
+        if not mlx_thread.on_mlx_thread():               # load (and evict) on the MLX thread only
+            return mlx_thread.run(self.get, name)
         with self._lock:
             if name not in self._entries:
                 raise KeyError("model %r not registered (known: %s)" % (name, self.registered()))
@@ -97,6 +100,8 @@ class ModelManager:
             return e.obj
 
     def unload(self, name: str) -> None:
+        if not mlx_thread.on_mlx_thread():               # freeing MLX memory elsewhere aborts the worker
+            return mlx_thread.run(self.unload, name)
         with self._lock:
             e = self._entries.get(name)
             if not e or e.obj is None:

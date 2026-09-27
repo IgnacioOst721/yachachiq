@@ -81,3 +81,24 @@ def test_mac_client_mocked(monkeypatch):
         assert False
     except MacUnavailable:
         pass
+
+
+def test_models_load_and_unload_on_the_mlx_thread():
+    """MLX objects must be created and freed on ONE thread (else the worker aborts)."""
+    import threading
+    from yq.macworker import mlx_thread
+    seen = []
+    mm = ModelManager(budget_gb=3)
+
+    def loader(n):
+        seen.append(("load", n, threading.current_thread().name))
+        return n
+
+    for n in ("a", "b"):
+        mm.register(n, loader=lambda n=n: loader(n), size_gb=2,
+                    unloader=lambda o: seen.append(("unload", o, threading.current_thread().name)))
+    t = threading.Thread(target=lambda: (mm.get("a"), mm.get("b")))   # from a request-like thread
+    t.start(); t.join()
+    assert [s[:2] for s in seen] == [("load", "a"), ("unload", "a"), ("load", "b")]
+    assert all(s[2].startswith("mlx") for s in seen), seen
+    assert mlx_thread.run(lambda: mlx_thread.run(lambda: 7)) == 7                  # re-entrant, no deadlock

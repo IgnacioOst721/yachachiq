@@ -130,7 +130,14 @@ def translate_detail(text: str, src: str, tgt: str, engine: Optional[str] = None
     text = (text or "").strip()
     if not text or s == t:
         return {"text": text, "engine": "same"}
+    from . import voice_terms
+    src_orig, tgt_orig = s, t
     engine = engine or pick_engine(s, t)
+    # close varieties (Cusco/Puno Quechua...) go through NLLB as Ayacucho Quechua instead of MADLAD,
+    # which invents text for them (voice_terms.PROXY)
+    ps, pt = voice_terms.proxy(s), voice_terms.proxy(t)
+    if engine in (None, "madlad") and (ps, pt) != (s, t) and engine_codes(ps, pt, "nllb"):
+        s, t, engine = ps, pt, "nllb"
     if not engine:
         raise ValueError("no translation engine supports %s -> %s" % (s, t))
     codes = engine_codes(s, t, engine)
@@ -143,7 +150,11 @@ def translate_detail(text: str, src: str, tgt: str, engine: Optional[str] = None
     model = get_model(engine)
     pieces = split_sentences(text)
     outs = model.translate_batch(pieces, codes[0], codes[1])
-    return {"text": " ".join(o for o in outs if o), "engine": engine}
+    out = voice_terms.postedit(text, src_orig, " ".join(o for o in outs if o), tgt_orig)
+    if voice_terms.degenerate(text, out):
+        raise ValueError("translation %s -> %s with %s came out as garbage; not used" % (src_orig, tgt_orig, engine))
+    return {"text": out, "engine": engine, "verified": engine == "nllb",
+            "via": s if s != src_orig else (t if t != tgt_orig else "")}
 
 
 def translate(text: str, src: str, tgt: str) -> str:

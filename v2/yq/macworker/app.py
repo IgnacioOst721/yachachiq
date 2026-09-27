@@ -100,11 +100,30 @@ def create_app() -> FastAPI:
     return app
 
 
+# Loaded in the background at start-up (YQ_MAC_PRELOAD, comma separated; "" = none): the first
+# visitor would otherwise wait ~15 s per model. Whisper + the LLM fit together in the budget.
+PRELOAD = config.env("MAC_PRELOAD", ["whisper-large-v3-turbo", "llm:qwen3-8b"])
+
+
+def preload(names=None) -> None:
+    import threading
+
+    def run():
+        for name in names if names is not None else PRELOAD:
+            try:
+                models.get(name)
+            except Exception as e:                      # a missing model must not stop the server
+                log.warning("preload %s failed: %s", name, e)
+    threading.Thread(target=run, name="preload", daemon=True).start()
+
+
 def main() -> None:
     import uvicorn
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
     config.ensure_dirs()
-    uvicorn.run(create_app(), host="0.0.0.0", port=config.MAC_PORT, log_level="info")
+    app = create_app()
+    preload()
+    uvicorn.run(app, host="0.0.0.0", port=config.MAC_PORT, log_level="info")
 
 
 if __name__ == "__main__":

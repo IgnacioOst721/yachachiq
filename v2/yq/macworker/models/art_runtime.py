@@ -12,29 +12,10 @@ from __future__ import annotations
 import json
 import os
 import re
-import threading
-from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Callable
+from typing import Any
 
 from yq.common.config import env
-
-_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="mlx")
-_tls = threading.local()
-
-
-def run(fn: Callable, *args, **kwargs):
-    """Execute fn on the dedicated MLX thread and wait for the result (re-entrant)."""
-    if getattr(_tls, "on_mlx", False):
-        return fn(*args, **kwargs)
-
-    def call():
-        _tls.on_mlx = True
-        try:
-            return fn(*args, **kwargs)
-        finally:
-            _tls.on_mlx = False
-
-    return _executor.submit(call).result()
+from yq.macworker.mlx_thread import run  # noqa: F401  (the worker-wide MLX thread, shared with voice)
 
 
 def local_repo(repo_id: str) -> str:
