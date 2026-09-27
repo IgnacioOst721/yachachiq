@@ -26,7 +26,7 @@ def test_translate_detail_with_fake_model():
         def translate_batch(self, texts, s, t, beam=4):
             return [x.upper() for x in texts]
     out = vt.translate_detail("hola. chau.", "es", "quy", get_model=lambda e: Fake())
-    assert out == {"text": "HOLA. CHAU.", "engine": "nllb"}
+    assert (out["text"], out["engine"], out["verified"]) == ("HOLA. CHAU.", "nllb", True)   # + additive keys
     assert vt.translate_detail("x", "es", "spa_Latn", get_model=None)["engine"] == "same"
     try:
         vt.translate_detail("x", "spa_Latn", "cni_Latn", get_model=lambda e: Fake())
