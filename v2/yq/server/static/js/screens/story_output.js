@@ -12,7 +12,7 @@ const printerText = (p) => t("printer_" + ((p && p.status) || "none"));
 
 function langPickOverlay() {
   const ov = h("div", { class: "overlay" }, h("div", { class: "sheet" }, h("h2", {}, t("confirm_other_lang")),
-    langPicker({ url: "/api/languages?feature=asr", auto: false, onPick: (code) => { ov.remove(); api.act("relang", { code }); } }),
+    langPicker({ url: "/api/languages?feature=story", auto: false, onPick: (code) => { ov.remove(); api.act("relang", { code }); } }),
     h("div", { class: "bar-actions" }, h("button", { class: "btn", onclick: () => { closeKeyboard(); ov.remove(); } }, t("kb_close")))));
   document.body.append(ov);
 }

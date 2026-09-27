@@ -62,7 +62,13 @@ class MockLanguages:
 
     def ui_list(self, feature: str = "asr") -> list:
         rows = [self._d(r) for r in _L]
-        return [r for r in rows if not feature or r.get(feature)]
+        if feature == "story":
+            return [r for r in rows if r.get("asr") and r.get("translate")]
+        if feature == "all":
+            return [r for r in rows if r.get("asr") and r.get("tts") and r.get("translate")]
+        if feature in ("", "any"):
+            return rows
+        return [r for r in rows if r.get(feature)]
 
     @staticmethod
     def _d(r) -> dict:

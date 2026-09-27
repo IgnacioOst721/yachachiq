@@ -28,7 +28,9 @@ from pathlib import Path
 from typing import Optional
 
 DATA_FILE = Path(__file__).resolve().parent / "data" / "languages.json"
-FEATURES = ("asr", "tts", "translate", "any", "all")
+FEATURES = ("asr", "tts", "translate", "story", "any", "all")
+# "story": the robot can hear it AND translate it, so it understands the story well enough to draw it.
+# Languages with speech recognition only can be written down but not understood: never offer them for stories.
 # Macrolanguage codes -> the variety we use by default (NLLB's choice).
 MACRO_DEFAULT = {"qu": "quy_Latn", "que": "quy_Latn", "ay": "ayr_Latn", "aym": "ayr_Latn",
                  "zho": "cmn_Hans", "ara": "arb_Arab", "fas": "pes_Arab", "msa": "zsm_Latn",
@@ -70,6 +72,8 @@ class Language:
             return bool(self.tts)
         if feature == "translate":
             return bool(self.translate)
+        if feature == "story":
+            return bool(self.asr and self.translate)
         if feature == "all":
             return bool(self.asr and self.tts and self.translate)
         return bool(self.asr or self.tts or self.translate)
@@ -150,7 +154,7 @@ def get(code: str) -> Optional[Language]:
 
 
 def ui_list(feature: str = "asr") -> list:
-    """Languages usable for `feature` ("asr", "tts", "translate", "any", "all") as dicts for the kiosk."""
+    """Languages usable for `feature` ("asr", "tts", "translate", "story", "any", "all") as dicts for the kiosk."""
     if feature not in FEATURES:
         raise ValueError("feature must be one of %s" % (FEATURES,))
     out = []

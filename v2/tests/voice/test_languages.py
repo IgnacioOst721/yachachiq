@@ -99,3 +99,14 @@ def test_ui_list_features():
         assert False
     except ValueError:
         pass
+
+
+def test_story_feature_needs_hearing_and_understanding():
+    """A story language must be recognized AND translatable, or the drawing can't follow the story."""
+    story = {d["code"] for d in L.ui_list("story")}
+    asr = {d["code"] for d in L.ui_list("asr")}
+    tr = {d["code"] for d in L.ui_list("translate")}
+    assert story == asr & tr
+    assert {"spa_Latn", "eng_Latn", "quy_Latn", "quz_Latn", "ayr_Latn", "agr_Latn", "shp_Latn"} <= story
+    assert asr - story, "some languages can only be written down, not understood"
+    assert all(L.get(c).has("asr") and L.get(c).has("translate") for c in story)

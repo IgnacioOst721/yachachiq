@@ -75,7 +75,7 @@ def create_app(kiosk: Optional[Kiosk] = None) -> FastAPI:
 
     @app.get("/api/languages")
     def languages(feature: str = "asr"):
-        return {"languages": k.sub.languages.ui_list(feature or "")}
+        return {"languages": k.sub.languages.ui_list(feature or "any")}
 
     @app.post("/api/start")
     async def start(req: Request):

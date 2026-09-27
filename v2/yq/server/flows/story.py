@@ -95,7 +95,7 @@ class StoryFlow(StoryMakeMixin, Flow):
 
     # -- voice -------------------------------------------------------------------------------
     def s_voice_lang(self):
-        self.show("voice_lang", languages_url="/api/languages?feature=asr", selected=self.voice_lang)
+        self.show("voice_lang", languages_url="/api/languages?feature=story", selected=self.voice_lang)
         name, p = self.wait("choose_lang", "back")
         if name == "back":
             return "method"
@@ -213,7 +213,7 @@ class StoryFlow(StoryMakeMixin, Flow):
     # -- typing --------------------------------------------------------------------------------
     def s_typing(self):
         self.show("typing", text=self.text if self.source == "text" else "", lang=self.lang or ES,
-                  lang_name=self.sub.languages.name_es(self.lang or ES), languages_url="/api/languages?feature=")
+                  lang_name=self.sub.languages.name_es(self.lang or ES), languages_url="/api/languages?feature=translate")
         name, p = self.wait("submit_text", "back")
         if name == "back":
             return "method"
