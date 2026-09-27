@@ -51,7 +51,7 @@ def mass_measurement(folder) -> list:
                                 note="" if d.get("stable") else "no estable"))]
 
 
-def analyze_on_mac(folder, profile: str, analyses: list, on_progress=None) -> dict:
+def analyze_on_mac(folder, profile: str, analyses: list, on_progress=None, context: dict = None) -> dict:
     """Run scan_analyze on the Mac; returns the ScanResult dict with artifact
     paths rewritten to analysis/<name>. Raises MacUnavailable / MacJobError."""
     from yq.common.macclient import MacUnavailable, client
@@ -61,8 +61,8 @@ def analyze_on_mac(folder, profile: str, analyses: list, on_progress=None) -> di
     folder = Path(folder)
     zip_path = package_scan(folder)
     try:
-        job = c.submit_job("scan_analyze", {"profile": profile, "analyses": analyses, "lang": "spa_Latn"},
-                           files=[zip_path])
+        job = c.submit_job("scan_analyze", {"profile": profile, "analyses": analyses, "lang": "spa_Latn",
+                                            "context": dict(context or {})}, files=[zip_path])
         result = c.wait_job(job, on_progress=on_progress)
         out_dir = folder / "analysis"
         artifacts = {}
@@ -80,21 +80,35 @@ def analyze_on_mac(folder, profile: str, analyses: list, on_progress=None) -> di
         zip_path.unlink(missing_ok=True)
 
 
-def analyze_locally(folder, on_progress=None):
-    """BOX-ANALYSIS's local light analyses if they are installed, else None."""
+def _accepts(fn, name: str) -> bool:
+    import inspect
+    try:
+        params = inspect.signature(fn).parameters.values()
+    except (TypeError, ValueError):
+        return False
+    return any(p.name == name or p.kind is inspect.Parameter.VAR_KEYWORD for p in params)
+
+
+def analyze_locally(folder, on_progress=None, context: dict = None):
+    """BOX-ANALYSIS's local light analyses if they are installed, else None.
+    The visitor context (CONTRACTS.md §9) is passed only if analyze_scan accepts it."""
     try:
         from yq.box.analysis import analyze_scan
     except ImportError:
         return None
-    res = analyze_scan(folder, on_progress, identify=False, reconstruct=False)
+    kw = {"identify": False, "reconstruct": False}
+    if context and _accepts(analyze_scan, "context"):
+        kw["context"] = dict(context)
+    res = analyze_scan(folder, on_progress, **kw)
     return to_dict(res) if not isinstance(res, dict) else res
 
 
 def finalize_result(folder, scan_id: str, profile: str, started: float, finished: float, base, warnings: list,
                     ok: bool) -> ScanResult:
     """Merge an analysis result (dict or None) with what the capture knows."""
-    res = from_dict(ScanResult, base or {}) if base else ScanResult(scan_id=scan_id, folder=str(folder),
-                                                                   profile=profile, started=started)
+    # the analysis result may omit the identity fields: capture fills them in
+    res = from_dict(ScanResult, {"scan_id": scan_id, "folder": str(folder), "profile": profile, "started": started,
+                                 **(base or {})})
     res.scan_id, res.folder, res.profile, res.started, res.finished = scan_id, str(folder), profile, started, finished
     if not any((m.get("name") if isinstance(m, dict) else m.name) == "mass" for m in res.measurements):
         res.measurements = mass_measurement(folder) + list(res.measurements)

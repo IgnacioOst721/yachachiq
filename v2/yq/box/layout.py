@@ -29,6 +29,37 @@ UV_FILES = ["uv.jpg", "visible.jpg", "dark.jpg"]
 THERMAL_SHAPE = (120, 160)
 
 
+# Visitor context (CONTRACTS.md §9): optional, a clue for identification, never proof.
+CONTEXT_LIMITS = {"found_where": 300, "region_hint": 40, "notes": 500, "lang": 16}
+
+
+def clean_context(ctx) -> dict:
+    """Keep only the §9 keys, as stripped strings within their length limits
+    (longer text is truncated); anything else (other keys, non-strings) is dropped."""
+    if not isinstance(ctx, dict):
+        return {}
+    out = {}
+    for key, limit in CONTEXT_LIMITS.items():
+        v = ctx.get(key)
+        if isinstance(v, str) and v.strip():
+            out[key] = v.strip()[:limit]
+    return out
+
+
+def context_problems(ctx) -> list:
+    if not isinstance(ctx, dict):
+        return ["meta.json: context debe ser un objeto"]
+    probs = []
+    for k, v in ctx.items():
+        if k not in CONTEXT_LIMITS:
+            probs.append("meta.json: context.%s no es una clave permitida" % k)
+        elif not isinstance(v, str):
+            probs.append("meta.json: context.%s debe ser texto" % k)
+        elif len(v) > CONTEXT_LIMITS[k]:
+            probs.append("meta.json: context.%s tiene más de %d caracteres" % (k, CONTEXT_LIMITS[k]))
+    return probs
+
+
 def photo_name(cam: str, deg: float) -> str:
     """camA_010.jpg: nominal platter angle in whole degrees, 3 digits."""
     return "cam%s_%03d.jpg" % (cam, int(round(deg)) % 360)
@@ -96,6 +127,8 @@ def validate_scan_folder(path, analyses: Optional[list] = None, require_result: 
                 problems.append("meta.json: calibration.%s falta" % k)
         if not isinstance(meta.get("warnings", []), list):
             problems.append("meta.json: warnings debe ser una lista")
+        if "context" in meta:                     # optional (§9)
+            problems += context_problems(meta["context"])
     wanted = list(analyses if analyses is not None else (meta or {}).get("analyses") or ANALYSES)
     profile = (meta or {}).get("profile", "standard")
 

@@ -129,7 +129,9 @@ def record(cam, duration_s: float, time_scale: float = 1.0, on_frame: Optional[C
            cancel_event=None) -> dict:
     """Record for `duration_s` (virtual seconds when time_scale > 1, mock only).
     on_frame(t_s, frame_c) is called after every frame (it may switch the
-    halogen). Returns {"frames_c" (T,120,160) float32, "times" (T,), "frozen" (T,) bool}."""
+    halogen); if it returns a number, that becomes the new total duration (the
+    cooling window restarts when heating stops early).
+    Returns {"frames_c" (T,120,160) float32, "times" (T,), "frozen" (T,) bool}."""
     raws, times = [], []
     t0 = time.monotonic()
     while True:
@@ -142,7 +144,9 @@ def record(cam, duration_s: float, time_scale: float = 1.0, on_frame: Optional[C
         raws.append(raw)
         times.append(t)
         if on_frame is not None:
-            on_frame(t, None)
+            new_duration = on_frame(t, centikelvin_to_c(raw))
+            if new_duration is not None:
+                duration_s = float(new_duration)
         if t >= duration_s:
             break
     arr = np.stack(raws) if raws else np.zeros((0,) + S.THERMAL_SIZE[::-1], np.uint16)

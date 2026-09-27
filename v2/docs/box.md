@@ -9,7 +9,10 @@ Esta parte hace que la caja **mida y fotografíe** el objeto:
 4. Le saca fotos con **luz ultravioleta** (restauraciones, pegamentos).
 5. Lo **calienta suavemente** con la lámpara halógena y filma cómo se enfría con la
    **cámara térmica** (defectos escondidos).
-6. Guarda todo en una carpeta `~/yq-data/scans/<id>/` y se la pasa a BOX-ANALYSIS
+6. Si el visitante contó dónde encontraron el objeto ("¿Dónde lo encontraron?"), eso se
+   guarda en `meta.json` → `context` (solo `found_where` ≤ 300 letras, `region_hint`,
+   `notes`, `lang`) y se manda a la identificación como **pista**, nunca como prueba.
+7. Guarda todo en una carpeta `~/yq-data/scans/<id>/` y se la pasa a BOX-ANALYSIS
    (la Mac hace el 3D y la identificación; si la Mac no está, se hace un análisis local
    reducido o solo se informa el peso).
 
@@ -227,7 +230,15 @@ solos mientras pesa (vibran). "No estable" = algo vibra (ventilador, mesa, aire)
 - **Halógena MR16 35 W:** se pone MUY caliente (más de 200 °C en el vidrio). Solo dentro de
   su luminaria metálica, con la placa de aluminio y el espacio de aire al techo de PETG.
   No la toques hasta 10 minutos después. El firmware la deja prendida **máximo 45 s** y
-  luego la obliga a enfriarse **3 veces** ese tiempo; el escaneo usa 15 s.
+  luego la obliga a enfriarse **3 veces** ese tiempo; el escaneo usa como máximo 15 s.
+- **Calentamiento con control (lazo cerrado):** mientras la halógena está prendida, el Jetson
+  mira cada imagen térmica y la **apaga antes** si la superficie del objeto sube más de
+  **5 °C** sobre la temperatura inicial o llega a **35 °C** (lo que pase primero), o si la
+  cámara térmica deja de ver más de 1,5 s. Se guarda en `thermal/meta.json`: `heat_s` (tiempo
+  real prendida), `stop_reason` (`time`, `delta_t`, `abs_limit`, `camera_frozen`), `max_dt_c`
+  y `max_temp_c`. Cambiar límites: `YQ_BOX_THERMAL_MAX_DT_C`, `YQ_BOX_THERMAL_MAX_ABS_C`.
+- **Sin calor:** `scan --no-heat` (escaneo sin termografía), o para siempre
+  `export YQ_BOX_THERMAL_HEAT_ENABLED=0` (la halógena nunca se prende).
 - **Luz UV 365 nm:** daña los ojos aunque "no se vea fuerte". **Nunca** la mires. Solo
   prende con las dos puertas cerradas (el firmware lo impide si no) y se apaga sola al
   abrir una puerta. **Nunca puentees los sensores de puerta.**
@@ -249,6 +260,9 @@ Medido en la Mac, sin la caja (simulador + cámaras sintéticas):
   QEMU (el emulador se reinicia al escribir la flash): hay que probarlo en la placa.
 - Resolución del plato: 44 800 pasos por vuelta = 0,008° por paso.
 - Escaneo "quick" simulado completo: ~8 s a 50× de velocidad (en la caja real: varios minutos).
+- Lazo cerrado en el modelo térmico simulado (una pieza con un defecto que se calienta más): con
+  el límite de 5 °C la halógena se apagó a los 8,3 s (en vez de 15 s) con ΔT máx 5,0 °C; con
+  1,5 °C se apagó a los 1,8 s con ΔT máx 1,51 °C.
 
 **Falta medir con la caja real (noviembre):** precisión y repetibilidad de la balanza
 (objetivo ±0,5 g), si la correa salta, nitidez real de las fotos, foco óptimo, tiempo real

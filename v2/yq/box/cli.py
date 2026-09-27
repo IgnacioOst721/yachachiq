@@ -169,8 +169,10 @@ def cmd_scan(a):
         print("PROBLEMA: " + p)
     if not pf["ok"] and not a.force:
         return pf
-    req = ScanRequest(scan_id=new_id("scan"), profile=a.profile,
-                      analyses=a.analyses.split(",") if a.analyses else list(ANALYSES))
+    analyses = a.analyses.split(",") if a.analyses else list(ANALYSES)
+    if a.no_heat and "thermal" in analyses:
+        analyses.remove("thermal")              # never switch the halogen on
+    req = ScanRequest(scan_id=new_id("scan"), profile=a.profile, analyses=analyses)
     res = run_scan(req, lambda p: print("[%3d%%] %s" % (round(p.fraction * 100), p.message_es)))
     print("Carpeta: %s" % res.folder)
     for w in res.warnings:
@@ -224,6 +226,7 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--profile", default="standard", choices=["quick", "standard", "detailed"])
     s.add_argument("--analyses", default="", help="p. ej. weight,rti (por defecto: todos)")
     s.add_argument("--force", action="store_true", help="escanear aunque el preflight falle")
+    s.add_argument("--no-heat", action="store_true", help="sin termografía: la halógena no se enciende")
     s.set_defaults(fn=cmd_scan)
     return p
 

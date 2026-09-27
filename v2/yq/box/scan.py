@@ -21,7 +21,9 @@ from . import scan_stages as st
 from . import settings as S
 from .device import get_box
 from .protocol import BoxError
+from .layout import clean_context
 from .scanctx import ScanAborted, ScanCancelled, ScanContext
+from .thermo_stage import stage_thermal
 
 log = logging.getLogger("yq.box.scan")
 SPANS = {"weight": (0.0, 0.05), "uv": (0.05, 0.12), "rti": (0.12, 0.2), "photogrammetry": (0.2, 0.62),
@@ -97,45 +99,9 @@ def _write_meta(ctx: ScanContext, req: ScanRequest, started: float, finished: fl
                     "simulated": box.sim is not None},
             "cameras": ctx.cameras_meta, "calibration": _calibration_refs(),
             "door_closed": extra.get("door_closed", True), "warnings": list(ctx.warnings),
-            "captured": extra.get("captured", []), "coordinates": "object frame: platter centre, Z up, mm"}
+            "captured": extra.get("captured", []), "coordinates": "object frame: platter centre, Z up, mm",
+            "context": dict(req.context or {})}
     (ctx.folder / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=1))
-
-
-def stage_thermal(ctx: ScanContext, profile: str) -> dict:
-    from .thermal import open_thermal, record
-    box = ctx.box
-    heat_s = min(S.THERMAL_HEAT_S, S.FIRMWARE_DEFAULTS["max_on_ms"]["halogen"] / 1000.0 - 3.0)
-    base_s, cool_s = S.THERMAL_BASELINE_S, S.PROFILES[profile]["thermal_cool_s"]
-    total = base_s + heat_s + cool_s
-    ctx.require_doors("thermal")
-    box.all_off()
-    ctx.rotate_to(0.0, "thermal")
-    cam = open_thermal(ctx.scene_fn)
-    times = {"on": None, "off": None}
-
-    def on_frame(t, _frame):
-        if times["on"] is None and t >= base_s:
-            ctx.light("halogen", 1.0, max_ms=int((heat_s + 3.0) * 1000), stage="thermal")
-            times["on"] = t
-        elif times["on"] is not None and times["off"] is None and t >= times["on"] + heat_s:
-            box.light("halogen", 0)
-            times["off"] = t
-        phase = "Midiendo la temperatura inicial" if t < base_s else (
-            "Calentando suavemente con la lámpara" if times["off"] is None else "Enfriando: %d s" % (t - times["off"]))
-        ctx.progress("thermal", t / total, phase, t=round(t, 1))
-
-    try:
-        rec = record(cam, total, time_scale=ctx.time_scale, on_frame=on_frame, cancel_event=ctx.cancel_event)
-    finally:
-        cam.close()
-        try:
-            box.light("halogen", 0)
-        except BoxError:
-            pass
-    ctx.check()
-    if times["on"] is None or times["off"] is None:
-        raise ScanAborted("La lámpara no pudo calentar el objeto.")
-    return st.save_thermal(ctx, rec, times["on"], times["off"])
 
 
 def run_scan(req: ScanRequest, on_progress: Optional[Callable] = None,
@@ -148,6 +114,12 @@ def run_scan(req: ScanRequest, on_progress: Optional[Callable] = None,
     started, captured, ok = time.time(), [], True
     resets0 = box.resets
     wanted = [a for a in req.analyses]
+    if "thermal" in wanted and not S.THERMAL_HEAT_ENABLED:
+        # "no heat": heating disabled by setting -> the scan simply has no thermography
+        wanted.remove("thermal")
+        ctx.warn("Calentamiento desactivado (YQ_BOX_THERMAL_HEAT_ENABLED=0): no se hace termografía.")
+    req = ScanRequest(scan_id=req.scan_id, profile=req.profile, analyses=wanted,
+                      context=clean_context(getattr(req, "context", None)))
     try:
         box.all_off()
         box.stop()
@@ -203,7 +175,8 @@ def _analyze(ctx: ScanContext, req: ScanRequest, package) -> Optional[dict]:
     ctx.progress("analysis", 0.0, "Analizando en la computadora de IA…")
     try:
         return package.analyze_on_mac(ctx.folder, req.profile, list(req.analyses),
-                                      lambda f, m: ctx.progress("analysis", f, m or "Analizando…"))
+                                      lambda f, m: ctx.progress("analysis", f, m or "Analizando…"),
+                                      context=req.context)
     except (MacUnavailable, MacJobError) as e:
         ctx.warn("La computadora de IA no está disponible (%s): análisis local reducido." % str(e)[:120])
     def forward(*args, **kw):   # accepts Progress objects or (fraction, message)
@@ -214,7 +187,7 @@ def _analyze(ctx: ScanContext, req: ScanRequest, package) -> Optional[dict]:
             ctx.progress("analysis", float(args[0]), str(args[1]) if len(args) > 1 else "Analizando…")
 
     try:
-        res = package.analyze_locally(ctx.folder, forward)
+        res = package.analyze_locally(ctx.folder, forward, context=req.context)
         if res is None:
             ctx.warn("Sin análisis: solo se informa el peso.")
         return res

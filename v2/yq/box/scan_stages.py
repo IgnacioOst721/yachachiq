@@ -181,7 +181,7 @@ def stage_uv(ctx: ScanContext) -> dict:
     return exposure
 
 
-def save_thermal(ctx: ScanContext, rec: dict, heat_on: float, heat_off: float) -> dict:
+def save_thermal(ctx: ScanContext, rec: dict, heat_on: float, heat_off: float, extra: dict = None) -> dict:
     out = ctx.folder / "thermal"
     out.mkdir(parents=True, exist_ok=True)
     frames, times = rec["frames_c"].astype(np.float32), rec["times"].astype(np.float64)
@@ -193,7 +193,7 @@ def save_thermal(ctx: ScanContext, rec: dict, heat_on: float, heat_off: float) -
     meta = {"heat_on_s": round(heat_on, 3), "heat_off_s": round(heat_off, 3), "halogen": "MR16 35W",
             "ambient_c": round(float(np.median(base)), 2) if base.size else None, "fps": round(float(fps), 3),
             "units": "C", "frozen_frames": frozen, "frames": int(len(times)), "camera": "PureThermal 3 + Lepton 3.5",
-            "ambient_method": "median of the baseline frames (whole image)"}
+            "ambient_method": "median of the baseline frames (whole image)", **(extra or {})}
     if frozen:
         ctx.warn("La cámara térmica se congeló %d cuadros (calibración FFC); están marcados." % len(frozen))
     _write_json(out / "meta.json", meta)

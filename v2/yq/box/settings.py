@@ -62,6 +62,16 @@ LIGHT_SETTLE_S = env("BOX_LIGHT_SETTLE_S", 0.15)
 THERMAL_BASELINE_S = env("BOX_THERMAL_BASELINE_S", 5.0)
 THERMAL_HEAT_S = env("BOX_THERMAL_HEAT_S", 15.0)
 THERMAL_COOL_S = env("BOX_THERMAL_COOL_S", 90.0)                # 60..120 s
+# Closed-loop heating (yq/box/heatguard.py): the halogen goes off early when the
+# object's surface rises THERMAL_MAX_DT_C over the baseline or reaches THERMAL_MAX_ABS_C.
+THERMAL_HEAT_ENABLED = env("BOX_THERMAL_HEAT_ENABLED", True)     # False = never heat (no thermography)
+THERMAL_MAX_DT_C = env("BOX_THERMAL_MAX_DT_C", 5.0)
+THERMAL_MAX_ABS_C = env("BOX_THERMAL_MAX_ABS_C", 35.0)
+THERMAL_GUARD_ROI = (0.15, 0.85, 0.10, 0.95)                    # x0, x1, y0, y1 fractions of the frame
+THERMAL_WARM_PX_C = env("BOX_THERMAL_WARM_PX_C", 0.4)           # a pixel "warmed" above this rise
+THERMAL_MIN_WARM_PX = env("BOX_THERMAL_MIN_WARM_PX", 20)
+THERMAL_GUARD_PERCENTILE = env("BOX_THERMAL_GUARD_PERCENTILE", 99.0)
+THERMAL_MAX_FROZEN_S = env("BOX_THERMAL_MAX_FROZEN_S", 1.5)     # blind longer than this while heating -> stop
 FAN_AFTER_SCAN_S = env("BOX_FAN_AFTER_SCAN_S", 120.0)
 # Simulator + mock cameras only: >1 runs the whole scan faster than real time
 # (tests use 50). Timestamps written to the scan stay in "virtual" seconds.

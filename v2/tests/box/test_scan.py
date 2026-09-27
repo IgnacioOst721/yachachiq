@@ -35,7 +35,8 @@ def test_full_mock_scan_produces_a_valid_folder(mock_all, tmp_path):
     w = json.loads((folder / "weight.json").read_text())
     assert w["grams"] == pytest.approx(812.5, abs=1.0) and w["stable"]
     tm = json.loads((folder / "thermal" / "meta.json").read_text())
-    assert tm["heat_off_s"] - tm["heat_on_s"] == pytest.approx(15.0, abs=0.3)
+    assert 0 < tm["heat_off_s"] - tm["heat_on_s"] <= 15.3            # closed loop may stop earlier
+    assert tm["stop_reason"] in ("time", "delta_t") and tm["max_dt_c"] < 5.7
     seq = np.load(folder / "thermal" / "sequence.npy")
     assert seq.shape[1:] == (120, 160) and seq.dtype == np.float32
     assert seq.max() > tm["ambient_c"] + 2                     # the halogen really heated the object
@@ -122,7 +123,7 @@ def test_door_opened_mid_scan_pauses_until_closed(mock_all):
 def test_mac_result_is_merged(mock_all, monkeypatch):
     """With a (fake) Mac answering, artifacts land in analysis/ and the result is merged."""
     from yq.box import package, scan
-    monkeypatch.setattr(package, "analyze_on_mac", lambda folder, profile, analyses, on_progress=None: {
+    monkeypatch.setattr(package, "analyze_on_mac", lambda folder, profile, analyses, on_progress=None, context=None: {
         "scan_id": "x", "folder": "x", "profile": profile, "started": 0, "measurements":
         [{"name": "height", "value": 118.0, "unit": "mm", "uncertainty": 1.0}], "artifacts":
         {"mesh": "analysis/mesh.glb"}, "findings": [], "warnings": ["mac: ok"], "ok": True})
