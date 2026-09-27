@@ -1,0 +1,105 @@
+/* Buttons, cards, chips, panels, overlays. Touch targets are >= 3rem (72 px on the kiosk). */
+.btn { --bg: var(--cream); --fg: var(--ink); min-height: 4rem; padding: .5rem 1.8rem; border-radius: var(--r);
+  border: .2rem solid var(--ink); background: var(--bg); color: var(--fg); cursor: pointer;
+  font-family: var(--display); font-weight: 800; font-size: 1.45rem; line-height: 1.05;
+  display: inline-flex; align-items: center; justify-content: center; gap: .7rem;
+  box-shadow: 0 .45rem 0 var(--ink), 0 .9rem 1.4rem rgba(0,0,0,.35); transition: transform .08s, box-shadow .08s; }
+.btn:active, .btn.pressed { transform: translateY(.35rem); box-shadow: 0 .1rem 0 var(--ink), 0 .3rem .6rem rgba(0,0,0,.3); }
+.btn svg { width: 1.6em; height: 1.6em; flex: none; }
+.btn.big { min-height: 5.2rem; font-size: 1.9rem; padding: .6rem 2.4rem; }
+.btn.sun { --bg: var(--sun); } .btn.magenta { --bg: var(--magenta); --fg: #fff; } .btn.green { --bg: var(--green); --fg: #fff; }
+.btn.turq { --bg: var(--turq); --fg: var(--ink); } .btn.red { --bg: var(--red); --fg: #fff; }
+.btn.ghost { --bg: transparent; --fg: var(--cream); border-color: var(--cream); box-shadow: none; }
+.btn.ghost:active { transform: scale(.97); }
+.btn[disabled] { opacity: .45; pointer-events: none; }
+
+/* big choice cards (home doors, methods, sign languages) */
+.choices { display: grid; gap: 2rem; grid-auto-flow: column; grid-auto-columns: 1fr; flex: 1; min-height: 0; }
+.choice { --c: var(--magenta); --fg: #fff; position: relative; border: .28rem solid var(--ink); border-radius: 1.6rem;
+  background: var(--c); color: var(--fg); cursor: pointer; text-align: left; padding: 2rem 2.2rem;
+  display: flex; flex-direction: column; justify-content: flex-end; gap: .6rem; overflow: hidden;
+  box-shadow: .8rem .8rem 0 var(--ink), .8rem .8rem 0 .28rem var(--cream); transition: transform .12s var(--ease); }
+.choice:active { transform: translate(.5rem, .5rem); box-shadow: .3rem .3rem 0 var(--ink), .3rem .3rem 0 .28rem var(--cream); }
+.choice::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 1.6rem;
+  background: repeating-conic-gradient(from 45deg, rgba(0,0,0,.28) 0 25%, transparent 0 50%) 0 0 / 1.6rem 1.6rem; }
+.choice .ico { width: 7rem; height: 7rem; margin-bottom: auto; margin-top: 1.4rem; }
+.choice .ico svg { width: 100%; height: 100%; }
+.choice .t { font-family: var(--display); font-weight: 800; font-size: 3rem; line-height: .95; }
+.choice .d { font-size: 1.35rem; opacity: .95; max-width: 30rem; }
+.choice .tag { position: absolute; top: 2.4rem; right: 2rem; font-family: var(--display); font-weight: 800;
+  font-size: 4.2rem; opacity: .9; }
+.choice.sun { --c: var(--sun); --fg: var(--ink); } .choice.turq { --c: var(--turq); --fg: var(--ink); }
+.choice.green { --c: var(--green); } .choice.orange { --c: var(--orange); --fg: var(--ink); }
+.choice.blue { --c: var(--blue); } .choice.red { --c: var(--red); }
+
+/* panels */
+.panel { background: var(--paper); color: var(--ink); border: .25rem solid var(--ink); border-radius: 1.3rem;
+  padding: 1.3rem 1.6rem; box-shadow: .6rem .6rem 0 var(--ink); min-height: 0; }
+.panel.dark { background: var(--ink-2); color: var(--cream); border-color: var(--cream); box-shadow: .6rem .6rem 0 rgba(0,0,0,.4); }
+.panel h3 { margin-bottom: .5rem; }
+.label { font-family: var(--display); font-weight: 800; font-size: .95rem; letter-spacing: .16em; text-transform: uppercase;
+  color: var(--magenta); }
+.panel.dark .label { color: var(--sun); }
+
+/* chips (language list, candidates, badges) */
+.chip { min-height: 3.4rem; padding: .3rem 1.2rem; border-radius: 99rem; border: .18rem solid var(--ink);
+  background: var(--cream); color: var(--ink); font-family: var(--display); font-weight: 800; font-size: 1.2rem;
+  cursor: pointer; display: inline-flex; align-items: center; gap: .6rem; box-shadow: 0 .3rem 0 var(--ink); }
+.chip:active { transform: translateY(.2rem); box-shadow: 0 .1rem 0 var(--ink); }
+.chip small { font-family: var(--body); font-weight: 400; font-size: .85rem; opacity: .75; }
+.chip.on { background: var(--sun); }
+.badge { display: inline-flex; align-items: center; gap: .4rem; padding: .15rem .8rem; border-radius: 99rem;
+  font-family: var(--display); font-weight: 800; font-size: .95rem; background: var(--ink); color: var(--cream); }
+.badge.sim { background: var(--warn); color: var(--ink); }
+.badge.ok { background: var(--ok); color: var(--ink); } .badge.bad { background: var(--bad); color: #fff; }
+
+/* progress: a woven band that fills */
+.weave { height: 2.2rem; border-radius: 99rem; border: .22rem solid var(--cream); background: rgba(0,0,0,.35);
+  overflow: hidden; position: relative; }
+.weave > i { position: absolute; inset: 0 auto 0 0; width: 0; background: var(--awayu);
+  background-size: 18rem 100%; transition: width .5s var(--ease); animation: slide 6s linear infinite; }
+@keyframes slide { to { background-position: 18rem 0; } }
+
+.spinner { width: 9rem; height: 9rem; }
+.spinner svg { width: 100%; height: 100%; animation: spin 7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.pulse { animation: pulse 1.6s ease-in-out infinite; }
+@keyframes pulse { 50% { transform: scale(1.06); } }
+
+/* overlays */
+.overlay { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center;
+  background: rgba(10,4,24,.78); backdrop-filter: blur(4px); animation: enter .25s both; }
+.sheet { background: var(--paper); color: var(--ink); border: .3rem solid var(--ink); border-radius: 1.6rem;
+  box-shadow: 1rem 1rem 0 var(--magenta); padding: 2rem 2.4rem; width: min(70rem, 92vw); max-height: 92vh; overflow: auto; }
+.sheet h2 { margin-bottom: .8rem; }
+.idle-box { text-align: center; }
+.idle-box .count { font-family: var(--display); font-weight: 800; font-size: 7rem; color: var(--magenta); line-height: 1; }
+.toast { position: fixed; left: 50%; bottom: 2.4rem; transform: translateX(-50%); z-index: 60; max-width: 60rem;
+  background: var(--sun); color: var(--ink); border: .22rem solid var(--ink); border-radius: 99rem;
+  padding: .7rem 1.6rem; font-family: var(--display); font-weight: 800; font-size: 1.3rem; box-shadow: 0 .4rem 0 var(--ink);
+  animation: rise .3s var(--ease) both; }
+.toast.error { background: var(--bad); color: #fff; }
+
+/* on-screen keyboard */
+.kbd { background: var(--ink-2); border-top: .3rem solid var(--sun); padding: .8rem 1rem 1rem; position: fixed; left: 0; right: 0;
+  bottom: 0; z-index: 70; display: grid; gap: .5rem; animation: rise .25s var(--ease) both; }
+.kbd .krow { display: flex; gap: .5rem; justify-content: center; }
+.kbd button { min-width: 4.6rem; height: 4.2rem; border-radius: .8rem; border: .15rem solid var(--ink);
+  background: var(--cream); color: var(--ink); font-family: var(--display); font-weight: 800; font-size: 1.7rem;
+  box-shadow: 0 .3rem 0 var(--ink); cursor: pointer; }
+.kbd button:active { transform: translateY(.2rem); box-shadow: 0 .1rem 0 var(--ink); background: var(--sun); }
+.kbd button.w2 { min-width: 8rem; font-size: 1.2rem; } .kbd button.w3 { min-width: 12rem; font-size: 1.2rem; }
+.kbd button.space { min-width: 30rem; } .kbd button.go { background: var(--green); color: #fff; min-width: 12rem; font-size: 1.3rem; }
+.kbd button.on { background: var(--sun); }
+.kbd .kout { display: flex; gap: 1rem; align-items: center; max-width: 100rem; margin: 0 auto .4rem; width: 100%; }
+.kbd .kout .field { flex: 1; min-height: 4.4rem; max-height: 9.5rem; overflow: auto; background: var(--paper); color: var(--ink);
+  border-radius: .9rem; padding: .6rem 1rem; font-size: 1.5rem; line-height: 1.3; white-space: pre-wrap; word-break: break-word; }
+.caret { display: inline-block; width: .12em; height: 1.1em; background: var(--magenta); vertical-align: -.15em;
+  animation: blink 1s steps(2) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+.kbd .ksuggest { display: flex; gap: .7rem; justify-content: center; min-height: 4.4rem; align-items: center; flex-wrap: nowrap;
+  overflow: hidden; }
+.kbd .ksuggest .chip { height: 4.4rem; min-height: 4.4rem; min-width: 0; flex: 1 1 0; flex-direction: row; align-items: center;
+  font-size: 1.15rem; line-height: 1.05; text-align: left; border-radius: 1rem; }
+.kbd .ksuggest .chip span { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.kbd .ksuggest .chip small { display: none; }

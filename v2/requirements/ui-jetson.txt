@@ -1,0 +1,10 @@
+# UI domain (kiosk server, printer/hologram clients, publishing) on the Jetson.
+# Install: uv pip install --python .venvs/ui/bin/python -r requirements-common.txt -r requirements/ui-jetson.txt
+# Everything the UI needs is already in requirements-common.txt (fastapi, uvicorn, python-multipart,
+# requests, numpy, pillow, opencv). Nothing extra is required here.
+#
+# On JetPack 6, the system OpenCV 4.x ships the Haar face/smile cascades used to pick the nicest
+# consent portrait; the opencv 5 wheels do not. Face detection is optional: without it the consent
+# still works (covering the camera = no), it just cannot prefer a smiling frame.
+#
+# System packages (apt, not pip): chromium-browser (kiosk), git (publishing), v4l-utils (camera check).

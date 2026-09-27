@@ -1,0 +1,111 @@
+/* Yachachiq kiosk — base: fonts, tokens, page frame. Designed for 1920x1080 touch, read from 1 m.
+   Everything is sized in rem; the root size follows the screen (24 px at 1920x1080). */
+@font-face { font-family: "Baloo 2"; font-weight: 600; font-display: swap;
+  src: url(../vendor/fonts/baloo-2-latin-600-normal.woff2) format("woff2");
+  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+@font-face { font-family: "Baloo 2"; font-weight: 600; font-display: swap;
+  src: url(../vendor/fonts/baloo-2-latin-ext-600-normal.woff2) format("woff2");
+  unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF; }
+@font-face { font-family: "Baloo 2"; font-weight: 800; font-display: swap;
+  src: url(../vendor/fonts/baloo-2-latin-800-normal.woff2) format("woff2");
+  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+@font-face { font-family: "Baloo 2"; font-weight: 800; font-display: swap;
+  src: url(../vendor/fonts/baloo-2-latin-ext-800-normal.woff2) format("woff2");
+  unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF; }
+@font-face { font-family: "Atkinson Hyperlegible"; font-weight: 400; font-display: swap;
+  src: url(../vendor/fonts/atkinson-hyperlegible-latin-400-normal.woff2) format("woff2");
+  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+@font-face { font-family: "Atkinson Hyperlegible"; font-weight: 400; font-display: swap;
+  src: url(../vendor/fonts/atkinson-hyperlegible-latin-ext-400-normal.woff2) format("woff2");
+  unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF; }
+@font-face { font-family: "Atkinson Hyperlegible"; font-weight: 700; font-display: swap;
+  src: url(../vendor/fonts/atkinson-hyperlegible-latin-700-normal.woff2) format("woff2");
+  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+@font-face { font-family: "Atkinson Hyperlegible"; font-weight: 700; font-display: swap;
+  src: url(../vendor/fonts/atkinson-hyperlegible-latin-ext-700-normal.woff2) format("woff2");
+  unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF; }
+
+:root {
+  /* woven palette: night-indigo cloth with saturated threads */
+  --ink: #160a31;  --ink-2: #251350;  --ink-3: #3a2170;
+  --cream: #fff3d6; --paper: #fffaf0;
+  --magenta: #e6007e; --red: #e3241b; --orange: #ff7a00; --sun: #ffc20e;
+  --green: #00a862; --turq: #00b5cc; --blue: #2d52e0; --clay: #b8562f;
+  --ok: #00c774; --warn: #ffb000; --bad: #ff3b3b;
+  --shadow: 0 .45rem 0 rgba(0,0,0,.45);
+  --r: 1.1rem;
+  --display: "Baloo 2", "Atkinson Hyperlegible", system-ui, sans-serif;
+  --body: "Atkinson Hyperlegible", system-ui, sans-serif;
+  --ease: cubic-bezier(.2,.85,.25,1);
+  --tocapu: repeating-conic-gradient(from 45deg, var(--sun) 0 25%, var(--magenta) 0 50%);
+  --awayu: linear-gradient(90deg, var(--magenta) 0 14%, var(--sun) 14% 17%, var(--green) 17% 31%, var(--cream) 31% 33%,
+           var(--orange) 33% 47%, var(--turq) 47% 61%, var(--sun) 61% 64%, var(--red) 64% 78%, var(--cream) 78% 80%,
+           var(--blue) 80% 100%);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: min(1.25vw, 2.2222vh); }          /* 24 px on the 1920x1080 kiosk */
+html, body { height: 100%; overflow: hidden; }
+body {
+  font-family: var(--body); font-size: 1.1rem; line-height: 1.35; color: var(--cream);
+  background:
+    repeating-linear-gradient(0deg, rgba(255,255,255,.028) 0 2px, transparent 2px 7px),
+    repeating-linear-gradient(90deg, rgba(0,0,0,.18) 0 1px, transparent 1px 5px),
+    radial-gradient(120% 90% at 85% 10%, var(--ink-3), var(--ink) 60%);
+  display: grid; grid-template-rows: 4.2rem 1fr 1.1rem;
+  -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+button, input { font: inherit; color: inherit; }
+img { display: block; max-width: 100%; }
+.hidden { display: none !important; }
+
+/* header */
+.top { display: flex; align-items: center; gap: 1.2rem; padding: 0 1.6rem; position: relative; z-index: 5;
+  background: linear-gradient(180deg, rgba(22,10,49,.9), rgba(22,10,49,.6)); }
+.top::after { content: ""; position: absolute; left: 0; right: 0; bottom: -.55rem; height: .55rem; background: var(--awayu); }
+.brand { display: flex; align-items: center; gap: .8rem; border: 0; background: none; cursor: pointer; }
+.brand svg { width: 2.9rem; height: 2.9rem; }
+.brand b { font-family: var(--display); font-weight: 800; font-size: 2.2rem; letter-spacing: -.01em; line-height: 1; }
+.brand small { display: block; font-size: .72rem; letter-spacing: .22em; text-transform: uppercase; color: var(--sun); }
+.top .spacer { flex: 1; }
+.langs { display: flex; gap: .35rem; background: rgba(255,255,255,.08); border-radius: 99rem; padding: .3rem; }
+.langs button { min-width: 3.4rem; min-height: 2.9rem; border-radius: 99rem; border: 0; background: none;
+  font-family: var(--display); font-weight: 800; font-size: 1.05rem; cursor: pointer; }
+.langs button[aria-pressed="true"] { background: var(--sun); color: var(--ink); }
+.dots { display: flex; gap: .5rem; align-items: center; font-size: .72rem; opacity: .85; }
+.dots i { width: .8rem; height: .8rem; border-radius: 50%; background: var(--bad); display: inline-block; }
+.dots i.on { background: var(--ok); } .dots i.mock { background: var(--warn); }
+.gear { width: 3.2rem; height: 3.2rem; border-radius: 50%; border: 0; background: rgba(255,255,255,.1); cursor: pointer;
+  display: grid; place-items: center; }
+.gear svg { width: 1.7rem; height: 1.7rem; }
+.home-btn { min-height: 3.2rem; padding: 0 1.2rem; border-radius: 99rem; border: .18rem solid var(--cream);
+  background: transparent; font-family: var(--display); font-weight: 800; font-size: 1.05rem; cursor: pointer;
+  display: flex; align-items: center; gap: .5rem; }
+.home-btn svg { width: 1.3rem; height: 1.3rem; }
+
+/* stage */
+main#stage { position: relative; min-height: 0; padding: 1.6rem 2rem 1.2rem; }
+.screen { position: absolute; inset: 1.6rem 2rem 1.2rem; display: flex; flex-direction: column; min-height: 0;
+  animation: enter .5s var(--ease) both; }
+.screen > * { animation: rise .55s var(--ease) both; animation-delay: calc(var(--i, 0) * 70ms + 60ms); }
+@keyframes enter { from { opacity: 0; } to { opacity: 1; } }
+@keyframes rise { from { opacity: 0; transform: translateY(1.6rem); } to { opacity: 1; transform: none; } }
+.foot { background: var(--tocapu) 0 0 / 1.1rem 1.1rem; opacity: .95; }
+
+h1, h2, h3 { font-family: var(--display); font-weight: 800; line-height: 1.02; letter-spacing: -.01em; }
+h1 { font-size: 3.6rem; } h2 { font-size: 2.5rem; } h3 { font-size: 1.5rem; }
+.kicker { font-family: var(--display); font-weight: 600; font-size: 1rem; letter-spacing: .24em; text-transform: uppercase;
+  color: var(--sun); }
+.lead { font-size: 1.35rem; max-width: 46rem; opacity: .92; }
+.muted { opacity: .7; }
+.row { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
+.grow { flex: 1; min-width: 0; min-height: 0; }
+.center { display: grid; place-items: center; text-align: center; }
+.bar-actions { display: flex; gap: 1rem; justify-content: flex-end; align-items: center; margin-top: auto; padding-top: 1rem; }
+.bar-actions .left { margin-right: auto; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important; }
+}

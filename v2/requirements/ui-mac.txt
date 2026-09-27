@@ -1,0 +1,1 @@
+# UI domain on the MacBook (development / demo in YQ_MOCK=1 mode): nothing beyond requirements-common.txt.

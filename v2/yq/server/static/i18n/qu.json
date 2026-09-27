@@ -1,0 +1,31 @@
+{
+  "_review": "ALL Quechua strings are a first draft by a non-speaker (Southern Quechua, Chanka-style spelling, 3 vowels). Review with a Quechua speaker before the competition (list in docs/ui.md). Missing keys fall back to Spanish.",
+  "home": "Qallariyman", "home_confirm": "¿Lluqsinki? huktawan llamiy",
+  "idle_title": "¿Kaypiraqchu kachkanki?", "idle_body": "Pantallata llamiy qatinaykipaq.",
+  "back": "Kutiy", "retry": "Huktawan", "go_home": "Qallariyman kutiy", "err_kicker": "Ay, imapas pantarqa",
+  "err_generic": "Imapas mana allinchu karqa. Huktawan ruwasun.",
+
+  "home_kicker": "Uyariq, siqiq, tariq robot", "home_title": "¡Allillanchu! ¿Imatam kunan ruwasun?",
+  "door_story": "Huk willakuyta willaway", "door_story_d": "Simiykiwan, makiykikunawan utaq qillqaspa. Ñuqam siqisaq.",
+  "door_scan": "Ñawpa kaqta qawasun", "door_scan_d": "Cajaman churay: imamanta ruwasqa kasqanta tarisun.",
+  "start": "Qallarisun",
+
+  "story_kicker": "Willakuyniyki", "method_title": "¿Imaynatam willakuyta munanki?",
+  "method_voice": "Simiywan", "method_voice_d": "Castellanopi, runasimipi, aymarapi utaq ima simipipas.",
+  "method_sign": "Makiykunawan (señas)", "method_text": "Qillqaspa",
+  "voice_lang_title": "¿Ima simipim rimanki?", "lang_auto": "Kikillanmanta riqsiy",
+  "tap_talk": "Llamiy hinaspa rimay", "listening": "Uyarichkaykim…", "done_talking": "Tukuniñam",
+  "transcribing": "Rimasqaykita qillqachkani…", "ready": "Chayllam", "type_title": "Willakuyniykita qillqay",
+  "lang_peru": "Perú suyupa siminkuna", "lang_other": "Huk simikuna",
+
+  "confirm_title": "¿Kaychu willakuyniyki?", "confirm_yours": "Willakuyniyki", "confirm_es": "Castellanopi",
+  "confirm_retell": "Huktawan willay", "confirm_fix": "Allichay", "confirm_yes": "¡Arí, willakuyniymi!",
+  "consent_title": "¿Willakuyniykita llapanwan rakinakusunchu?", "consent_yes": "Arí", "consent_no": "Manam, sulpayki",
+  "consent_thanks": "¡Añay, sulpayki!", "consent_private": "Allinmi",
+  "making_title": "Willakuyniykita siqichkani", "show_kicker": "¡Qaway!",
+  "done_title": "¡Tukunñam!", "finish": "Tukuy", "new_story": "Huk willakuyta willay",
+
+  "scan_intro_title": "Kaqniykita cajaman churay", "scan_start": "Qallariy", "scan_stop": "Sayachiy",
+  "scanning_title": "Kaqniykita qawachkani", "results_title": "Kaytam tarinchik", "new_scan": "Huk kaqta qawasun",
+  "tab_summary": "¿Imataq?", "tab_rti": "Kanchay", "tab_thermal": "Rupay", "tab_measure": "Tupuykuna"
+}

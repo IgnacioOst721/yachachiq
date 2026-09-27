@@ -129,13 +129,14 @@ A domain registers jobs with `jobs.register(kind, handler, heavy=True)`;
   downscaled by the Jetson); params `{"profile","analyses":[...],"lang":"spa_Latn"}` ->
   result = `ScanResult` as dict (artifact paths relative to the job's out/, which also
   contains the artifacts; the Jetson downloads them into `scans/<id>/analysis/`).
+  params may include `"context"` = `ScanRequest.context` (see §9).
 - job `identify` (also usable alone): files = images; params `{"measurements": [...], "notes"}` -> `Identification`
 
 ## 4. Scan folder layout (BOX-CAPTURE writes, BOX-ANALYSIS reads)
 
 ```
 scans/<scan_id>/
-  meta.json            {"scan_id","profile","analyses","started","finished","box":{firmware, platter_deg},
+  meta.json            {"scan_id","profile","analyses","context","started","finished","box":{firmware, platter_deg},
                         "cameras":{"A":{id, resolution, focus, exposure_us, gain, wb_k},...},
                         "calibration":{"intrinsics": "...", "extrinsics": "...", "rti_lights": "...", "thermal_reg": "..."},
                         "door_closed": true, "warnings": []}
@@ -210,3 +211,22 @@ plus the referenced images and WAV narration files.
 
 Both interfaces are proposals until Joaquín confirms; clients must be tolerant and
 have mocks.
+
+## 9. Visitor context for identification (added 2026-09-27, Ignacio's idea)
+
+Before the scan the kiosk asks, optionally, "¿Dónde lo encontraron?": a short free
+text (on-screen keyboard or voice dictation, any language) plus quick region chips
+(Costa norte, Costa central, Costa sur, Sierra norte, Sierra central, Sierra sur,
+Altiplano, Selva, Lima, Otro país, No sé). It travels as `ScanRequest.context`
+`{"found_where", "region_hint", "notes", "lang"}` → `meta.json["context"]` → job
+params `"context"`.
+
+Identification uses it as a CLUE, never as proof:
+1. Always identify from the object alone first (`Identification.image_only`).
+2. Parse the context into structured hints (country, region, site, altitude zone)
+   and apply a bounded soft prior to the retrieval voting (it may reorder close
+   candidates, it may not create a culture the images do not support).
+3. The VLM sees the context labelled "lugar reportado por el visitante; puede ser
+   incorrecto".
+4. Report `context_effect_es`: whether the place helped decide, changed nothing, or
+   contradicts what is seen (then the image wins and the UI says so).

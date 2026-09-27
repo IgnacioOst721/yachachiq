@@ -123,6 +123,10 @@ class ScanRequest:
     scan_id: str
     profile: str = "standard"      # one of SCAN_PROFILES
     analyses: list = field(default_factory=lambda: list(ANALYSES))
+    # What the visitor says about the object before the scan (optional, short, any language):
+    # {"found_where": "en una huaca cerca de Trujillo", "region_hint": "costa_norte", "notes": "", "lang": "spa_Latn"}
+    # It is a CLUE for identification, never proof: see Identification.context_effect_es.
+    context: dict = field(default_factory=dict)
 
 
 @dataclass
@@ -150,6 +154,10 @@ class Identification:
     similar: list = field(default_factory=list)        # [{"title","culture","date","museum","url","image","score"}]
     description_es: str = ""
     engine: str = ""
+    # How the visitor's context (ScanRequest.context) changed the answer, in Spanish, e.g.
+    # "El lugar ayudó a decidir entre Moche y Chimú" or "El lugar no coincide con lo que se ve; se priorizó la imagen".
+    context_effect_es: str = ""
+    image_only: Optional[dict] = None   # {"culture","period","material","confidence"} identified WITHOUT the context
 
 
 @dataclass
