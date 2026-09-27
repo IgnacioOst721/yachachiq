@@ -112,10 +112,11 @@ static void finish(bool stable) {
   int n = s_count < s_n ? s_count : s_n;
   JsonDocument d;
   d["id"] = s_id;
+  // the samples are in: give the fan back BEFORE replying, so the host never sees it still held
+  lightsHoldFan(false);
   if (n < 3) {
     protoError(s_id, "scale_timeout", "too few samples");
     s_op = 0;
-    lightsHoldFan(false);
     return;
   }
   double m, sig, drift;

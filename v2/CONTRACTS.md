@@ -122,7 +122,10 @@ A domain registers jobs with `jobs.register(kind, handler, heavy=True)`;
   result `{"image": "image.png", "attempts", "verified": {element: bool}, "score"}`
 - Python API on the Mac (owned by ART, used by BOX-ANALYSIS too):
   - `yq.macworker.models.llm.chat(messages: list[dict], max_tokens=800, json_mode=False, temperature=0.2) -> str`
-  - `yq.macworker.models.vlm.ask(images: list, prompt: str, max_tokens=600) -> str` (images: paths or PIL images)
+  - `yq.macworker.models.vlm.ask(images: list, prompt: str, max_tokens=600) -> str` (images: paths, PIL images
+    or numpy RGB arrays)
+  - Every MLX load, inference and unload in the worker runs on ONE thread: `yq.macworker.mlx_thread.run(fn)`
+    (ModelManager.get/unload already do it). Using MLX objects from another thread aborts the worker.
 
 ### 3.3 Box analysis (`routes_box.py`)
 - job `scan_analyze`: files = the scan folder zipped as `scan.zip` (layout §4, images may be
@@ -144,7 +147,9 @@ scans/<scan_id>/
   photogrammetry/      camA_000.jpg camA_010.jpg ... camB_000.jpg ...  (angle in degrees, 3 digits)
                        background_camA.jpg background_camB.jpg (empty platter, same settings, when available)
                        poses.json {"camA_000.jpg": {"platter_deg": 0.0}, ...}
-  rti/                 led1.jpg ... led8.jpg, ambient.jpg (all lights off), lights.json (index, position_mm, direction)
+  rti/                 led1.jpg ... led8.jpg, ambient.jpg (all lights off), lights.json = a JSON LIST of the 8
+                       lights [{"index","channel","position_mm","direction",...}] (readers also accept the older
+                       {"camera","platter_deg","lights":[...]} dict; the RTI camera is BOX_RTI_CAMERA, default B)
   uv/                  uv.jpg (UV LED only), visible.jpg (COB only), dark.jpg (all off), exposure.json
   thermal/             sequence.npy (T x 120 x 160 float32, degrees C), times.npy (s), meta.json
                        {"heat_on_s","heat_off_s","halogen":"MR16 35W","ambient_c","fps"}

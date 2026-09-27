@@ -130,6 +130,13 @@ class CatalogIndex:
         d = cls.index_dir(model_key, root)
         return (d / "emb.npy").exists() and (d / "ids.json").exists()
 
+    @classmethod
+    def available(cls, root: Optional[Path] = None) -> list:
+        """Model keys that have a built index, best first (so400m > base)."""
+        d = catalog_dir(root) / "index"
+        keys = [p.name for p in d.iterdir() if p.is_dir() and cls.exists(p.name, root)] if d.is_dir() else []
+        return sorted(keys, key=lambda k: (0 if "so400m" in k else 1, k))
+
     _cache: dict = {}
 
     @classmethod

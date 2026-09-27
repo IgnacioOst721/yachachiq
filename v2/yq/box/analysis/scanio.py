@@ -107,7 +107,10 @@ def load_scan(folder: Path, validate: bool = True) -> Scan:
                 imgs[int(m.group(1))] = p
         amb = next((p for p in rti.glob("ambient.*")), None)
         if imgs:
-            s.rti = {"images": imgs, "ambient": amb, "lights": read_json(rti / "lights.json", {}) or {}}
+            lights = read_json(rti / "lights.json", {}) or {}
+            if isinstance(lights, list):      # CONTRACTS §4 / BOX-CAPTURE: a plain list of the 8 lights
+                lights = {"lights": lights}
+            s.rti = {"images": imgs, "ambient": amb, "lights": lights}
     uv = folder / "uv"
     if uv.is_dir():
         d = {k: next(iter(sorted(uv.glob(k + ".*"))), None) for k in ("uv", "visible", "dark")}

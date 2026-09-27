@@ -1,0 +1,29 @@
+# ONE environment for everything that runs on the Jetson (kiosk, voice, sign, box, drawing, light analyses).
+# JetPack 6.2 (Ubuntu 22.04, Python 3.10, CUDA 12.6). NOT VERIFIED YET: the Jetson arrives in November.
+#   sudo apt install -y libportaudio2 libsndfile1 alsa-utils v4l-utils chromium-browser git
+#   sudo usermod -aG dialout,video,audio $USER          (ESP32 serial, cameras, microphone; log out and in)
+#   uv venv --python 3.10 .venvs/jetson
+#   # 1) ONNX Runtime with CUDA + TensorRT from NVIDIA's Jetson AI Lab (NOT PyPI: PyPI's is CPU-only)
+#   uv pip install --python .venvs/jetson/bin/python onnxruntime-gpu==1.23.0 \
+#       --extra-index-url https://pypi.jetson-ai-lab.io/jp6/cu126
+#   # 2) everything else, keeping PyPI's CPU onnxruntime and the GUI opencv OUT (they would shadow 1)
+#   uv pip install --python .venvs/jetson/bin/python -r requirements-common.txt -r requirements/jetson.txt \
+#       --excludes requirements/jetson-excludes.txt
+#   .venvs/jetson/bin/python -c "import onnxruntime as o; print(o.get_available_providers())"
+#   -> must list TensorrtExecutionProvider and CUDAExecutionProvider
+# box
+pyserial==3.5
+# voice (Piper and Silero use the onnxruntime installed in step 1)
+sounddevice==0.5.6
+soundfile>=0.13
+piper-tts==1.8.0
+faster-whisper==1.2.1
+ctranslate2>=4.5,<5
+huggingface_hub>=0.34,<1.0
+# art (QR)
+segno>=1.6
+# light box analyses when the Mac is unreachable
+scipy>=1.8
+scikit-image>=0.19
+trimesh>=4.0
+fast-simplification>=0.1

@@ -11,6 +11,7 @@
 """
 from __future__ import annotations
 
+import logging
 import math
 from collections import defaultdict
 from typing import Optional
@@ -18,6 +19,8 @@ from typing import Optional
 import numpy as np
 
 from . import settings
+
+log = logging.getLogger("yq.box.identify")
 from .taxonomy import (CULTURE_BY_NAME, MATERIAL_BY_NAME, MATERIAL_CLASSES_ES, OBJECT_TYPE_BY_NAME, REGIONS_ES,
                        TYPE_CLASSES_ES, format_period)
 
@@ -144,7 +147,8 @@ def ask_vlm(images: list, prompt: str) -> Optional[dict]:
         return None
     try:
         from yq.macworker.models import vlm
-    except Exception:
+    except Exception as e:
+        log.warning("VLM not importable here (%s): identification uses the catalog only", e)
         return None
     import json
     for attempt in range(2):
@@ -152,7 +156,8 @@ def ask_vlm(images: list, prompt: str) -> Optional[dict]:
             text = vlm.ask(images, prompt + ("" if attempt == 0 else "\nONLY the JSON object, nothing else."),
                            max_tokens=settings.VLM_MAX_TOKENS)
             obj = json.loads(text[text.find("{"): text.rfind("}") + 1])
-        except Exception:
+        except Exception as e:                 # log it: a silent failure hid a bug on 2026-09-27
+            log.warning("VLM identification attempt %d failed: %s: %s", attempt + 1, type(e).__name__, e)
             continue
         if isinstance(obj, dict) and all(isinstance(obj.get(k), t) for k, t in VLM_FIELDS.items() if k in ("culture", "material")):
             return obj
@@ -320,6 +325,11 @@ def identify(images: list, measurements: Optional[list] = None, findings: Option
         r = mock_identification("Resultado simulado (modo de prueba YQ_MOCK): no se usó ningún modelo.")
         r["engine"] = "mock"
         return r
+    if not CatalogIndex.exists(key, catalog_root) and not model_key:
+        built = CatalogIndex.available(catalog_root)
+        if built:                          # query with the SAME model the catalog was embedded with
+            log.info("catalog index for %s missing; using %s", key, built[0])
+            key = built[0]
     if not CatalogIndex.exists(key, catalog_root):
         return mock_identification("No se pudo identificar: falta el catálogo de museos en esta computadora "
                                    "(tools/box_analysis_build_catalog.py).")

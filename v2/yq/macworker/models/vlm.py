@@ -71,7 +71,13 @@ def _prepare(images: Optional[list], max_side: int) -> list:
     from PIL import Image
     out = []
     for im in images or []:
-        if not hasattr(im, "convert"):
+        if hasattr(im, "shape") and hasattr(im, "dtype"):     # numpy RGB array (BOX-ANALYSIS passes these)
+            import numpy as np
+            a = np.asarray(im)
+            if a.dtype != np.uint8:
+                a = np.clip(a * (255.0 if a.max() <= 1.0 else 1.0), 0, 255).astype(np.uint8)
+            im = Image.fromarray(a[..., :3] if a.ndim == 3 else a)
+        elif not hasattr(im, "convert"):
             im = Image.open(str(im))
         im = im.convert("RGB")
         w, h = im.size

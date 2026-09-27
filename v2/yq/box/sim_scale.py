@@ -78,9 +78,12 @@ class ScaleMixin:
         op = self.scale_op
         rid, buf = op["id"], op["buf"]
         n = min(len(buf), op["n"])
+        # the samples are in: restore the fan BEFORE replying, so when the host gets the result the
+        # box is already back to normal (same order as the firmware's finish())
+        self._end_scale()
         if n < 3:
             self._err(rid, "scale_timeout", "too few samples")
-            return self._end_scale()
+            return
         win = buf[-n:]
         st = window_stats(win)
         f = self._factor_or_default()
@@ -107,5 +110,4 @@ class ScaleMixin:
                        "sigma_g": st.sigma / abs(f), "stable": stable, "samples": samples,
                        "tare_raw": self.offset, "tare_g": self.offset / self.factor, "factor": self.factor,
                        "raw_mean": st.mean})
-        self._end_scale()
 

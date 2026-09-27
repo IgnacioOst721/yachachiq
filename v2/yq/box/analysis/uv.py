@@ -19,6 +19,8 @@ MIN_ZONE_FRACTION = 0.004        # zones smaller than 0.4 % of the visible objec
 MIN_DELTA_E = 12.0               # CIELAB distance to the main surface
 MIN_RATIO = 1.6                  # or brightness ratio (brighter or darker) to the main surface
 SHADING_AREA_FRACTION = 0.2      # same-hue regions larger than this are lighting, not a different zone
+SAME_HUE_RATIO = 3.0             # a same-hue zone must glow >= 3x (or <= 1/3) to count: the curvature of a vessel
+                                 # (shoulder, rim, base) changes the UV irradiance by 1.5-2x and is NOT a zone
 
 
 def _load(scan, key, size=None):
@@ -111,7 +113,7 @@ def segment_zones(F: np.ndarray, mask: np.ndarray, n_segments: int = 400) -> dic
             continue
         dE, ratio = _stats(j)
         same_hue = dE < MIN_DELTA_E
-        if same_hue and (1 / MIN_RATIO < ratio < MIN_RATIO or areas[j] / tot > SHADING_AREA_FRACTION):
+        if same_hue and (1 / SAME_HUE_RATIO < ratio < SAME_HUE_RATIO or areas[j] / tot > SHADING_AREA_FRACTION):
             surface.add(j)
     # Everything else is anomalous. One physical zone often spans two clusters (its fluorescence
     # varies with the surface angle), so zones are the connected components of the UNION of the

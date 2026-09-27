@@ -80,3 +80,13 @@ def test_verify_asks_with_the_hint(monkeypatch):
     v = art_verify.verify(Image.new("RGB", (64, 90), "white"), ["condor", "llama"], culture="andean")
     assert "- condor: an Andean condor" in seen["prompt"] and "- llama: a llama" in seen["prompt"]
     assert v["verified"] == {"condor": True, "llama": True}
+
+
+def test_vlm_accepts_numpy_images():
+    """BOX-ANALYSIS passes numpy RGB arrays; the VLM only took paths/PIL and failed silently."""
+    import numpy as np
+    from yq.macworker.models.vlm import _prepare
+    a = np.zeros((40, 30, 3), np.uint8)
+    f = np.full((40, 30, 3), 0.5, np.float32)
+    out = _prepare([a, f], max_side=512)
+    assert [im.size for im in out] == [(30, 40), (30, 40)] and out[1].getpixel((0, 0)) == (127, 127, 127)

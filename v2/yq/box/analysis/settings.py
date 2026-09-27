@@ -4,7 +4,7 @@ from __future__ import annotations
 from yq.common.config import env
 
 # Image embedding model for the museum catalog (keys in embed.MODELS).
-EMBED_MODEL = env("BOX_EMBED_MODEL", "siglip2-so400m-384")
+EMBED_MODEL = env("BOX_EMBED_MODEL", "siglip2-base-384")   # the 14k catalog (and its evaluation) uses base
 # Allow Hugging Face downloads when a model is missing (development only; the robot runs offline).
 ALLOW_DOWNLOAD = env("BOX_ALLOW_DOWNLOAD", True)
 # Retrieval: neighbours used for voting and how many references are shown to the visitor.
