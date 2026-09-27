@@ -153,7 +153,11 @@ def translate_detail(text: str, src: str, tgt: str, engine: Optional[str] = None
     out = voice_terms.postedit(text, src_orig, " ".join(o for o in outs if o), tgt_orig)
     if voice_terms.degenerate(text, out):
         raise ValueError("translation %s -> %s with %s came out as garbage; not used" % (src_orig, tgt_orig, engine))
-    return {"text": out, "engine": engine, "verified": engine == "nllb",
+    from . import andean_lexicon           # NLLB loses animals/places in Quechua ("atuq" -> "un grupo")
+    fixed = andean_lexicon.llm_postedit(text, src_orig, out, tgt_orig)
+    postedited = fixed != out
+    out = fixed
+    return {"text": out, "engine": engine, "verified": engine == "nllb", "postedit": "glossary+llm" if postedited else "",
             "via": s if s != src_orig else (t if t != tgt_orig else "")}
 
 

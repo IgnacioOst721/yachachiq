@@ -89,7 +89,12 @@ def clean(text: str, lang: str = "spa_Latn") -> str:
 
 
 def _user_message(text: str, lang: str, text_es: str, text_en: str) -> str:
+    from . import andean_lexicon
     parts = ["Story language code: %s" % lang, "Story as told:\n%s" % text.strip()]
+    found = andean_lexicon.hits(text, lang)
+    if found:
+        parts.append("Dictionary meanings of words in the story (RELIABLE: when a machine translation disagrees, "
+                     "trust these):\n%s" % andean_lexicon.hint_lines(found))
     if text_es and text_es.strip() != text.strip():
         parts.append("Spanish translation (machine, may be imperfect):\n%s" % text_es.strip())
     if text_en and text_en.strip() != text.strip():

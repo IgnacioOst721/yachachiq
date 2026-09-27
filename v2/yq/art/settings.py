@@ -61,7 +61,8 @@ QR_ERROR = _e("QR_ERROR", "m")              # l / m / q / h. M (15 %) is plenty 
                                             # gives a smaller symbol (bigger modules, fewer strokes) than H
 QR_URL_FORMAT = _e("QR_URL_FORMAT", "{base}{story_id}/")  # base = config.PUBLIC_BASE_URL (publish writes <id>/index.html)
 TEXT_FONT = _e("TEXT_FONT", "futural")      # single-stroke Hershey font for the story text
-TITLE_FONT = _e("TITLE_FONT", "scripts")
+TITLE_FONT = _e("TITLE_FONT", "futuram")    # NOT "scripts": its capital Q reads as a 2 ("2hawaspa"), and Q is
+                                            # everywhere in Quechua titles. futuram = double-stroke, bolder than the text
 TEXT_MAX_MM = _e("TEXT_MAX_MM", 5.0)        # cap height of the story text (shrinks to fit)
 TEXT_MIN_MM = _e("TEXT_MIN_MM", 2.4)
 CREDIT = _e("CREDIT", "Dibujado por Yachachiq - Colegio FDR, Lima - WRO 2026")
