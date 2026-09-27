@@ -1,0 +1,6 @@
+# ART (drawing) extra dependencies on the Jetson (JetPack 6, Python 3.10).
+# Everything else (numpy, opencv-contrib-python-headless, pillow) is in requirements-common.txt.
+# Install:  uv pip install --python .venvs/art/bin/python -r requirements-common.txt -r requirements/art-jetson.txt
+# segno (BSD-3-Clause, pure Python) draws the QR matrix; without it yq.art.qr falls back to
+# OpenCV QRCodeEncoder, so this file is optional.
+segno>=1.6

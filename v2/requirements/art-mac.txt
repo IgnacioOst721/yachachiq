@@ -1,0 +1,9 @@
+# ART (drawing) extra dependencies on the MacBook M4 (Apple Silicon, macOS 14+).
+# Install:  uv pip install --python .venvs/art/bin/python -r requirements-common.txt -r requirements/art-mac.txt --excludes requirements/art-mac-excludes.txt
+# (--excludes keeps opencv-python out: requirements-common already has opencv-contrib-python-headless,
+#  which provides the same cv2 module plus ximgproc; having both breaks cv2.)
+mlx-lm==0.31.3
+mlx-vlm==0.7.3
+mflux==0.20.0
+torchvision==0.29.0   # transformers' Qwen-VL video processor needs it even for still images
+segno>=1.6
