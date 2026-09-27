@@ -1,0 +1,7 @@
+# BOX-CAPTURE on the Jetson (JetPack 6, Python 3.10), on top of ../requirements-common.txt.
+# System packages (apt, not pip):  sudo apt install v4l-utils     (v4l2-ctl: camera controls)
+# The user must be in the "dialout" group (ESP32 serial) and "video" group (cameras):
+#   sudo usermod -aG dialout,video $USER
+# NOTE: on the Jetson prefer the system OpenCV that ships with JetPack only if the pip
+# wheel from requirements-common.txt fails; the pip wheel includes the V4L2 backend.
+pyserial==3.5
