@@ -14,6 +14,7 @@ eviction the MLX / PyTorch caches are emptied so the memory really returns.
 from __future__ import annotations
 
 import gc
+import itertools
 import logging
 import threading
 import time
@@ -32,7 +33,7 @@ class _Entry:
     size_gb: float
     unloader: Optional[Callable[[Any], None]] = None
     obj: Any = None
-    last_used: float = 0.0
+    last_used: int = 0             # use order (monotonic counter; wall time ties on fast calls)
     load_seconds: float = 0.0
     meta: dict = field(default_factory=dict)
 
@@ -59,6 +60,7 @@ class ModelManager:
         self.budget_gb = budget_gb if budget_gb is not None else config.MAC_MODEL_BUDGET_GB
         self._entries: dict[str, _Entry] = {}
         self._lock = threading.RLock()
+        self._clock = itertools.count(1)
 
     def register(self, name: str, loader: Callable[[], Any], size_gb: float,
                  unloader: Optional[Callable[[Any], None]] = None, **meta) -> None:
@@ -91,7 +93,7 @@ class ModelManager:
                 e.obj = e.loader()
                 e.load_seconds = time.time() - t0
                 log.info("loaded %s in %.1f s", name, e.load_seconds)
-            e.last_used = time.time()
+            e.last_used = next(self._clock)
             return e.obj
 
     def unload(self, name: str) -> None:
