@@ -43,7 +43,7 @@ caja, impresora, holograma y la publicación (no toca GitHub).
 cd ~/yachachiq/v2 && .venvs/ui/bin/python -m pytest tests/ui
 ```
 
-49 pruebas (~20 s): las tres formas de contar una historia de punta a punta (voz, señas,
+Unas 60 pruebas (~25 s): las tres formas de contar una historia de punta a punta (voz, señas,
 texto) por el servidor real con WebSocket, el escaneo completo, errores con "Intentar otra
 vez", cancelar mientras algo está colgado, el reinicio por inactividad, la clave del menú,
 la impresora y el holograma contra sus servidores simulados (HTTP de verdad), y la
@@ -68,6 +68,7 @@ publicación en un **repositorio git temporal** (nunca el real ni GitHub).
 | `showtime` | El dibujo, la historia con subtítulos que avanzan con la narración, estado de impresora y holograma, "Saltar narración". |
 | `done` | QR grande, título, estado de la impresora, "Contar otra historia" / "Terminar". |
 | `intro` | 3 pasos para poner el objeto y el nivel de detalle (Rápido / Normal / Detallado). |
+| `context` | **Opcional:** "¿Dónde lo encontraron?": chips de zona (Costa norte … Selva, Lima, Otro país, No sé) y el lugar con sus palabras (Escribir con el teclado o Dictar con la voz; se muestra para confirmar). "Saltar" o "Continuar". |
 | `preflight`, `preflight_fail` | Revisando la caja; si algo falla, la lista de problemas y "Revisar otra vez". |
 | `scanning` | Plato con 48 fotos llenando un anillo, ángulo, luz actual, pasos, cámara térmica, "Detener". |
 | `stopping` | "Deteniendo la caja…" (se espera a que apague luces y calor). |
@@ -138,6 +139,13 @@ activando la etiqueta Quechua). Campos **nuevos** (la página actual los ignora)
 `title`, `lang`, `lang_name`, `source` (voice/sign/text), `sign_lang`, `sign_lang_name`,
 `text_es`, `qr_url`. Solo se sube: story.txt, scene_1.png, storyteller_photo.jpg e info.json.
 
+**El QR del papel.** ART imprime `PUBLIC_BASE_URL + story_id` (una ruta). Para que ese enlace
+funcione en GitHub Pages, al publicar también se escribe `docs/<story_id>/index.html`, una
+página mínima que redirige a la galería (`../#<fecha>_<id>`). Si el visitante **no** quiso
+publicar, el QR impreso (y el de la pantalla) apunta a la página general de la galería, sin
+historia: la pantalla le pide a ART `published=False` (si ART aún no acepta ese parámetro, la
+pantalla cambia `QR_URL_FORMAT` de ART a `{base}` solo durante ese dibujo).
+
 Primera vez en la Jetson (con internet):
 `git clone https://github.com/IgnacioOst721/yachachiq.git ~/yachachiq-archivo` y configurar
 el push (token o llave SSH) en ese clon.
@@ -178,7 +186,9 @@ Pantalla → servidor por el mismo WebSocket: `{"type":"activity"}` (alguien toc
   `choose_sign {code}`, `sign_accept {index}`, `sign_backspace`, `sign_space`, `sign_clear`,
   `sign_mode {mode}`, `sign_done`, `submit_text {text, lang}`, `confirm`, `edit_text {text}`,
   `retell`, `relang {code}`, `consent {publish}`, `skip_narration`, `finish`, `new_story`,
-  `choose_profile {profile}`, `start`, `stop_scan`, `new_scan`, `retry`, `back`, `home`.
+  `choose_profile {profile}`, `start`, `set_context {found_where?, region_hint?, lang?}`,
+  `dictate {ui_lang}`, `stop_dictation`, `continue {found_where, region_hint, lang?}`, `skip`,
+  `stop_scan`, `new_scan`, `retry`, `back`, `home`.
 - `POST /api/cancel` (volver al inicio), `POST /api/touch`.
 - `POST /api/kiosk/exit {password}` (403 con clave mala).
 - `GET /sign/preview.mjpeg` (y `.jpg`) desde `SignEngine.latest_jpeg()`;
@@ -224,8 +234,13 @@ cada línea** antes de la competencia; lo que no está traducido sale en españo
 | done_title | ¡Listo! | ¡Tukunñam! |
 | scan_intro_title | Pon tu objeto en la caja | Kaqniykita cajaman churay |
 | results_title | Esto descubrimos | Kaytam tarinchik |
+| ctx_title | ¿Dónde lo encontraron? | ¿Maypim tarirqanku? |
+| ctx_skip / ctx_continue | Saltar / Continuar | Pasay / Qatiy |
+| ctx_type / ctx_dictate | Escribir / Dictar | Qillqay / Rimay |
+| region_no_se / region_otro_pais | No sé / Otro país | Manam yachanichu / Huk suyu |
+| region_selva / region_altiplano | Selva / Altiplano | Sacha-sacha / Qullaw pampa |
 
-Lista completa en `qu.json` (59 claves). El resto (errores, menú ⚙, medidas) sale en español.
+Lista completa en `qu.json` (69 claves). El resto (errores, menú ⚙, medidas) sale en español.
 
 ## 10. Formato RTI (luz rasante) — PROPUESTA
 
@@ -248,6 +263,25 @@ el visor o convertir. Archivos en una carpeta (la ruta del `ptm.json` va en
 Nombres de `artifacts` que usa la pantalla (tolera otros parecidos): `model_glb` (.glb, en
 metros, Y arriba), `rti_ptm`, `uv_image`, `visible_image`, `uv_overlay`, `thermal_max`,
 `thermal_anomaly`, `photo_front`. `findings[].image` se muestra en la pestaña de su `analysis`.
+
+## 10b. "¿Dónde lo encontraron?" (CONTRACTS.md §9)
+
+Paso opcional entre `intro` y la revisión de la caja. Lo que diga el visitante viaja como
+`ScanRequest.context = {"found_where", "region_hint", "notes", "lang"}` (`found_where` máx.
+200 letras; `region_hint` uno de `costa_norte, costa_central, costa_sur, sierra_norte,
+sierra_central, sierra_sur, altiplano, selva, lima, otro_pais, no_se`; `lang` = idioma del
+dictado según la transcripción, o el idioma de la pantalla si lo escribió). "Saltar" manda `{}`.
+
+- **Dictar** usa `yq.voice` (Recorder + transcribe, máx. 25 s). Idioma: el de la pantalla
+  (ES → español, EN → inglés, QU → detección automática). Si falla, sale un aviso y se puede
+  repetir o escribir; nunca una pantalla de error (el paso es opcional).
+- **Es una pista, no una prueba.** En la ficha de resultados se muestra "Lugar según el
+  visitante", la frase `Identification.context_effect_es` y, si la respuesta solo con la
+  imagen (`image_only`) es otra, las dos: "Solo por la imagen: Moche (48 %) · Con el lugar:
+  Chimú (57 %)".
+- La caja simulada de la pantalla imita esto (costa norte ayuda, "Chan Chan" cambia a Chimú,
+  Selva/Altiplano/Otro país contradicen y gana la imagen) solo para probar; la de verdad la
+  hace BOX-ANALYSIS.
 
 ## 11. Impresora y holograma (propuesta para Joaquín)
 
@@ -290,7 +324,7 @@ desde el menú ⚙ se puede reimprimir después.
 
 ## 14. Números medidos
 
-- 49 pruebas automáticas en ~20 s (Mac M4, con otros procesos pesados corriendo).
+- Unas 60 pruebas automáticas en ~25 s (Mac M4, con otros procesos pesados corriendo).
 - Tiempos de la pantalla, medidos en modo simulado: cambiar de pantalla < 0,1 s;
   "Inicio" con un módulo colgado vuelve en < 2,5 s (prueba automática).
 - Escaneo simulado completo (perfil rápido): ~25 s con la Mac libre; con la Mac muy

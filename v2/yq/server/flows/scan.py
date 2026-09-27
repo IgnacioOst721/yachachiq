@@ -15,16 +15,17 @@ from yq.common import config
 from yq.common.contracts import SCAN_PROFILES, ScanRequest, new_id
 from yq.server import settings
 from yq.server.flows.base import Cancelled, Flow, FlowError
+from yq.server.flows.scan_context import ScanContextMixin
 from yq.server.flows.scan_watch import ScanWatcher, normalize_detail
 
 log = logging.getLogger("yq.server.scan")
 PROFILE_MINUTES = {"quick": 3, "standard": 8, "detailed": 15}
 
 
-class ScanFlow(Flow):
+class ScanFlow(ScanContextMixin, Flow):
     kind = "scan"
     first = "intro"
-    retry_map = {"preflight": "preflight", "scanning": "preflight", "results": "intro"}
+    retry_map = {"context": "context", "preflight": "preflight", "scanning": "preflight", "results": "intro"}
 
     def __init__(self, kiosk, profile: str = "standard"):
         super().__init__(kiosk)
@@ -36,6 +37,7 @@ class ScanFlow(Flow):
         self._scan_thread_done = threading.Event()
         self._scan_thread_done.set()
         self.immediate = {"stop_scan": lambda p: self.cancel("stopped")}
+        self.init_context()
 
     def on_cancel(self) -> None:
         self.box_cancel.set()
@@ -69,7 +71,7 @@ class ScanFlow(Flow):
                 self.profile = p["profile"]
                 self.update(selected=self.profile)
             elif name == "start":
-                return "preflight"
+                return "context"
 
     def s_preflight(self):
         self.show("preflight")
@@ -92,7 +94,7 @@ class ScanFlow(Flow):
     def s_scanning(self):
         self.scan_id = new_id("scan")
         self.box_cancel.clear()
-        req = ScanRequest(scan_id=self.scan_id, profile=self.profile)
+        req = ScanRequest(scan_id=self.scan_id, profile=self.profile, context=dict(self.context))
         self.show("scanning", scan_id=self.scan_id, profile=self.profile, weight_g=self.weight_g,
                   stage="starting", fraction=0.0, message_es="Preparando la caja…")
         last = {"stage": ""}
@@ -175,7 +177,7 @@ class ScanFlow(Flow):
             "scan_id": r.get("scan_id") or self.scan_id, "profile": r.get("profile"), "ok": r.get("ok", True),
             "duration_s": round((r.get("finished") or time.time()) - (r.get("started") or time.time())),
             "measurements": r.get("measurements") or [], "identification": ident, "findings": findings,
-            "warnings": r.get("warnings") or [], "artifacts": arts, "mock": mock,
+            "warnings": r.get("warnings") or [], "artifacts": arts, "mock": mock, "context": dict(self.context),
             "viewers": {
                 "model": pick("glb", "model", "mesh", ext=(".glb", ".gltf")),
                 "rti": pick("rti", "ptm", ext=(".json",)),

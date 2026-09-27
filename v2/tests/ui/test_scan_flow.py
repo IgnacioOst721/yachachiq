@@ -15,6 +15,8 @@ def _start_scan(client, events, profile="quick"):
     events.act("choose_profile", profile=profile)
     events.until(lambda m: m["type"] == "screen_update" and m["data"].get("selected") == profile, what="profile")
     events.act("start")
+    events.screen("context")
+    events.act("skip")                                  # the optional "¿Dónde lo encontraron?" step
     events.screen("preflight")
 
 

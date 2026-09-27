@@ -32,7 +32,7 @@ class MockArt:
     source = "mock:ui"
     fail = False                       # tests: make the next drawing fail
 
-    def make_drawing(self, story: StoryInput, out_dir: Path, on_progress=None) -> DrawingResult:
+    def make_drawing(self, story: StoryInput, out_dir: Path, on_progress=None, published: bool = True) -> DrawingResult:
         from yq.publish.gallery import story_url
         out_dir = Path(out_dir)
         out_dir.mkdir(parents=True, exist_ok=True)
@@ -52,7 +52,7 @@ class MockArt:
         _sleep(1.0)
         _emit(on_progress, "vectorizing", 0.85, "Convirtiendo el dibujo en trazos de lápiz…")
         _sleep(0.8)
-        qr = story_url(story.story_id)
+        qr = story_url(story.story_id) if published else config.PUBLIC_BASE_URL   # declined: general gallery
         title = " ".join((story.text_es or story.text).split()[:5]).rstrip(".,;:") + "…"
         A.write(out_dir / "front.svg", A.svg_paths(lines))
         A.write(out_dir / "back.svg", A.back_svg(title, story.text_es or story.text, qr))
@@ -98,6 +98,35 @@ MEASUREMENTS = [
 ]
 
 
+NORTH_COAST_WORDS = ("trujillo", "chiclayo", "lambayeque", "piura", "moche", "sipán", "sipan", "huaca", "chan chan")
+
+
+def identify_with_context(ctx: dict) -> dict:
+    """Mock of CONTRACTS §9: identify from the image first, then use the place only as a bounded clue."""
+    ident = dict(IDENTIFICATION)
+    image_only = {"culture": "Moche", "period": "100–800 d. C.", "material": ident["material_es"], "confidence": 0.48}
+    text = (ctx.get("found_where") or "").lower()
+    region = ctx.get("region_hint") or ""
+    if not text and region in ("", "no_se"):
+        ident.update(confidence=0.48, context_effect_es="", image_only=None)
+        return ident
+    ident["image_only"] = image_only
+    if "chan chan" in text or "chimú" in text or "chimu" in text:
+        ident.update(culture="Chimú", period="900–1470 d. C.", confidence=0.57, alternatives=[
+            {"culture": "Moche", "period": "100–800 d. C.", "confidence": 0.33,
+             "why": "La imagen se parece un poco más a Moche."}] + ident["alternatives"][1:],
+            context_effect_es="El lugar (Chan Chan) inclinó la balanza hacia Chimú: la imagen dudaba entre Moche y Chimú.")
+    elif region == "costa_norte" or any(w in text for w in NORTH_COAST_WORDS):
+        ident.update(confidence=0.62,
+                     context_effect_es="El lugar coincide con la costa norte y ayudó a decidir entre Moche y Chimú.")
+    elif region in ("selva", "altiplano", "otro_pais"):
+        ident.update(confidence=0.48,
+                     context_effect_es="El lugar no coincide con lo que se ve; se priorizó la imagen.")
+    else:
+        ident.update(confidence=0.48, context_effect_es="El lugar no cambió la respuesta.")
+    return ident
+
+
 class MockBox:
     source = "mock:ui"
     problems: list = []                # tests: preflight problems to report
@@ -116,6 +145,7 @@ class MockBox:
         res = ScanResult(scan_id=req.scan_id, folder=str(folder), profile=req.profile, started=started)
         A.write(folder / "meta.json", json.dumps({"scan_id": req.scan_id, "profile": req.profile,
                                                   "analyses": list(req.analyses), "started": started,
+                                                  "context": dict(getattr(req, "context", None) or {}),
                                                   "door_closed": True, "warnings": [], "source": "mock"}))
 
         def step(stage, frac, msg, secs, **detail):
@@ -186,7 +216,7 @@ class MockBox:
              "severity": "info", "image": ""},
         ]
         res.measurements = [dict(m) for m in MEASUREMENTS]
-        res.identification = dict(IDENTIFICATION)
+        res.identification = identify_with_context(getattr(req, "context", None) or {})
         res.warnings = ["Resultado SIMULADO (modo de prueba, sin caja real)."]
         _emit(on_progress, "done", 1.0, "¡Listo!")
         res.finished = time.time()

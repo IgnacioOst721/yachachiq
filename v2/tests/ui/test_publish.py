@@ -90,6 +90,10 @@ def test_publish_to_temp_repo_keeps_the_gallery_compatible(archive):
     assert (Path(config.STORIES_DIR) / "story-20260926-201500-ab12" / ".published").exists()
     assert sync.sync()["status"] == "nothing"
     assert "<title>Yachachiq" in remote_file(archive["origin"], "docs/index.html")     # page untouched
+    # ART prints PUBLIC_BASE_URL + story_id on the paper: a redirect page makes that URL work
+    redirect = remote_file(archive["origin"], "docs/story-20260926-201500-ab12/index.html")
+    assert 'url=../#2026-09-26_20-15-00_ab12' in redirect
+    assert not remote_file(archive["origin"], "docs/story-20260926-203000-cd34/index.html")   # private: nothing
 
 
 def test_gallery_page_parsing_of_v2_story_txt():

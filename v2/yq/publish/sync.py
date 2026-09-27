@@ -96,6 +96,9 @@ def _publish_once(repo: Path, stories_dir: Path, names: list) -> int:
                 shutil.copy2(src / f, dst / f)
         (dst / "info.json").write_text(json.dumps(gallery.info_json(_meta(src)), ensure_ascii=False, indent=1),
                                        encoding="utf-8")
+        redirect = repo / "docs" / name                  # the printed QR: PUBLIC_BASE_URL + story_id
+        redirect.mkdir(parents=True, exist_ok=True)
+        (redirect / "index.html").write_text(gallery.redirect_html(name), encoding="utf-8")
     (repo / "docs" / "stories.json").write_text(
         json.dumps(gallery.index(web), ensure_ascii=False, indent=1), encoding="utf-8")
     _git(["add", "-f", "docs"], repo, 30, check=True)      # -f: a stray .gitignore once hid every image

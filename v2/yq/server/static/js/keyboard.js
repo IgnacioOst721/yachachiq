@@ -42,6 +42,7 @@ export function openKeyboard(opts = {}) {
     if (k === "⌫") { text = text.slice(0, -1); }
     else if (k === "⇧") { shift = !shift; draw(); return; }
     else {
+      if (opts.max && text.length >= opts.max) return;
       const ch = shift && /\p{L}/u.test(k) ? k.toUpperCase() : k;
       text += ch;
       if (shift && /\p{L}/u.test(k)) shift = false;

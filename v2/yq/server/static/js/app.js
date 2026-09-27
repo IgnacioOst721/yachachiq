@@ -8,10 +8,11 @@ import { screens as home } from "./screens/home.js";
 import { screens as storyIn } from "./screens/story_input.js";
 import { screens as storyOut } from "./screens/story_output.js";
 import { screens as scan } from "./screens/scan.js";
+import { screens as scanCtx } from "./screens/scan_context.js";
 import { screens as results } from "./screens/results.js";
 import { screens as common } from "./screens/common.js";
 
-const SCREENS = Object.assign({}, home, storyIn, storyOut, scan, results, common);
+const SCREENS = Object.assign({}, home, storyIn, storyOut, scan, scanCtx, results, common);
 const cur = { key: "", name: "", flow: null, def: null, data: {}, offs: [] };
 let ws = null, bootId = null, lastActivity = 0;
 

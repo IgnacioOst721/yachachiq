@@ -17,6 +17,7 @@ from yq.common import config
 from yq.server import mocks, settings
 
 log = logging.getLogger("yq.server.adapters")
+_QR_LOCK = threading.Lock()
 
 
 def as_dict(obj: Any) -> Any:
@@ -204,8 +205,32 @@ class Art:
         self._impl = mod if mod is not None else mocks.MockArt()
         self.mode = "yq.art" if mod is not None else "mock:ui"
 
-    def make_drawing(self, story, out_dir, on_progress=None) -> dict:
-        return as_dict(self._impl.make_drawing(story, out_dir, on_progress=on_progress))
+    def make_drawing(self, story, out_dir, on_progress=None, published: bool = True) -> dict:
+        """published=False (visitor declined): the printed QR must point to the general gallery page.
+        Passed as a keyword when ART accepts it; otherwise ART's QR format is set to "{base}" for this call."""
+        import inspect
+        fn = self._impl.make_drawing
+        try:
+            takes = "published" in inspect.signature(fn).parameters
+        except (TypeError, ValueError):
+            takes = False
+        if takes:
+            return as_dict(fn(story, out_dir, on_progress=on_progress, published=published))
+        if published or self.mod is None:
+            return as_dict(fn(story, out_dir, on_progress=on_progress))
+        art_settings, _ = _imp("yq.art.settings")
+        with _QR_LOCK:                                   # one drawing at a time while the format is changed
+            old = getattr(art_settings, "QR_URL_FORMAT", None) if art_settings else None
+            if old is not None:
+                art_settings.QR_URL_FORMAT = "{base}"
+            try:
+                d = as_dict(fn(story, out_dir, on_progress=on_progress))
+            finally:
+                if old is not None:
+                    art_settings.QR_URL_FORMAT = old
+        if d and d.get("qr_url") and d["qr_url"].rstrip("/") != config.PUBLIC_BASE_URL.rstrip("/"):
+            log.warning("ART printed a story QR for a private story: %s", d.get("qr_url"))
+        return d
 
 
 class Box:

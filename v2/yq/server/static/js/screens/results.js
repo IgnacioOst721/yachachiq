@@ -2,6 +2,7 @@
 import { h, svg, api, tap, pct } from "../core.js";
 import { icons } from "../icons.js";
 import { t } from "../i18n.js";
+import { regionLabel } from "./scan_context.js";
 
 const TABS = [["summary", icons.sparkle], ["model", icons.cube], ["rti", icons.light], ["uv", icons.uv],
   ["thermal", icons.thermo], ["measure", icons.ruler]];
@@ -35,7 +36,7 @@ function summary(r) {
     h("div", { class: "conf" }, h("span", {}, t("id_conf")), h("div", { class: "meter" }, h("i", { style: { width: pct(c) + "%" } })),
       h("b", {}, pct(c) + "% · " + confWord(c))),
     id.description_es ? h("p", { class: "desc" }, id.description_es) : null);
-  const more = h("div", { class: "id-more" },
+  const more = h("div", { class: "id-more" }, placeBox(r.context || {}, id),
     h("div", { class: "label" }, t("id_evidence")), h("ul", {}, (id.evidence || []).map((e) => h("li", {}, e))),
     (id.alternatives || []).length ? h("div", { class: "label" }, t("id_alternatives")) : null,
     h("ul", { class: "alts" }, (id.alternatives || []).map((a) =>
@@ -44,7 +45,20 @@ function summary(r) {
     (id.similar || []).length ? h("div", { class: "similar" }, id.similar.slice(0, 3).map((x) => h("div", { class: "sim" },
       x.image && x.image.startsWith("/") ? h("img", { src: x.image, alt: "" }) : null,
       h("b", {}, x.title), h("small", {}, [x.culture, x.date, x.museum].filter(Boolean).join(" · "))))) : null);
-  return h("div", { class: "res-grid summary" }, photo, h("div", { class: "id-card panel" }, main, more));
+  return h("div", { class: "res-grid summary" + (photo ? "" : " no-photo") }, photo, h("div", { class: "id-card panel" }, main, more));
+}
+
+// the visitor's place is a clue: show it, what it changed, and the image-only answer when it differs
+function placeBox(ctx, id) {
+  const place = [ctx.found_where, regionLabel(ctx.region_hint)].filter(Boolean).join(" · ");
+  const io = id.image_only;
+  const differs = io && io.culture && io.culture !== id.culture;
+  if (!place && !id.context_effect_es && !differs) return null;
+  return h("div", { class: "ctx-box" },
+    place ? h("p", {}, h("b", {}, t("id_place") + ": "), place) : null,
+    id.context_effect_es ? h("p", { class: "effect" }, id.context_effect_es) : null,
+    differs ? h("p", { class: "compare" }, t("id_compare", { a: io.culture + " (" + pct(io.confidence) + "%)",
+      b: id.culture + " (" + pct(id.confidence) + "%)" })) : null);
 }
 
 function imagePair(a, b, la, lb, extra) {

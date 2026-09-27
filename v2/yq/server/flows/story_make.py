@@ -123,14 +123,15 @@ class StoryMakeMixin:
                 data["image"] = url + "?t=%d" % int(time.time() * 1000)
             self.update(**data)
 
-        d = self.call(self.sub.art.make_drawing, story, self.dir / "art", on_progress=progress,
+        public = bool(self.consent.get("publish"))
+        d = self.call(self.sub.art.make_drawing, story, self.dir / "art", on_progress=progress, published=public,
                       timeout=float(settings.DRAWING_TIMEOUT))
         if not d or not d.get("front_svg"):
             raise FlowError("No pude terminar el dibujo. Probemos otra vez.", "err_drawing", retry="making")
         self.drawing = d
         if d.get("image") and Path(d["image"]).exists():
             shutil.copy2(d["image"], self.dir / "scene_1.png")
-        self.qr_url = d.get("qr_url") or gallery.story_url(self.story_id)
+        self.qr_url = d.get("qr_url") or (gallery.story_url(self.story_id) if public else config.PUBLIC_BASE_URL)
         plan = self._read_plan()
         self.title = plan.get("title_es") or plan.get("title") or self._auto_title()
         self.summary_es = plan.get("summary_es", "")
@@ -273,7 +274,7 @@ class StoryMakeMixin:
 
     def s_done(self):
         public = bool(self.consent.get("publish"))
-        self.show("done", public=public, qr_url=self.qr_url if public else config.PUBLIC_BASE_URL,
+        self.show("done", public=public, qr_url=self.qr_url,
                   image=self.url("scene_1.png"), title=self.title, printer=self.print_status,
                   published={k: self.published.get(k) for k in ("status", "new")})
         name, _ = self.wait("finish", "new_story")

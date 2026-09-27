@@ -43,7 +43,7 @@ def test_activity_keeps_the_visitor_screen(client, events, monkeypatch):
 def test_cancel_while_a_subsystem_hangs(client, events, monkeypatch):
     hung = threading.Event()
 
-    def slow_drawing(story, out_dir, on_progress=None):
+    def slow_drawing(story, out_dir, on_progress=None, published=True):
         hung.set()
         time.sleep(30)                                    # a frozen Mac / generator
     monkeypatch.setattr(client.kiosk.sub.art, "make_drawing", slow_drawing)
@@ -163,7 +163,7 @@ def test_real_modules_plug_in_without_changes(monkeypatch, fast):
     drawing.make_drawing = make_drawing
     scan = types.ModuleType("yq.box.scan")
     scan.preflight = lambda: {"ok": True, "problems_es": [], "weight_g": 1.0}
-    scan.run_scan = lambda req, on_progress=None, cancel_event=None: calls.append(("scan", req.profile))
+    scan.run_scan = lambda req, on_progress=None, cancel_event=None: calls.append(("scan", req.profile, req.context))
     for name, mod in (("yq.voice.asr", asr), ("yq.art.drawing", drawing), ("yq.box.scan", scan)):
         monkeypatch.setitem(sys.modules, name, mod)
     from yq.common.contracts import ScanRequest, StoryInput
@@ -174,8 +174,8 @@ def test_real_modules_plug_in_without_changes(monkeypatch, fast):
     assert a.mode == "yq.art" and a.make_drawing(StoryInput("s1", "text", "x", "spa_Latn"), "/tmp")["front_svg"]
     b = adapters.Box()
     assert b.mode.startswith("yq.box") and b.preflight()["ok"]
-    b.run_scan(ScanRequest("x", "quick"))
-    assert calls == [("asr", "quy_Latn"), ("art", "s1"), ("scan", "quick")]
+    b.run_scan(ScanRequest("x", "quick", context={"region_hint": "selva"}))
+    assert calls == [("asr", "quy_Latn"), ("art", "s1"), ("scan", "quick", {"region_hint": "selva"})]
 
 
 @pytest.mark.parametrize("looks,vote,expected", [

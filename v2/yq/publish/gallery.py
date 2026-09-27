@@ -91,3 +91,13 @@ def index(web_dir: Path) -> list:
                 pass
         out.append(e)
     return out
+
+
+def redirect_html(story_id: str) -> str:
+    """docs/<story_id>/index.html: ART prints PUBLIC_BASE_URL + story_id on the paper QR (a path);
+    this tiny page sends that URL to the gallery, anchored at the story."""
+    target = "../#" + web_id(story_id)
+    return ('<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">'
+            '<meta http-equiv="refresh" content="0; url=%s"><title>Yachachiq</title>'
+            '<link rel="canonical" href="%s"></head><body><a href="%s">Ver la historia en el archivo de Yachachiq</a>'
+            '</body></html>\n' % (target, target, target))
