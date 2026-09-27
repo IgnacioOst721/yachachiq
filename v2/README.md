@@ -104,7 +104,7 @@ Medido:
 | Qué | Resultado |
 |---|---|
 | Voz en español, inglés y portugués | 2.4, 5.9 y 3.9 palabras mal de cada 100 |
-| Voz en quechua | 5 letras mal de cada 100 (28 a 32 palabras con algún error) |
+| Voz en quechua (Omnilingual LLM 1B) | Puno: 1.2 letras / 10 palabras mal de cada 100; chanka: 3 / 22.7 |
 | Letras LSP / ASL con personas nuevas | 95 % / 94 % (la correcta está entre 3 opciones el 99.6 % de las veces) |
 | Identificar la cultura (catálogo, sin modelo de visión) | 65.5 % a la primera, 81 % entre 3 |
 | Identificar el material | 85.6 % / 96.8 % |

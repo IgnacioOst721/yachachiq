@@ -58,3 +58,31 @@ def test_auto_sums_quechua_varieties_before_deciding():
     assert p.lang == "quz_Latn" and p.engines == [O]
     assert vr.lang_group("qxp_Latn") == vr.lang_group("quy_Latn") == "quechua"
     assert vr.lang_group("ayr_Latn") == "aymara" and vr.lang_group("spa_Latn") == "spa_Latn"
+
+
+def test_known_quechua_uses_the_llm_model_then_ctc(monkeypatch):
+    """Visitor picked Quechua: Omnilingual LLM 1B first (much more accurate), CTC 1B as fallback."""
+    import numpy as np
+    from yq.macworker import routes_voice as RV
+    from yq.voice import settings as S
+    tried = []
+
+    def fake_run(eng, x, lang, prompt):
+        tried.append(eng)
+        if eng == "omniasr-llm-1b":
+            raise RuntimeError("not downloaded")
+        return {"text": "ñawpa pachapi", "engine": eng, "confidence": 0.9}
+
+    class Reg:
+        @staticmethod
+        def registered():
+            return ["whisper-large-v3-turbo", "omniasr-llm-1b", "omniasr-ctc-1b"]
+
+    monkeypatch.setattr(RV, "run_engine", fake_run)
+    monkeypatch.setattr(RV, "MODELS", Reg)
+    monkeypatch.setattr(S, "MAC_OMNI_MODEL_KNOWN", "omniasr-llm-1b")
+    try:
+        RV.transcribe(np.zeros(16000, np.float32), "quy_Latn")
+    except Exception:
+        pass
+    assert tried[:2] == ["omniasr-llm-1b", "omniasr-ctc-1b"], tried

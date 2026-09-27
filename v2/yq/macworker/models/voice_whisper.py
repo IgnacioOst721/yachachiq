@@ -99,7 +99,10 @@ def weighted_confidence(segs: list) -> float:
 
 
 def load(name: str) -> WhisperMLX:
-    return WhisperMLX(name)
+    # created on the MLX thread, like every MLX object (tools that load it directly crashed with
+    # "no Stream(gpu, 1) in current thread" when inference then ran there)
+    from yq.macworker.mlx_thread import run
+    return run(WhisperMLX, name)
 
 
 def unload(obj: WhisperMLX) -> None:

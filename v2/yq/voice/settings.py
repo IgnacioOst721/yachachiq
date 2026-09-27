@@ -85,6 +85,9 @@ def whisper_cache() -> Path:
 # --- Mac worker (routes_voice.py) ------------------------------------------------------
 # Which models answer /asr on the Mac (see docs/voice.md for the measurements behind the defaults)
 MAC_WHISPER_MODEL = env("MAC_WHISPER_MODEL", "whisper-large-v3-turbo")   # measured = large-v3 accuracy, 2.5x faster, half the memory
+# known language (the visitor picked it): the LLM variant is far more accurate on Quechua (Puno WER 10.0 vs
+# 32.5 with CTC 1B, 2026-09-27) at RTF ~0.5 and 5.9 GB; CTC 1B stays as its fallback and for "auto"
+MAC_OMNI_MODEL_KNOWN = env("MAC_OMNI_MODEL_KNOWN", "omniasr-llm-1b")
 MAC_OMNI_MODEL = env("MAC_OMNI_MODEL", "omniasr-ctc-1b")              # or "omniasr-llm-1b", "omniasr-ctc-300m"
 MAC_MMS_LID = env("MAC_MMS_LID", True)                                # MMS-LID for languages Whisper lacks
 LID_WHISPER_MIN = env("LID_WHISPER_MIN", 0.60)    # trust Whisper's language guess above this (strong languages)

@@ -120,7 +120,12 @@ def transcribe(x: np.ndarray, lang: str = "auto", prompt: str = "") -> Transcrip
         ml = _safe(mms_lid, x) if (settings.MAC_MMS_LID and LID_MODEL in avail) else []
         plan = vr.plan_auto(wl, ml, whisper, omni, settings.LID_WHISPER_MIN, settings.LID_MMS_MIN, avail)
     else:
-        plan = vr.plan_for_language(lang, whisper, omni, avail)
+        known = settings.MAC_OMNI_MODEL_KNOWN or omni
+        if known not in avail:                     # precise model not installed here: the CTC one
+            known = omni
+        plan = vr.plan_for_language(lang, whisper, known, avail)
+        if known != omni and known in plan.engines and omni in avail:    # CTC 1B right after, as fallback
+            plan.engines.insert(plan.engines.index(known) + 1, omni)
     if not plan.engines:
         raise HTTPException(422, "no speech recognizer for language %r (%s)" % (lang, plan.reason))
     best, errors = None, []

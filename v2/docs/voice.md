@@ -154,17 +154,21 @@ Regenerar las tablas: `.venvs/voice/bin/python tools/voice_report.py`.
 |---|---|---|---|---|---|---|
 | FLEURS español (es-419) (30 frases, 6 min) | whisper-large-v3-turbo | 2.4 | 0.9 | 0.091 | 2.1 GB | 2 s |
 | FLEURS español (es-419) (30 frases, 6 min) | whisper-large-v3 | 2.5 | 0.9 | 0.227 | 4.7 GB | 2 s |
+| FLEURS español (es-419) (15 frases, 3 min) | omniasr-llm-1b | 2.8 | 0.8 | 0.796 | 8.8 GB | 27 s |
 | FLEURS español (es-419) (30 frases, 6 min) | omniasr-ctc-1b | 4.9 | 1.4 | 0.051 | 4.6 GB | 7 s |
 | FLEURS inglés (en-US) (30 frases, 5 min) | whisper-large-v3 | 5.7 | 2.5 | 0.258 | 4.7 GB | 2 s |
 | FLEURS inglés (en-US) (30 frases, 5 min) | whisper-large-v3-turbo | 5.9 | 3.0 | 0.099 | 2.1 GB | 2 s |
+| FLEURS inglés (en-US) (15 frases, 2 min) | omniasr-llm-1b | 6.2 | 2.8 | 0.862 | 8.8 GB | 27 s |
 | FLEURS inglés (en-US) (30 frases, 5 min) | omniasr-ctc-1b | 11.0 | 4.0 | 0.052 | 4.6 GB | 7 s |
 | FLEURS portugués (pt-BR) (30 frases, 7 min) | whisper-large-v3 | 3.8 | 1.1 | 0.231 | 4.7 GB | 2 s |
 | FLEURS portugués (pt-BR) (30 frases, 7 min) | whisper-large-v3-turbo | 3.9 | 1.2 | 0.075 | 2.1 GB | 2 s |
 | FLEURS portugués (pt-BR) (30 frases, 7 min) | omniasr-ctc-1b | 6.9 | 2.1 | 0.047 | 4.6 GB | 7 s |
+| Common Voice quechua de Puno (qxp) (15 frases, 1 min) | omniasr-llm-1b | 10.0 | 1.2 | 0.503 | 8.8 GB | 27 s |
 | Common Voice quechua de Puno (qxp) (30 frases, 2 min) | omniasr-ctc-1b | 32.5 | 5.0 | 0.070 | 4.6 GB | 7 s |
+| Quechua chanka (quy), lectura (15 frases, 2 min) | omniasr-llm-1b | 22.7 | 3.0 | 0.511 | 8.8 GB | 27 s |
 | Quechua chanka (quy), lectura (30 frases, 4 min) | omniasr-ctc-1b | 27.9 | 4.9 | 0.055 | 4.6 GB | 7 s |
 
-_Archivo: `~/yq-data/eval/voice/asr_20260927_0942.json` (2026-09-27 09:42)._
+_Archivo: `~/yq-data/eval/voice/asr_20260927_0942.json, asr_20260927_1721.json` (2026-09-27 09:42, 2026-09-27 17:21)._
 <!-- /EVAL:ASR -->
 
 **Qué significan estos números**
@@ -187,7 +191,16 @@ _(sin medición de detección automática)_
 ### 5.3 Traducción (FLORES-200 devtest, chrF++: más alto = mejor)
 
 <!-- EVAL:MT -->
-_(pendiente: correr tools/voice_eval_mt.py)_
+| Par | NLLB-200 1.3B chrF++ | MADLAD-400 3B chrF++ | NLLB s/frase | MADLAD s/frase |
+|---|---|---|---|---|
+| spa_Latn → quy_Latn | 26.3 | 24.3 | 0.94 | 1.89 |
+| quy_Latn → spa_Latn | 32.4 | 29.5 | 0.88 | 1.65 |
+| spa_Latn → ayr_Latn | 29.7 | 25.3 | 1.01 | 2.30 |
+| ayr_Latn → spa_Latn | 31.0 | 30.0 | 0.99 | 1.95 |
+| spa_Latn → eng_Latn | 60.0 | 60.7 | 0.88 | 1.69 |
+| eng_Latn → spa_Latn | 56.9 | 56.0 | 0.91 | 1.76 |
+
+_FLORES-200 devtest, 15 frases por par. Archivos: `~/yq-data/eval/voice/mt_20260927_1721.json` (2026-09-27 17:16)._
 <!-- /EVAL:MT -->
 
 Primera corrida (solo NLLB-200 distilled 1.3B int8, 100 frases por par, 2026-09-27; se cortó antes de
@@ -262,3 +275,13 @@ por conjunto) y corre las pruebas “heavy”; al terminar actualiza solas las t
 Ajustes (variables `YQ_...`, ver `yq/voice/settings.py`): `MAC_WHISPER_MODEL`, `MAC_OMNI_MODEL`,
 `MAC_MMS_LID`, `LID_WHISPER_MIN`, `LID_MMS_MIN`, `ASR_JETSON_MODEL`, `MIC_NAMES`, `VAD_*`,
 `PIPER_VOICE_OVERRIDES`, `YQ_MT_PREFERENCE`.
+
+### 5.5 Decisión (27 de septiembre): quechua y aimara con Omnilingual LLM 1B
+
+Con la lengua elegida por el visitante, la Mac usa **omniasr-llm-1b** (quechua de Puno: 10 palabras mal
+de cada 100 contra 32.5 del CTC 1B; chanka: 22.7 contra 27.9) y deja **omniasr-ctc-1b** como respaldo
+(y para "detectar automáticamente"). Probado por HTTP con voz real de Common Voice (quechua de Puno):
+dos frases perfectas y una con una letra distinta, **2.8 s por frase** después de cargar. La primera
+carga tarda unos 25 s: si esperas muchos visitantes quechuahablantes, pon
+`YQ_MAC_PRELOAD=whisper-large-v3-turbo,omniasr-llm-1b` al prender la Mac (el planificador cargará al
+primer dibujo). Para volver al modelo rápido: `YQ_MAC_OMNI_MODEL_KNOWN=omniasr-ctc-1b`.
