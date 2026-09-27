@@ -17,9 +17,10 @@ def available() -> list:
     """-> [{"code","name_es","letters": bool,"words": int}] for every sign language, from the
     models actually present on disk (MODELS_DIR/sign or the versioned yq/sign/models)."""
     from . import modelstore
+    from .letters import letter_model_lang
     out = []
     for code, name in LANGS.items():
-        letters = modelstore.find_model("letters_%s.npz" % code) is not None
+        letters = modelstore.find_model("letters_%s.npz" % letter_model_lang(code)) is not None
         words = 0
         meta = modelstore.find_model("words_%s.json" % code)
         if meta is not None and modelstore.find_model("words_%s.onnx" % code) is not None:

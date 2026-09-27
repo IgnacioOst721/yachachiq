@@ -33,8 +33,18 @@ from . import modelstore
 MOTION_LETTERS = {
     "ase": {"j": (("i", "j"), 20), "z": (("z", "d", "x", "g"), 8)},
     "prl": {"j": (("i", "j"), 20), "z": (("z", "d", "x", "g"), 8), "ñ": (("n",), 0)},
-    "ils": {},
+    "ils": {"j": (("i", "j"), 20), "z": (("z", "d", "x", "g"), 8)},   # same one-handed alphabet as ASL
 }
+# International Sign has no open fingerspelling dataset; its one-handed manual alphabet is practically
+# ASL's (Ignacio's decision, 2026-09-27). A team-trained letters_ils.npz, if it ever exists, wins.
+LETTER_MODEL_SOURCE = {"ils": "ase"}
+
+
+def letter_model_lang(lang: str) -> str:
+    """Which trained letter model a sign language uses (its own, else its source)."""
+    if modelstore.find_model("letters_%s.npz" % lang) is not None:
+        return lang
+    return LETTER_MODEL_SOURCE.get(lang, lang)
 CONTROL_LABELS = ("SPACE", "BACK")
 
 
@@ -56,7 +66,7 @@ class LetterClassifier:
 
     @classmethod
     def load(cls, lang: str, path: Optional[Path] = None) -> "LetterClassifier":
-        p = Path(path) if path else modelstore.find_model("letters_%s.npz" % lang)
+        p = Path(path) if path else modelstore.find_model("letters_%s.npz" % letter_model_lang(lang))
         if p is None or not Path(p).exists():
             raise FileNotFoundError("no letter model for %s (train with training/sign/train_letters.py)" % lang)
         meta = json.loads(Path(p).with_suffix(".json").read_text())
