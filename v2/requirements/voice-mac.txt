@@ -1,0 +1,38 @@
+# VOICE on the MacBook (M4, macOS 15, Python 3.10). Versions verified together on 2026-09-27.
+#   cd ~/yachachiq/v2
+#   ~/.local/bin/uv venv --python 3.10 .venvs/voice
+#   ~/.local/bin/uv pip install --python .venvs/voice/bin/python -r requirements-common.txt -r requirements/voice-mac.txt
+# No Homebrew needed: fairseq2's libsndfile comes from the soundfile wheel (see docs/voice.md).
+#
+# The Mac worker process itself (python -m yq.macworker.app) loads Whisper/MLX, MMS-LID, MMS-TTS and
+# NLLB/MADLAD in-process, so ITS Python needs at least: mlx, mlx-whisper, torch, transformers,
+# ctranslate2, sentencepiece, huggingface_hub, soundfile (uroman for non-Latin MMS voices).
+# Omnilingual ASR (fairseq2, which pins torch 2.8.0) always runs in a child process started with
+# .venvs/voice/bin/python (override: YQ_VOICE_PYTHON), so it never conflicts with the worker's torch.
+
+# Whisper on Apple silicon (MLX)
+mlx==0.32.2
+mlx-whisper==0.4.3
+# Meta Omnilingual ASR (pulls fairseq2 0.6); torch/torchaudio must match (2.8.0 both)
+omnilingual-asr==0.2.0
+fairseq2==0.6
+torch==2.8.0
+torchaudio==2.8.0
+# Translation (NLLB-200 / MADLAD-400 through CTranslate2, CPU int8)
+ctranslate2==4.8.2
+sentencepiece==0.2.2
+transformers==4.57.6
+huggingface_hub>=0.34,<1.0
+# Audio, VAD, TTS
+onnxruntime==1.23.2
+sounddevice==0.5.6
+soundfile==0.14.0
+piper-tts==1.8.0          # optional on the Mac (GPL-3.0-or-later); the Jetson uses it
+psutil>=5.9
+uroman==1.3.1.1           # romanizer for MMS-TTS voices of non-Latin scripts (MIT-style, cite Hermjakob et al.)
+# Measuring and building the language registry (tools/)
+jiwer==4.0.0
+sacrebleu==2.6.0
+pyarrow>=17
+babel==2.18.0
+faster-whisper==1.2.1     # optional on the Mac: only to test the Jetson fallback path (YQ_MOCK_MAC=1)

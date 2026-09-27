@@ -1,0 +1,15 @@
+# VOICE on the Jetson Orin Nano Super (JetPack 6, Ubuntu 22.04, Python 3.10).
+#   sudo apt install -y libportaudio2 libsndfile1 alsa-utils
+#   python3 -m venv ~/yachachiq/v2/.venvs/voice   (or uv, see docs/voice.md)
+#   pip install -r requirements-common.txt -r requirements/voice-jetson.txt
+# CPU-only pieces install from PyPI (aarch64 wheels exist for all of these):
+onnxruntime>=1.18          # Silero VAD + Piper (CPU is enough; GPU build: see docs/voice.md)
+sounddevice==0.5.6         # needs the apt package libportaudio2
+soundfile>=0.13            # needs the apt package libsndfile1
+piper-tts==1.8.0           # manylinux aarch64 wheel, espeak-ng embedded (GPL-3.0-or-later)
+faster-whisper==1.2.1      # local fallback ASR
+# NOTE: ctranslate2 from PyPI on aarch64 is CPU-only. For the GPU (large-v3-turbo on CUDA)
+# replace it with a CUDA build, e.g. the Jetson AI Lab wheel or the jetson-containers
+# faster-whisper image - exact commands and what is still unverified: docs/voice.md.
+ctranslate2>=4.5,<5
+huggingface_hub>=0.34,<1.0
