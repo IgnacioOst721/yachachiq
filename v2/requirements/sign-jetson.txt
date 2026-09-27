@@ -1,0 +1,9 @@
+# SIGN domain, Jetson Orin Nano Super (JetPack 6.2: CUDA 12.6, cuDNN 9.3, TensorRT 10.3, Python 3.10)
+# on top of requirements-common.txt. ONNX Runtime with CUDA + TensorRT must come from NVIDIA's
+# Jetson AI Lab index, NOT from PyPI (PyPI's aarch64 onnxruntime is CPU-only and would shadow it):
+#   pip install onnxruntime-gpu==1.23.0 --index-url https://pypi.jetson-ai-lab.io/jp6/cu126
+#   python -c "import onnxruntime as o; print(o.get_available_providers())"
+#   -> must list TensorrtExecutionProvider and CUDAExecutionProvider
+# If you ever `pip install onnxruntime` or rtmlib by mistake: pip uninstall onnxruntime, then reinstall the line above.
+# rtmlib is NOT needed on the Jetson (yq/sign/rtm.py has the same pre/post-processing).
+# Nothing else: numpy, opencv, pillow come from requirements-common.txt.

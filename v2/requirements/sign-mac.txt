@@ -1,0 +1,18 @@
+# SIGN domain, MacBook (development, training, recording). Python 3.10, on top of requirements-common.txt
+#   uv venv --python 3.10 .venvs/sign
+#   uv pip install --python .venvs/sign/bin/python -r requirements-common.txt -r requirements/sign-mac.txt
+# requirements-common.txt pins opencv-contrib-python-headless; rtmlib pulls opencv-python and
+# opencv-contrib-python too. Keep ONE OpenCV with GUI (the recorder opens a window):
+#   uv pip uninstall --python .venvs/sign/bin/python opencv-python opencv-contrib-python-headless
+#   uv pip install --python .venvs/sign/bin/python --reinstall opencv-contrib-python
+onnxruntime>=1.20          # CPU + CoreML execution providers on Apple silicon (tested 1.23.2)
+rtmlib==0.0.16             # reference implementation; only used by the parity test (Apache-2.0)
+torch>=2.4                 # training (MPS) and ONNX export (tested 2.14.0)
+onnx>=1.16                 # tested 1.23.0
+onnxscript>=0.1            # needed by torch.onnx.export in torch >= 2.9
+scikit-learn>=1.4          # cross-validation splits, v1 baseline
+pyarrow>=15                # ASL-HG / Kaggle parquet files
+pandas>=2.0                # Kaggle asl-signs parquet reader
+# Domain-gap study only, in a SEPARATE venv (mediapipe 0.10.21 needs numpy<2):
+#   uv venv --python 3.10 .venvs/sign-mediapipe
+#   uv pip install --python .venvs/sign-mediapipe/bin/python "mediapipe==0.10.21" pyarrow pillow
